@@ -1,0 +1,8 @@
+{
+  "ID": "LLMOfQud",
+  "Title": "LLM of Qud",
+  "Description": "Harness for LLM-driven autonomous play. Phase 0-A skeleton only — no runtime behavior yet beyond begin-turn logging.",
+  "Version": "0.0.1",
+  "Author": "pen3250",
+  "Tags": "automation, mod"
+}

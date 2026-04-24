@@ -1,0 +1,9 @@
+# Generated reports from harness check scripts
+reports/
+
+# macOS finder metadata
+.DS_Store
+
+# Logs (CoQ build_log.txt symlink target or dropped artifacts during testing)
+*.log
+**/*.log
