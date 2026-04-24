@@ -1,8 +1,13 @@
 # CODEOWNERS — llm-of-qud
-# All files are owned by the repo owner. Refine per-path as the team grows.
+# CodeRabbit (GitHub App, configured by .coderabbit.yaml) handles auto review
+# for every PR. The repo owner is intentionally NOT listed here to avoid
+# redundant review requests; approval still goes through branch protection.
+#
+# Install: visit coderabbit.ai → install GitHub App → select ToaruPen/llm-of-qud
 # See docs/ci-branch-protection.md for branch protection configuration.
 
-* @ToaruPen
+* @coderabbitai
 
-# Frozen spec: extra visibility for changes to frozen architecture files
-docs/architecture-v5.md @ToaruPen
+# Frozen spec: extra CodeRabbit attention to changes against the frozen
+# architecture file (see .coderabbit.yaml path_instructions for rules).
+docs/architecture-v5.md @coderabbitai
