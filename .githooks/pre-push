@@ -1,0 +1,16 @@
+#!/bin/sh
+set -eu
+
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [ -z "$ROOT" ]; then
+  exit 0
+fi
+
+cd "$ROOT"
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "[adr gate] BLOCKED: python3 is required." >&2
+  exit 1
+fi
+
+python3 scripts/check_adr_decision.py --mode push

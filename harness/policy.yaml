@@ -1,0 +1,59 @@
+version: 0.1
+status: draft
+enforcement_state: policy intent only; automated enforcement is not implemented yet.
+
+principles:
+  source_of_truth:
+    summary: Harness artifacts are the workflow source of truth.
+    rules:
+      - Treat `harness/` as authoritative for workflow design.
+      - Treat vendor-specific files as projections, not primary authorities.
+      - Do not let product specification drift into agent-control documents.
+
+  context_management:
+    summary: Prefer pointer-first static context and on-demand discovery.
+    rules:
+      - Keep always-on instruction files short and map-like.
+      - Store long command or tool outputs as files instead of prompt text.
+      - Pull detailed context from plans, ADRs, review specs, and durable artifacts only when needed.
+
+  rollout:
+    summary: Understand the target project first, then specialize the harness and its adapters.
+    rules:
+      - Start with the committed specialization record in `harness/manifest.yaml` before changing harness projections.
+      - Define vocabulary and policy before creating vendor adapters.
+      - Start with a partial compatibility matrix backed by evidence.
+      - Add wrappers or runtime helpers only when a concrete gap is demonstrated.
+
+  specialization:
+    summary: Template specialization follows project intake, not preset stack assumptions.
+    rules:
+      - Record domain understanding and stack selection in `harness/manifest.yaml`, and let stack choice follow researched project needs rather than template-default convenience.
+      - If a target codebase already exists, inspect it before introducing project-specific runtime elements such as hooks, traces, CI wiring, or wrappers.
+      - Record brief user-alignment notes in `harness/manifest.yaml` when stack or runtime choices are agreed during specialization.
+      - Adapt `harness/` artifacts after the project and stack are understood, not before.
+
+  adr:
+    summary: Architectural decisions should be logged explicitly when they change durable workflow or product boundaries.
+    rules:
+      - Create or update an ADR for boundary, dependency, error-policy, fallback, compatibility, security/privacy/payment, or performance-budget decisions.
+      - Keep ADRs as decision logs in `docs/adr/`, not as product behavior specifications.
+
+approval_gates:
+  - id: add-production-dependency
+    required: true
+    reason: Dependency additions change maintenance, licensing, and security posture.
+  - id: destructive-data-change
+    required: true
+    reason: Schema, migration, or data-destructive operations must be explicitly reviewed.
+  - id: production-access
+    required: true
+    reason: Production systems require separate operational controls.
+  - id: policy-exception
+    required: true
+    reason: Any exception to kernel policy must be logged as a deliberate decision.
+
+change_limits:
+  - Do not mark missing vendor capabilities as unsupported without evidence.
+  - Do not generate adapter files before their target capability set is reviewed.
+  - Do not treat ADRs as product behavior specifications.
