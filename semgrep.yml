@@ -1,0 +1,96 @@
+# semgrep.yml — llm-of-qud
+# Custom rules targeting AI-slop patterns not covered by ruff/mypy.
+# Only rules that can be defended are included; false-positive-prone patterns
+# are omitted. Run: semgrep --config semgrep.yml brain/
+#
+# Ref: https://semgrep.dev/docs/writing-rules/overview
+
+rules:
+  # ── SLOP-001: bare except with pass — silent failure ────────────────────────
+  # AI generates `except Exception: pass` or `except: pass` when it doesn't
+  # know how to handle an error. Ruff BLE001 catches broad except, but not the
+  # combination of broad except + pass specifically.
+  - id: bare-except-pass
+    patterns:
+      - pattern: |
+          try:
+              ...
+          except ...:
+              pass
+    message: |
+      Bare except with `pass` silently swallows errors. Either log the exception
+      with structlog, re-raise, or handle it explicitly. Add a `# noqa: BLE001`
+      with written justification only if swallowing is truly intentional.
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: reliability
+      rationale: AI-slop signal — placeholder error handling
+
+  # ── SLOP-002: `if True:` / `if False:` dead branches ────────────────────────
+  # AI uses these as "scaffolding" that never gets cleaned up.
+  - id: always-true-branch
+    pattern: if True:
+    message: "`if True:` is a dead branch — remove or replace with the real condition."
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: correctness
+      rationale: AI-slop signal — unconditional always-true branch
+
+  - id: always-false-branch
+    pattern: if False:
+    message: "`if False:` is dead code — remove it."
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: correctness
+      rationale: AI-slop signal — unconditional always-false branch
+
+  # ── SLOP-003: TODO/FIXME/HACK left in committed code ────────────────────────
+  # Ruff FIX covers this for Python code comments, but semgrep covers string
+  # literals and docstrings that ruff misses.
+  - id: todo-in-string
+    patterns:
+      - pattern: $X = "... TODO ..."
+      - pattern: $X = "... FIXME ..."
+      - pattern: $X = "... HACK ..."
+    message: |
+      TODO/FIXME/HACK found in a string literal. Create a GitHub issue and
+      remove the placeholder comment before merging.
+    languages: [python]
+    severity: WARNING
+    metadata:
+      category: maintainability
+      rationale: AI-slop signal — placeholder strings left in code
+
+  # ── SLOP-004: raise NotImplementedError as a stub ───────────────────────────
+  # AI generates method stubs with `raise NotImplementedError`. Acceptable only
+  # in abstract base classes; in concrete classes it's a placeholder.
+  - id: not-implemented-in-concrete
+    pattern: |
+      def $FUNC(...):
+          raise NotImplementedError(...)
+    message: |
+      `raise NotImplementedError` in a non-abstract method is an AI stub.
+      Implement the method or mark the class as ABC with @abstractmethod.
+    languages: [python]
+    severity: WARNING
+    metadata:
+      category: completeness
+      rationale: AI-slop signal — unimplemented concrete method
+
+  # ── SLOP-005: unused TypeVar ─────────────────────────────────────────────────
+  # AI declares TypeVars "for future use" but never uses them in function sigs.
+  # basedpyright catches some of these, but this rule is more explicit.
+  - id: unused-typevar-declaration
+    patterns:
+      - pattern: $T = TypeVar(...)
+    message: |
+      Verify this TypeVar is used in at least one function signature in this
+      module. Unused TypeVars are a common AI-slop scaffolding artifact.
+    languages: [python]
+    severity: INFO
+    metadata:
+      category: dead-code
+      rationale: AI-slop signal — TypeVar declared but potentially unused

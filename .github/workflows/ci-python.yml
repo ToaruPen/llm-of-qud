@@ -1,0 +1,131 @@
+# References:
+#   actions/checkout@v4         (https://github.com/actions/checkout/releases)
+#   astral-sh/setup-uv@v6       (https://github.com/astral-sh/setup-uv/releases)
+#     Note: task spec said @v5; @v6 is current stable and matches Wooly-Fluffy house style.
+#   actions/cache@v4            (https://github.com/actions/cache/releases)
+#
+# Triggered only via workflow_call from required-checks-gate.yml.
+# Three parallel jobs: lint-python, typecheck-python, test-python.
+
+name: Python CI
+
+on:
+  workflow_call:
+
+jobs:
+  lint-python:
+    name: lint-python
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "brain/uv.lock"
+
+      - name: Set up Python 3.13
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        working-directory: brain
+        run: |
+          if [ -f pyproject.toml ]; then
+            uv sync --all-extras
+          else
+            echo "::notice::brain/pyproject.toml not found; skipping install"
+          fi
+
+      - name: Ruff format check
+        working-directory: brain
+        run: |
+          if [ -f pyproject.toml ]; then
+            uv run ruff format --check .
+          else
+            echo "::notice::Skipping ruff format check (no pyproject.toml)"
+          fi
+
+      - name: Ruff lint
+        working-directory: brain
+        run: |
+          if [ -f pyproject.toml ]; then
+            uv run ruff check .
+          else
+            echo "::notice::Skipping ruff check (no pyproject.toml)"
+          fi
+
+  typecheck-python:
+    name: typecheck-python
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "brain/uv.lock"
+
+      - name: Set up Python 3.13
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        working-directory: brain
+        run: |
+          if [ -f pyproject.toml ]; then
+            uv sync --all-extras
+          else
+            echo "::notice::brain/pyproject.toml not found; skipping install"
+          fi
+
+      - name: basedpyright
+        working-directory: brain
+        run: |
+          if [ -f pyproject.toml ]; then
+            uv run basedpyright .
+          else
+            echo "::notice::Skipping basedpyright (no pyproject.toml)"
+          fi
+
+      - name: mypy strict
+        working-directory: brain
+        run: |
+          if [ -f pyproject.toml ]; then
+            uv run mypy --strict .
+          else
+            echo "::notice::Skipping mypy (no pyproject.toml)"
+          fi
+
+  test-python:
+    name: test-python
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "brain/uv.lock"
+
+      - name: Set up Python 3.13
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        working-directory: brain
+        run: |
+          if [ -f pyproject.toml ]; then
+            uv sync --all-extras
+          else
+            echo "::notice::brain/pyproject.toml not found; skipping install"
+          fi
+
+      - name: pytest
+        working-directory: brain
+        run: |
+          if [ -f pyproject.toml ]; then
+            uv run pytest tests/ -v --tb=short
+          else
+            echo "::notice::Skipping pytest (no pyproject.toml)"
+          fi

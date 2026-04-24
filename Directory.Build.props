@@ -1,0 +1,81 @@
+<!-- Directory.Build.props — llm-of-qud
+     Applies to any .csproj under this repo root (e.g., mod-ide/ side projects).
+     IMPORTANT: decompiled/Directory.Build.props overrides this for that subtree
+     and disables all analyzers there (decompiled/ is read-only game code).
+     Refs:
+       https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/overview
+       https://github.com/DotNetAnalyzers/StyleCopAnalyzers
+       https://github.com/meziantou/Meziantou.Analyzer
+       https://josefpihrt.github.io/docs/roslynator/
+-->
+<Project>
+  <PropertyGroup>
+    <!-- Nullable reference types — require explicit nullability on all code we write. -->
+    <Nullable>enable</Nullable>
+
+    <!-- NOTE: <ImplicitUsings> is .NET 6+ only; omitted because the MOD side
+         targets net40 via the CoQ Roslyn compiler. Side projects may override. -->
+
+    <!-- Enable all built-in .NET analyzers. -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+
+    <!-- AnalysisMode=All enables every CA rule as a build warning.
+         Individual rules are tuned below via .editorconfig dotnet_diagnostic.* -->
+    <AnalysisMode>All</AnalysisMode>
+
+    <!-- Enforce code-style (IDExxxx) rules on build CLI (not only in IDE). -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!-- Treat warnings as errors: all lint/analyzer violations block the build.
+         Noisy rules are dialled back in .editorconfig, not here. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <!-- Preserve CA warnings separate from -warnaserror, so we can distinguish
+         code-quality failures from compiler errors if needed. -->
+    <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
+
+    <!-- Rules that are unavoidably noisy in net40 or CoQ interop context.
+         These remain as warnings rather than errors. Add with justification. -->
+    <WarningsNotAsErrors>
+      <!-- CA1062: Validate arguments of public methods — CoQ callbacks pass
+           objects we can't null-guard without major restructuring. -->
+      CA1062;
+      <!-- CA1031: Do not catch general exception types — top-level system
+           error handlers need this temporarily until we add custom exception
+           types in Phase 2. -->
+      CA1031;
+      <!-- SA1633: File must have header — game mod files don't need headers. -->
+      SA1633
+    </WarningsNotAsErrors>
+  </PropertyGroup>
+
+  <!-- Third-party analyzer packages.
+       These are for IDE / type-check / CI side projects only (see mod/AGENTS.md).
+       The MOD itself is Roslyn-compiled by CoQ from .cs source at launch. -->
+  <ItemGroup>
+    <!-- Microsoft built-in quality analyzers (CA rules). -->
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="9.0.*">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+
+    <!-- StyleCop: SA rules for consistent formatting and documentation. -->
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.*">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+
+    <!-- Roslynator: structural simplification and dead-code detection. -->
+    <PackageReference Include="Roslynator.Analyzers" Version="4.*">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+
+    <!-- Meziantou: MA rules for missing error handling, NotImplementedException
+         placeholders, and empty blocks. -->
+    <PackageReference Include="Meziantou.Analyzer" Version="2.*">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,8 @@
+# CODEOWNERS — llm-of-qud
+# All files are owned by the repo owner. Refine per-path as the team grows.
+# See docs/ci-branch-protection.md for branch protection configuration.
+
+* @SankenBisha
+
+# Frozen spec: extra visibility for changes to frozen architecture files
+docs/architecture-v5.md @SankenBisha

@@ -1,0 +1,69 @@
+# References:
+#   actions/checkout@v4        (https://github.com/actions/checkout/releases)
+#   Reusable workflow fan-out: all leaf CIs expose on.workflow_call; this file
+#   is the ONLY file with pull_request/push triggers so jobs don't double-run.
+
+name: Required Checks Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: gate-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  ci-python:
+    name: Python CI
+    uses: ./.github/workflows/ci-python.yml
+
+  ci-cs:
+    name: C# CI
+    uses: ./.github/workflows/ci-cs.yml
+
+  ci-docs-and-governance:
+    name: Docs & Governance CI
+    uses: ./.github/workflows/ci-docs-and-governance.yml
+
+  ci-security:
+    name: Security CI
+    uses: ./.github/workflows/ci-security.yml
+
+  pre-commit:
+    name: Pre-commit meta
+    uses: ./.github/workflows/pre-commit.yml
+
+  gate:
+    name: required-checks-gate
+    runs-on: ubuntu-24.04
+    needs:
+      - ci-python
+      - ci-cs
+      - ci-docs-and-governance
+      - ci-security
+      - pre-commit
+    if: always()
+    steps:
+      - name: Evaluate all jobs
+        run: |
+          results=(
+            "ci-python:${{ needs.ci-python.result }}"
+            "ci-cs:${{ needs.ci-cs.result }}"
+            "ci-docs-and-governance:${{ needs.ci-docs-and-governance.result }}"
+            "ci-security:${{ needs.ci-security.result }}"
+            "pre-commit:${{ needs.pre-commit.result }}"
+          )
+          failed=0
+          for r in "${results[@]}"; do
+            name="${r%%:*}"
+            status="${r##*:}"
+            echo "  $name → $status"
+            if [[ "$status" != "success" && "$status" != "skipped" ]]; then
+              echo "::error::$name did not pass (result=$status)"
+              failed=1
+            fi
+          done
+          exit "$failed"

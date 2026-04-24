@@ -1,0 +1,58 @@
+{
+    // pyrightconfig.json — llm-of-qud / Python Brain
+    // Tool: basedpyright (strict mode)
+    // Ref: https://docs.basedpyright.com/latest/configuration/config-files/
+    "include": ["brain"],
+    "exclude": [
+        "decompiled",
+        "mod",
+        "agents",
+        ".venv",
+        "**/node_modules",
+        "**/__pycache__"
+    ],
+    "pythonVersion": "3.13",
+    "typeCheckingMode": "strict",
+
+    // ── reportUnused* — dead-code signals from AI-generated boilerplate ────────
+    // Unused imports are the #1 AI-slop indicator; treat as error.
+    "reportUnusedImport": "error",
+    // Unused variables created "for clarity" but never referenced.
+    "reportUnusedVariable": "error",
+    // Unused functions: AI generates helper stubs that never get called.
+    "reportUnusedFunction": "error",
+    // Unused parameters: AI keeps "future-proof" parameters with no callers.
+    "reportUnusedParameter": "error",
+    // Coroutine created but not awaited: silent runtime bug.
+    "reportUnusedCoroutine": "error",
+    // Expression result not used: common in AI code that "calls" but ignores.
+    "reportUnusedExpression": "error",
+    // except clause that can never be reached (shadowed by earlier handler).
+    "reportUnusedExcept": "error",
+
+    // ── reportUnnecessary* — redundant code that signals lack of understanding ─
+    // isinstance() with a type that is already guaranteed: AI defensive coding.
+    "reportUnnecessaryIsInstance": "error",
+    // Explicit cast to the same type: AI cargo-cults casts from unrelated code.
+    "reportUnnecessaryCast": "error",
+    // Comparison that is always true/false due to types: logical slop.
+    "reportUnnecessaryComparison": "error",
+    // `x in container` that is always true/false.
+    "reportUnnecessaryContains": "error",
+    // `# type: ignore` comment that suppresses no real error.
+    "reportUnnecessaryTypeIgnoreComment": "error",
+
+    // ── reportExplicit*/reportImplicit* — precision of type information ────────
+    // `Any` used explicitly: AI uses Any as an escape hatch.
+    "reportExplicitAny": "error",
+    // Implicit string concatenation: readability trap from AI line-splitting.
+    "reportImplicitStringConcatenation": "error",
+
+    // ── other quality flags ───────────────────────────────────────────────────
+    // Use of deprecated APIs: AI generates code from old training data.
+    "reportDeprecated": "warning",
+    // Access to private members across module boundaries.
+    "reportPrivateUsage": "error",
+    // Missing type stubs — warn only (some third-party pkgs have no stubs yet).
+    "reportMissingTypeStubs": "warning"
+}

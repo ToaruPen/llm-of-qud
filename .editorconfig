@@ -1,0 +1,98 @@
+# .editorconfig — llm-of-qud
+# Applies to all source files. Overrides are defined per-section below.
+# Refs:
+#   https://editorconfig.org/
+#   https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/overview
+
+root = true
+
+# ─── Universal ────────────────────────────────────────────────────────────────
+[*]
+charset = utf-8
+end_of_line = lf
+trim_trailing_whitespace = true
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+
+# ─── Python ───────────────────────────────────────────────────────────────────
+[*.py]
+indent_size = 4
+
+# ─── C# ───────────────────────────────────────────────────────────────────────
+[*.cs]
+indent_size = 4
+
+# ── Formatting (enforced by ruff-format / IDE on the C# side) ─────────────────
+dotnet_sort_system_directives_first = true
+csharp_new_line_before_open_brace = all
+csharp_indent_case_contents = true
+csharp_space_after_cast = false
+
+# ── IDE simplification rules (escalated to error-level warnings on build) ─────
+# IDE0001 – Simplify name: removes over-qualified fully-qualified names.
+dotnet_diagnostic.IDE0001.severity = warning
+# IDE0002 – Simplify member access: removes redundant this./base. qualifications.
+dotnet_diagnostic.IDE0002.severity = warning
+# IDE0004 – Remove unnecessary cast: redundant casts are common AI padding.
+dotnet_diagnostic.IDE0004.severity = error
+# IDE0005 – Remove unnecessary using directive: unused imports = AI slop.
+dotnet_diagnostic.IDE0005.severity = error
+# IDE0051 – Remove unused private member: dead private code left by AI.
+dotnet_diagnostic.IDE0051.severity = error
+# IDE0052 – Remove unread private member: written but never consumed.
+dotnet_diagnostic.IDE0052.severity = error
+# IDE0060 – Remove unused parameter: AI adds parameters "for future use".
+dotnet_diagnostic.IDE0060.severity = error
+# IDE0079 – Remove unnecessary suppression: stale #pragma suppress.
+dotnet_diagnostic.IDE0079.severity = warning
+# IDE0100 – Remove redundant equality: `x == true` patterns.
+dotnet_diagnostic.IDE0100.severity = error
+# IDE0110 – Remove unnecessary discard: pointless `_ =` assignments.
+dotnet_diagnostic.IDE0110.severity = warning
+
+# ── CA: code quality rules (requires EnableNETAnalyzers = true) ───────────────
+# CA1507 – Use nameof instead of string literal for symbol names.
+dotnet_diagnostic.CA1507.severity = warning
+# CA1822 – Mark member as static when `this` is unused: AI generates instance
+#           methods when static would do.
+dotnet_diagnostic.CA1822.severity = warning
+# CA1825 – Avoid zero-length array allocations: use Array.Empty<T>().
+dotnet_diagnostic.CA1825.severity = warning
+# CA2007 – Do not directly await a Task without ConfigureAwait: prevents deadlocks
+#           in library-like code; AI forgets this constantly.
+dotnet_diagnostic.CA2007.severity = error
+# CA2208 – Instantiate argument exceptions correctly: ArgumentNullException must
+#           use the correct parameter-name string.
+dotnet_diagnostic.CA2208.severity = error
+
+# ── SA: StyleCop (requires StyleCop.Analyzers NuGet reference) ─────────────────
+# SA1600 – Elements must be documented: skipped intentionally (private game mod,
+#           not a public API). Suppressed below to avoid noise.
+dotnet_diagnostic.SA1600.severity = none
+dotnet_diagnostic.SA1601.severity = none
+dotnet_diagnostic.SA1602.severity = none
+# SA1101 – Prefix local calls with `this`: off (conflicts with C# idioms).
+dotnet_diagnostic.SA1101.severity = none
+# SA1309 – Field names should not begin with underscore: off (industry norm).
+dotnet_diagnostic.SA1309.severity = none
+# SA1200 – Using directives placement: warn only.
+dotnet_diagnostic.SA1200.severity = warning
+
+# ── MA: Meziantou.Analyzer ────────────────────────────────────────────────────
+# MA0025 – Do not throw NotImplementedException: AI placeholder bodies.
+dotnet_diagnostic.MA0025.severity = error
+# MA0037 – Remove empty statement: empty braces / semicolons.
+dotnet_diagnostic.MA0037.severity = error
+# MA0090 – Remove empty else/finally block: AI often emits empty catch{}.
+dotnet_diagnostic.MA0090.severity = error
+# MA0140 – Identical if/else branches: copy-paste slop.
+dotnet_diagnostic.MA0140.severity = error
+
+# ─── YAML / TOML / JSON / Markdown ───────────────────────────────────────────
+[*.{yaml,yml,toml,json}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+indent_size = 2

@@ -1,0 +1,21 @@
+<!-- decompiled/Directory.Build.props
+     Overrides the root Directory.Build.props for decompiled/ only.
+     This directory is READ-ONLY game source (Assembly-CSharp); do not apply
+     project analyzers, nullable, or TreatWarningsAsErrors here.
+     See root AGENTS.md: "Reference-only source (DO NOT EDIT): decompiled/"
+-->
+<Project>
+  <!-- Disable all analyzers — we don't own this code. -->
+  <PropertyGroup>
+    <RunAnalyzers>false</RunAnalyzers>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <CodeAnalysisTreatWarningsAsErrors>false</CodeAnalysisTreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <!-- MSBuild stops at the first Directory.Build.props found walking upward;
+       the root props file is NOT inherited here. The RunAnalyzers=false above
+       is sufficient. No PackageReference Remove needed. -->
+
+</Project>

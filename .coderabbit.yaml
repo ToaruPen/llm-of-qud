@@ -1,0 +1,170 @@
+language: en-US
+tone_instructions: >-
+  Be direct and terse. Cite file:line for every suggested change. Prioritize
+  correctness of CoQ API usage, strict typing, and spec compliance over style.
+  Flag spec violations and missing citations aggressively. Never soften findings
+  with filler phrases. In the walkthrough, explicitly list any new TODO, FIXME,
+  or XXX comments introduced by the PR with their file:line location.
+early_access: false
+
+reviews:
+  profile: assertive
+  # request_changes_workflow: blocks merge until all CodeRabbit comments are
+  # resolved; human approval via branch protection is still required separately.
+  request_changes_workflow: true
+  high_level_summary: true
+  high_level_summary_in_walkthrough: false
+  review_status: true
+  commit_status: true
+  fail_commit_status: true
+  collapse_walkthrough: true
+  sequence_diagrams: false
+  poem: false
+  in_progress_fortune: false
+  enable_prompt_for_ai_agents: true
+
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    drafts: false
+
+  path_filters:
+    - "!decompiled/**"
+    - "!test-results/**"
+    - "!.claude/**"
+    - "!build_log.txt"
+    - "!*.log"
+    - "!reports/**/*.json"
+
+  path_instructions:
+    - path: "mod/LLMOfQud/**/*.cs"
+      instructions: >-
+        C# MOD source compiled by CoQ's Roslyn compiler at game launch — not prebuilt.
+        Enforce:
+        - Any new CoQ API reference (type, method, event) must cite a `decompiled/` path
+          and line number inline (e.g., `// decompiled/XRL/ModInfo.cs:757`). Flag
+          uncited API usage.
+        - Compile-phase log output must use `Logger.buildLog.Info(msg)` only. Runtime
+          info must use `MetricsManager.LogInfo(msg)` only (mod/AGENTS.md §Logging).
+          Flag any other logging call in either context.
+        - Flag any prebuilt `.dll` file added under `mod/LLMOfQud/`.
+        - Flag any `.csproj` file added inside `mod/LLMOfQud/` — a `.csproj` for IDE
+          must live outside that directory (mod/AGENTS.md §Roslyn Compile Model).
+        - Verify `BeginTakeActionEvent` is registered via
+          `Registrar.Register(SingletonEvent<BeginTakeActionEvent>.ID)` in
+          `RegisterPlayer()`. Subclassing `IPlayerSystem` alone is insufficient
+          (decompiled/XRL/WanderSystem.cs:57-60).
+        - HarmonyLib is bundled by CoQ; flag any attempt to redistribute it.
+
+    - path: "brain/**/*.py"
+      instructions: >-
+        Python 3.13 Brain; stack: uv, ruff, basedpyright + mypy strict, Pydantic v2,
+        websockets, aiosqlite, structlog (brain/AGENTS.md).
+        Enforce:
+        - All public symbols must carry full type annotations. Flag missing or `Any`
+          annotations in non-test production code.
+        - Pydantic models must use v2 API only. Flag any v1 patterns (e.g., `@validator`,
+          `class Config`).
+        - No bare `print()` in production paths under `brain/`. Logging must use
+          structlog.
+        - No wildcard imports (`from brain.somewhere import *`).
+        - New modules must cite a line range in `docs/architecture-v5.md:1838-1864`.
+          Flag modules added without a spec reference.
+        - Tool loop constants (`MAX_TOOL_CALLS_PER_TURN`, `TURN_TIMEOUT_S`,
+          `FORCE_ACTION_AFTER`, `AUTOACT_HARD_TIMEOUT_S`) must not be changed without a
+          matching spec update (brain/AGENTS.md §Tool Loop Constants).
+
+    - path: "docs/architecture-v5.md"
+      instructions: >-
+        This file is FROZEN at v5.9. Reject any diff unless the PR body explicitly
+        states "Amend v5.9" and links an ADR entry. Do not suggest edits; surface
+        contradictions to the PR author with the conflicting file:line pair.
+
+    - path: "docs/superpowers/plans/**/*.md"
+      instructions: >-
+        Plan files are frozen once merged. Any diff requires a new ADR entry in
+        `docs/adr/` referencing the plan filename. Flag any change that lacks that
+        cross-reference in the PR body.
+
+    - path: "docs/memo/**/*.md"
+      instructions: >-
+        Informational memos — no content restrictions. Check only that the filename
+        follows `<topic>-<YYYY-MM-DD>.md` (docs/AGENTS.md §Memo Naming Convention).
+
+    - path: "docs/adr/**/*.md"
+      instructions: >-
+        New ADR files must follow the shape defined in `docs/adr/0000-adr-template.md`.
+        Verify that each ADR contains: title, status, context, decision, and consequences
+        sections. Flag missing sections or references to non-existent file paths.
+        `docs/adr/decision-log.md` is append-only — flag any deletion or reordering of
+        existing entries.
+
+    - path: "harness/**/*.yaml"
+      instructions: >-
+        Harness YAML governs approval gates, structural rules, and completion oracles
+        (docs/AGENTS.md §ADR Workflow). Verify YAML is syntactically valid. Cross-check
+        any referenced script path against `scripts/` to confirm the target exists.
+        Flag changes to `harness/policy.yaml` or `harness/rules.yaml` that weaken an
+        existing gate without a corresponding ADR entry.
+
+    - path: "scripts/**"
+      instructions: >-
+        Repo governance and validation scripts; ADR-trigger path (docs/AGENTS.md §ADR
+        Workflow). Changes require justification in the PR body. Flag anything that
+        silently swallows errors, weakens quality gates, or makes ADR / spec compliance
+        easier to bypass.
+
+    - path: ".githooks/**"
+      instructions: >-
+        Git hook changes affect enforcement for all contributors. Require a justification
+        line in the PR body (e.g., "Hook change rationale: ..."). Flag PRs that omit it
+        or that disable secret scanning.
+
+    - path: ".pre-commit-config.yaml"
+      instructions: >-
+        Pre-commit configuration change. Require a justification line in the PR body.
+        Flag additions that disable existing hooks or weaken secret scanning.
+
+    - path: "Directory.Build.props"
+      instructions: >-
+        MSBuild props affect all C# compilation. Require a justification line in the PR
+        body. Flag changes that raise warning suppression or disable Roslyn analyzers.
+
+    - path: ".editorconfig"
+      instructions: >-
+        Editor config change. Require a justification line in the PR body. Flag changes
+        that conflict with ruff settings in `pyproject.toml` or with C# formatting
+        conventions in AGENTS.md.
+
+    - path: "pyproject.toml"
+      instructions: >-
+        Python project configuration; ADR-trigger path. Require a justification line in
+        the PR body. Flag dependency additions that conflict with brain/AGENTS.md §Tech
+        Stack or that duplicate libraries already bundled by CoQ.
+
+  tools:
+    shellcheck:
+      enabled: true
+    hadolint:
+      enabled: false
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  opt_out: false
+  learnings:
+    scope: auto
+  issues:
+    scope: auto
+  pull_requests:
+    scope: auto
+  code_guidelines:
+    filePatterns:
+      - "AGENTS.md"
+      - "mod/AGENTS.md"
+      - "brain/AGENTS.md"
+      - "docs/AGENTS.md"
+      - "scripts/AGENTS.md"
+      - "docs/architecture-v5.md"
+      - "docs/adr/**/*.md"

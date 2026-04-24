@@ -1,0 +1,154 @@
+# pyproject.toml — llm-of-qud / Python Brain
+# Applies to: brain/ only (decompiled/, mod/, agents/ are excluded)
+# Python: 3.13  |  Package manager: uv
+#
+# Rule documentation refs:
+#   ruff:  https://docs.astral.sh/ruff/rules/
+#   mypy:  https://mypy.readthedocs.io/en/stable/config_file.html
+#   vulture: https://github.com/jendrikseipp/vulture
+
+# No build-system block — this project is not packaged as a wheel.
+# uv manages the venv directly. See architecture-v5.md:1838-1864 for layout.
+
+[project]
+name = "llm-of-qud-brain"
+version = "0.1.0"
+description = "Python Brain for the LLM-of-Qud CoQ harness"
+requires-python = ">=3.13"
+dependencies = [
+  "pydantic>=2.0",
+  "httpx>=0.28",
+  "websockets>=16.0",
+  "aiosqlite>=0.20",
+  "structlog>=25.0",
+]
+
+[dependency-groups]
+dev = [
+  "ruff>=0.11",
+  "mypy>=1.15",
+  "basedpyright>=1.28",
+  "pytest>=8.4",
+  "pytest-asyncio>=0.23",
+  "pytest-cov>=6.0",
+  "vulture>=2.14",
+]
+
+# ─── ruff ─────────────────────────────────────────────────────────────────────
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+# Never run ruff on game code, decomp, or agent-side configs.
+extend-exclude = ["decompiled", "mod", "agents", ".venv"]
+
+[tool.ruff.lint]
+# Rule families enabled (each justified in docs/lint-policy.md):
+#   F    – pyflakes: undefined names, unused imports
+#   E/W  – pycodestyle errors and warnings
+#   I    – isort: import ordering
+#   UP   – pyupgrade: enforce Python 3.13 idioms
+#   ANN  – flake8-annotations: require type annotations
+#   B    – flake8-bugbear: common bugs and design problems
+#   BLE  – flake8-blind-except: blind except Exception
+#   C4   – flake8-comprehensions: unnecessary comprehension patterns
+#   C90  – mccabe cyclomatic complexity
+#   SIM  – flake8-simplify: redundant constructs
+#   PIE  – flake8-pie: misc quality
+#   TRY  – tryceratops: exception handling style
+#   ARG  – flake8-unused-arguments: unused function/method params
+#   ASYNC– flake8-async: async/await anti-patterns
+#   ERA  – eradicate: commented-out code (primary AI-slop signal)
+#   PGH  – pygrep-hooks: blanket type-ignore without code
+#   PLR  – pylint refactor: magic-number, too-many-*, cognitive complexity
+#   PLW  – pylint warning: useless expressions
+#   RUF  – ruff-specific: miscellaneous quality rules
+#   TCH  – flake8-type-checking: TYPE_CHECKING guard enforcement
+#   S    – flake8-bandit: security checks
+#   DTZ  – flake8-datetimez: timezone-aware datetime
+#   FBT  – flake8-boolean-trap: boolean positional args
+#   ISC  – flake8-implicit-str-concat: string concat
+#   T20  – flake8-print: leftover print() calls
+#   PERF – perflint: performance anti-patterns
+#   PT   – flake8-pytest-style: pytest idioms
+#   RET  – flake8-return: return consistency
+#   N    – pep8-naming: naming conventions
+#   FIX  – flake8-fixme: TODO/FIXME/HACK/XXX markers left in code
+select = [
+  "F", "E", "W", "I", "UP", "ANN", "B", "BLE", "C4", "C90", "SIM",
+  "PIE", "TRY", "ARG", "ASYNC", "ERA", "PGH", "PLR", "PLW", "RUF",
+  "TCH", "S", "DTZ", "FBT", "ISC", "T20", "PERF", "PT", "RET", "N",
+  "FIX",
+]
+# Intentionally excluded families:
+#   D   – docstring style (game harness, not a public API)
+ignore = ["D"]
+
+# Prevent auto-fix from silently removing what may be intentional code:
+unfixable = [
+  "ERA001",  # never auto-delete commented code — force human review
+  "PGH003",  # never auto-add type-ignore — require explicit code
+  "PGH004",  # same as above
+  "RUF100",  # unused noqa — keep visible until reviewed
+  "F401",    # unused import — could be re-export; review manually
+  "BLE001",  # broad except — only suppress with explicit justification
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests: assert is idiomatic; PLR2004 magic values common in fixture comparisons
+"brain/tests/**/*.py" = ["S101", "PLR2004", "ANN"]
+# Scripts: print output is intentional; complexity thresholds relaxed
+"scripts/*.py" = ["T201", "C901", "PLR0912", "PLR0914", "PLR0915", "S404", "S603", "S607"]
+
+[tool.ruff.lint.mccabe]
+# Complexity > 8 requires refactoring — AI tends to generate deeply nested logic.
+max-complexity = 8
+
+[tool.ruff.lint.pylint]
+# Functions with more than 10 args are over-parameterized AI slop.
+max-args = 10
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# ─── mypy ─────────────────────────────────────────────────────────────────────
+[tool.mypy]
+python_version = "3.13"
+
+# --strict enables:
+#   disallow_untyped_defs, disallow_incomplete_defs, check_untyped_defs,
+#   disallow_untyped_decorators, warn_redundant_casts, warn_unused_ignores,
+#   warn_return_any, no_implicit_reexport, strict_equality, extra_checks
+strict = true
+
+# Additional hardening beyond --strict:
+warn_unreachable = true          # catches unreachable code blocks (dead branches)
+disallow_any_explicit = true     # forbids explicit `Any` annotation — AI default
+disallow_any_unimported = true   # prevents implicit Any from missing stubs
+warn_unused_configs = true       # keeps this file clean
+
+exclude = "(decompiled|mod|agents)/"
+
+# Third-party stubs not yet available:
+[[tool.mypy.overrides]]
+module = ["aiosqlite", "structlog", "websockets.*"]
+ignore_missing_imports = true
+
+# ─── pytest ───────────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths = ["brain/tests"]
+asyncio_mode = "auto"
+addopts = "--strict-config --strict-markers"
+xfail_strict = true
+filterwarnings = [
+  "error",
+  # Add entries here as deps emit DeprecationWarnings at pinned versions.
+  # Example: "ignore:deprecated in 3.x:DeprecationWarning:structlog"
+]
+
+# ─── vulture ──────────────────────────────────────────────────────────────────
+[tool.vulture]
+paths = ["brain"]
+min_confidence = 80
+exclude = [".venv"]
+# Suppress legitimate "unused" items via .vulture_whitelist.py

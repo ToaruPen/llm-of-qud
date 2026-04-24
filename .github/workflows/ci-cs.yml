@@ -1,0 +1,69 @@
+# References:
+#   actions/checkout@v4           (https://github.com/actions/checkout/releases)
+#   actions/setup-dotnet@v4       (https://github.com/actions/setup-dotnet/releases)
+#
+# Phase 0 skip logic: C# MOD is Roslyn-compiled by CoQ at game launch.
+# CI cannot run the game. This job only runs Roslyn/analyzer probes on
+# side projects (netstandard2.0+) if .csproj files exist under mod/.
+#
+# Triggered only via workflow_call from required-checks-gate.yml.
+
+name: C# CI
+
+on:
+  workflow_call:
+
+jobs:
+  lint-cs:
+    name: lint-cs
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect .csproj files
+        id: detect
+        run: |
+          if compgen -G "mod/**/*.csproj" > /dev/null 2>&1; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::.csproj files detected; running C# build-check"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No .csproj files found under mod/; skipping C# build-check (Phase 0)"
+          fi
+
+      - name: Detect Directory.Build.props wiring
+        id: detect-props
+        if: steps.detect.outputs.found == 'true'
+        run: |
+          if [ -f "Directory.Build.props" ]; then
+            echo "props=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "props=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Directory.Build.props not found; skipping .NET setup"
+          fi
+
+      - name: Setup .NET SDK
+        if: steps.detect.outputs.found == 'true' && steps.detect-props.outputs.props == 'true'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.x"
+
+      - name: Restore NuGet packages
+        if: steps.detect.outputs.found == 'true' && steps.detect-props.outputs.props == 'true'
+        run: dotnet restore mod/
+
+      - name: Build (analyzers only, no game runtime)
+        if: steps.detect.outputs.found == 'true' && steps.detect-props.outputs.props == 'true'
+        run: |
+          dotnet build mod/ \
+            --no-restore \
+            --configuration Release \
+            /p:TreatWarningsAsErrors=true \
+            /p:WarningLevel=5
+
+      - name: Skip summary
+        if: steps.detect.outputs.found == 'false'
+        run: |
+          echo "C# lint-cs skipped: no .csproj files present."
+          echo "Enable by adding a netstandard2.0 side project under mod/ with Directory.Build.props."
+          exit 0

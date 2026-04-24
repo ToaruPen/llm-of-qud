@@ -7,3 +7,14 @@ reports/
 # Logs (CoQ build_log.txt symlink target or dropped artifacts during testing)
 *.log
 **/*.log
+
+# Proprietary decompiled CoQ source (see decompiled/AGENTS.md). Keep only our
+# own config files (AGENTS.md, Directory.Build.props) under version control.
+decompiled/**/*.cs
+decompiled/Assembly-CSharp.csproj
+
+# Local Claude Code cache / per-user state
+.claude/
+
+# Transient test runner state (e.g., playwright last-run cache)
+test-results/

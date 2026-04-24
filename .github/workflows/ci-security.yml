@@ -1,0 +1,61 @@
+# References:
+#   actions/checkout@v4   (https://github.com/actions/checkout/releases)
+#   actions/setup-node@v4 (https://github.com/actions/setup-node/releases)
+#
+# Notes:
+#   - secretlint: uses `npx secretlint` directly (consistent with .githooks usage).
+#     No separate secretlint-action — keeps the invocation identical between local hooks and CI.
+#   - semgrep: invoked as CLI via `pip install semgrep && semgrep ci`. The semgrep-action
+#     is effectively deprecated in favour of direct CLI + SEMGREP_APP_TOKEN.
+#   - CodeRabbit is SaaS configured via .coderabbit.yaml — it does NOT run as a GH Action.
+#     No coderabbit.yml workflow is created.
+#
+# Triggered only via workflow_call from required-checks-gate.yml.
+
+name: Security CI
+
+on:
+  workflow_call:
+
+jobs:
+  secret-scan:
+    name: secret-scan
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Fetch all history so secretlint can scan every commit path
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run secretlint
+        run: |
+          if [ -f .secretlintrc.json ]; then
+            npx --yes secretlint "**/*"
+          else
+            echo "::notice::.secretlintrc.json not found; skipping secretlint (file expected from sibling subagent)"
+            # TODO: Remove this exit 0 once .secretlintrc.json is committed.
+            # After that, a missing config should be treated as a fatal error.
+            exit 0
+          fi
+
+      - name: Run semgrep
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+        run: |
+          if [ -f semgrep.yml ]; then
+            pip install --quiet semgrep
+            if [ -n "${SEMGREP_APP_TOKEN:-}" ]; then
+              semgrep ci --config semgrep.yml
+            else
+              echo "::notice::SEMGREP_APP_TOKEN not set; running semgrep in offline mode"
+              semgrep scan --config semgrep.yml --error
+            fi
+          else
+            echo "::notice::semgrep.yml not found; skipping semgrep (file expected from sibling subagent)"
+            exit 0
+          fi

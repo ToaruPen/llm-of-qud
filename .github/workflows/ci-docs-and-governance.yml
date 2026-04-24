@@ -1,0 +1,161 @@
+# References:
+#   actions/checkout@v4                           (https://github.com/actions/checkout/releases)
+#   DavidAnson/markdownlint-cli2-action@v20       (https://github.com/DavidAnson/markdownlint-cli2-action/releases)
+#   ruby/setup-ruby@v1                            (https://github.com/ruby/setup-ruby/releases)
+#
+# Jobs: markdown-lint, adr-checks, harness-lint, frozen-file-guard
+# Triggered only via workflow_call from required-checks-gate.yml.
+
+name: Docs & Governance CI
+
+on:
+  workflow_call:
+
+jobs:
+  markdown-lint:
+    name: markdown-lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run markdownlint-cli2
+        uses: DavidAnson/markdownlint-cli2-action@v20
+        with:
+          globs: |
+            **/*.md
+            !decompiled/**
+            !.github/**
+            !node_modules/**
+
+  adr-checks:
+    name: adr-checks
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect Ruby scripts
+        id: detect-rb
+        run: |
+          if ls scripts/check_adr.rb 2>/dev/null; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::scripts/check_adr.rb not found; skipping Ruby ADR check"
+          fi
+
+      - name: Setup Ruby
+        if: steps.detect-rb.outputs.found == 'true'
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Run check_adr.rb
+        if: steps.detect-rb.outputs.found == 'true'
+        run: ruby scripts/check_adr.rb
+
+      - name: Detect Python ADR decision script
+        id: detect-py
+        run: |
+          if [ -f scripts/check_adr_decision.py ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::scripts/check_adr_decision.py not found; skipping Python ADR decision check"
+          fi
+
+      - name: Install uv (for ADR decision check)
+        if: steps.detect-py.outputs.found == 'true'
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Run check_adr_decision.py
+        if: steps.detect-py.outputs.found == 'true'
+        run: uv run python scripts/check_adr_decision.py
+
+  harness-lint:
+    name: harness-lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect harness YAML
+        id: detect
+        run: |
+          if [ -d harness ] && find harness -name "*.yml" -o -name "*.yaml" | grep -q .; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No harness/ YAML files found; skipping harness-lint"
+          fi
+
+      - name: Detect check_*.rb scripts
+        id: detect-rb
+        if: steps.detect.outputs.found == 'true'
+        run: |
+          if ls scripts/check_*.rb 2>/dev/null | grep -q .; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Ruby
+        if: steps.detect.outputs.found == 'true' && steps.detect-rb.outputs.found == 'true'
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Run harness governance check scripts
+        if: steps.detect.outputs.found == 'true' && steps.detect-rb.outputs.found == 'true'
+        run: |
+          for script in scripts/check_*.rb; do
+            echo "Running $script..."
+            ruby "$script"
+          done
+
+      - name: YAML syntax sanity (yamllint)
+        if: steps.detect.outputs.found == 'true'
+        run: |
+          pip install --quiet yamllint
+          yamllint harness/
+
+  frozen-file-guard:
+    name: frozen-file-guard
+    runs-on: ubuntu-24.04
+    # Only meaningful on pull_request — PR body only exists in that context.
+    # On push to main (e.g., merge commit), skip with a notice.
+    steps:
+      - name: Check event type
+        id: event-check
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "is_pr=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_pr=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::frozen-file-guard skipped on non-PR push"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.event-check.outputs.is_pr == 'true'
+        with:
+          fetch-depth: 0
+
+      - name: Guard docs/architecture-v5.md
+        if: steps.event-check.outputs.is_pr == 'true'
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          changed=$(git diff --name-only "origin/${BASE_REF}...HEAD" 2>/dev/null || true)
+          if echo "$changed" | grep -q '^docs/architecture-v5\.md$'; then
+            if echo "$PR_BODY" | grep -q 'Amend v5\.9'; then
+              echo "::notice::docs/architecture-v5.md changed — 'Amend v5.9' found in PR body. Allowed."
+            else
+              echo "::error::docs/architecture-v5.md was modified. Add 'Amend v5.9' to PR body to override frozen-file guard."
+              exit 1
+            fi
+          else
+            echo "docs/architecture-v5.md not changed. Guard passed."
+          fi

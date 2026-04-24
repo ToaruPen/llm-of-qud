@@ -1,0 +1,53 @@
+version: 2
+
+updates:
+  # GitHub Actions — weekly on Mondays
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "ci"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  # Python (uv ecosystem) — weekly on Mondays
+  - package-ecosystem: "uv"
+    directory: "/brain"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "deps(brain)"
+    ignore:
+      # Don't bump pydantic major; breaking changes are significant
+      - dependency-name: "pydantic"
+        update-types: ["version-update:semver-major"]
+
+  # C# NuGet — weekly on Mondays (only active when .csproj files exist under mod/)
+  - package-ecosystem: "nuget"
+    directory: "/mod"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    labels:
+      - "dependencies"
+      - "csharp"
+    commit-message:
+      prefix: "deps(mod)"
+    # Dependabot will no-op silently if no .csproj is found under /mod.

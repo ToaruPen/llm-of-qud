@@ -1,0 +1,53 @@
+# References:
+#   actions/checkout@v4         (https://github.com/actions/checkout/releases)
+#   actions/setup-python@v5     (https://github.com/actions/setup-python/releases)
+#   pre-commit/action@v3.0.1    (https://github.com/pre-commit/action/releases)
+#   astral-sh/setup-uv@v6       (https://github.com/astral-sh/setup-uv/releases)
+#
+# Runs pre-commit over the full tree (--all-files) as defense-in-depth CI check.
+# This does not replace local pre-commit hooks — it catches cases where hooks
+# were skipped locally or a new hook was added after the branch was created.
+#
+# Triggered only via workflow_call from required-checks-gate.yml.
+
+name: Pre-commit meta
+
+on:
+  workflow_call:
+
+jobs:
+  pre-commit-meta:
+    name: pre-commit-meta
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect .pre-commit-config.yaml
+        id: detect
+        run: |
+          if [ -f .pre-commit-config.yaml ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::.pre-commit-config.yaml not found; skipping pre-commit run (expected from sibling subagent)"
+          fi
+
+      - name: Setup Python
+        if: steps.detect.outputs.found == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install uv (for pre-commit hooks that use uv run)
+        if: steps.detect.outputs.found == 'true'
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Run pre-commit on all files
+        if: steps.detect.outputs.found == 'true'
+        uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: --all-files

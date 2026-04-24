@@ -1,0 +1,61 @@
+# .pre-commit-config.yaml — llm-of-qud
+# All hooks use `language: system` with `uv run` to reuse the project venv.
+# Install: pre-commit install
+# Run manually: pre-commit run --all-files
+#
+# Stages:
+#   commit  — fast checks that run on every commit (format, lint, typecheck)
+#   manual  — heavier checks (vulture, secretlint) run via `pre-commit run --hook-stage manual`
+#             or in CI. Kept out of the default commit path to avoid latency.
+
+repos:
+  - repo: local
+    hooks:
+      # ── Python format check ─────────────────────────────────────────────────
+      - id: python-format
+        name: python-format (ruff)
+        entry: uv run ruff format --check brain scripts
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      # ── Python lint ─────────────────────────────────────────────────────────
+      - id: python-lint
+        name: python-lint (ruff)
+        entry: uv run ruff check brain scripts
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      # ── Python type check (mypy) ─────────────────────────────────────────────
+      # brain/ uses a flat layout (architecture-v5.md:1838-1864), not brain/src/.
+      - id: python-typecheck-mypy
+        name: python-typecheck (mypy --strict)
+        entry: uv run mypy --strict brain
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      # ── Python type check (basedpyright) ─────────────────────────────────────
+      - id: python-typecheck-pyright
+        name: python-typecheck (basedpyright)
+        entry: uv run basedpyright
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      # ── Secret scanning (secretlint) ─────────────────────────────────────────
+      - id: secretlint
+        name: secretlint
+        entry: npx --yes secretlint .
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      # ── Dead code detection (vulture) — manual stage only ────────────────────
+      - id: vulture
+        name: vulture (dead code)
+        entry: uv run vulture brain --min-confidence 80
+        language: system
+        pass_filenames: false
+        stages: [manual]
