@@ -1,6 +1,6 @@
 # References:
-#   actions/checkout@v4           (https://github.com/actions/checkout/releases)
-#   actions/setup-dotnet@v4       (https://github.com/actions/setup-dotnet/releases)
+#   actions/checkout@v6           (https://github.com/actions/checkout/releases)
+#   actions/setup-dotnet@v5       (https://github.com/actions/setup-dotnet/releases)
 #
 # Phase 0 skip logic: C# MOD is Roslyn-compiled by CoQ at game launch.
 # CI cannot run the game. This job only runs Roslyn/analyzer probes on
@@ -18,7 +18,7 @@ jobs:
     name: lint-cs
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Detect .csproj files
         id: detect
@@ -44,7 +44,7 @@ jobs:
 
       - name: Setup .NET SDK
         if: steps.detect.outputs.found == 'true' && steps.detect-props.outputs.props == 'true'
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "8.x"
 

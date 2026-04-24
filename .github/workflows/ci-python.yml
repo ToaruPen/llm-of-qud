@@ -1,6 +1,6 @@
 # References:
-#   actions/checkout@v4         (https://github.com/actions/checkout/releases)
-#   astral-sh/setup-uv@v6       (https://github.com/astral-sh/setup-uv/releases)
+#   actions/checkout@v6         (https://github.com/actions/checkout/releases)
+#   astral-sh/setup-uv@v7       (https://github.com/astral-sh/setup-uv/releases)
 #     Note: task spec said @v5; @v6 is current stable and matches Wooly-Fluffy house style.
 #   actions/cache@v4            (https://github.com/actions/cache/releases)
 #
@@ -17,10 +17,10 @@ jobs:
     name: lint-python
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
           cache-dependency-glob: "brain/uv.lock"
@@ -59,10 +59,10 @@ jobs:
     name: typecheck-python
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
           cache-dependency-glob: "brain/uv.lock"
@@ -101,10 +101,10 @@ jobs:
     name: test-python
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
           cache-dependency-glob: "brain/uv.lock"

@@ -1,8 +1,8 @@
 # References:
-#   actions/checkout@v4         (https://github.com/actions/checkout/releases)
-#   actions/setup-python@v5     (https://github.com/actions/setup-python/releases)
+#   actions/checkout@v6         (https://github.com/actions/checkout/releases)
+#   actions/setup-python@v6     (https://github.com/actions/setup-python/releases)
 #   pre-commit/action@v3.0.1    (https://github.com/pre-commit/action/releases)
-#   astral-sh/setup-uv@v6       (https://github.com/astral-sh/setup-uv/releases)
+#   astral-sh/setup-uv@v7       (https://github.com/astral-sh/setup-uv/releases)
 #
 # Runs pre-commit over the full tree (--all-files) as defense-in-depth CI check.
 # This does not replace local pre-commit hooks — it catches cases where hooks
@@ -20,7 +20,7 @@ jobs:
     name: pre-commit-meta
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -36,13 +36,13 @@ jobs:
 
       - name: Setup Python
         if: steps.detect.outputs.found == 'true'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
       - name: Install uv (for pre-commit hooks that use uv run)
         if: steps.detect.outputs.found == 'true'
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
 
