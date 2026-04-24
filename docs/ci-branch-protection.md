@@ -62,7 +62,7 @@ gh api \
   -H "X-GitHub-Api-Version: 2022-11-28" \
   -F required_status_checks='{"strict":true,"checks":[{"context":"required-checks-gate","app_id":-1}]}' \
   -F enforce_admins=true \
-  -F required_pull_request_reviews='{"dismiss_stale_reviews":true,"require_code_owner_reviews":false,"require_last_push_approval":true,"required_approving_review_count":1}' \
+  -F required_pull_request_reviews='{"dismiss_stale_reviews":true,"require_code_owner_reviews":false,"require_last_push_approval":false,"required_approving_review_count":0}' \
   -F restrictions=null \
   -F required_conversation_resolution=true \
   -F allow_force_pushes=false \
@@ -82,13 +82,13 @@ gh api \
 | `required_status_checks.strict` | `true` | Branch must be up-to-date before merging |
 | Required check | `required-checks-gate` | Single aggregator = single required name |
 | `enforce_admins` | `true` | Admins must also go through PR flow |
-| `required_approving_review_count` | `1` | At least one human approval |
-| `dismiss_stale_reviews` | `true` | New commits invalidate prior approval |
+| `required_approving_review_count` | `0` | Solo-developer project. GitHub forbids self-approval even when `require_last_push_approval=false`, so a mandatory-human-approval setting would deadlock single-maintainer PRs. Review rigour is preserved by CodeRabbit (`.coderabbit.yaml:14` `request_changes_workflow: true`) combined with `required_conversation_resolution` below — merge is blocked until every review thread is resolved. |
+| `dismiss_stale_reviews` | `true` | New commits invalidate prior approval (moot at `required_approving_review_count=0`; kept so semantics are preserved if the count is later raised) |
 | `require_code_owner_reviews` | `false` | CODEOWNERS points to `@coderabbitai` (bot-only); enabling this setting would block merges since GitHub doesn't count bot reviews toward the code-owner requirement. Keep disabled. |
-| `require_last_push_approval` | `true` | Prevents self-approval after final push |
+| `require_last_push_approval` | `false` | Moot at `required_approving_review_count=0`; kept explicit so intent remains legible if approval requirement returns. |
 | `allow_force_pushes` | `false` | Protect commit history |
 | `allow_deletions` | `false` | Protect main from accidental deletion |
-| `required_conversation_resolution` | `true` | All review threads must be resolved |
+| `required_conversation_resolution` | `true` | Load-bearing at `approval_count=0`: merge is blocked while any CodeRabbit (or human) review thread is unresolved. |
 
 ---
 

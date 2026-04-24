@@ -26,6 +26,18 @@ echo "Configuring branch protection for: ${REPO} (branch: main)"
 # Required status checks: branch protection requires the aggregator job name
 # "required-checks-gate" (from .github/workflows/required-checks-gate.yml).
 # The context string is the job name as it appears in GitHub Checks UI.
+#
+# Review policy:
+#   required_approving_review_count: 0
+#     Solo-developer project. GitHub does not allow self-approval even when
+#     require_last_push_approval=false, so a human-approval requirement would
+#     deadlock single-maintainer PRs. Review rigour is preserved by CodeRabbit
+#     (.coderabbit.yaml → request_changes_workflow: true) plus
+#     required_conversation_resolution: true below, which together block merge
+#     until every review thread is resolved.
+#   require_last_push_approval: false
+#     Moot at approval_count=0; kept explicit so the intent is legible if the
+#     count is later raised.
 PAYLOAD="$(cat <<'JSON'
 {
   "required_status_checks": {
@@ -41,8 +53,8 @@ PAYLOAD="$(cat <<'JSON'
   "required_pull_request_reviews": {
     "dismiss_stale_reviews": true,
     "require_code_owner_reviews": false,
-    "require_last_push_approval": true,
-    "required_approving_review_count": 1
+    "require_last_push_approval": false,
+    "required_approving_review_count": 0
   },
   "restrictions": null,
   "required_conversation_resolution": true,
