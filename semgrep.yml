@@ -30,7 +30,7 @@ rules:
   # ── SLOP-002: `if True:` / `if False:` dead branches ────────────────────────
   # AI uses these as "scaffolding" that never gets cleaned up.
   - id: always-true-branch
-    pattern: if True:
+    pattern: "if True:"
     message: "`if True:` is a dead branch — remove or replace with the real condition."
     languages: [python]
     severity: ERROR
@@ -39,7 +39,7 @@ rules:
       rationale: AI-slop signal — unconditional always-true branch
 
   - id: always-false-branch
-    pattern: if False:
+    pattern: "if False:"
     message: "`if False:` is dead code — remove it."
     languages: [python]
     severity: ERROR

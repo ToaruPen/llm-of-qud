@@ -1,0 +1,19 @@
+---
+# yamllint config — llm-of-qud
+# Ref: https://yamllint.readthedocs.io/en/stable/configuration.html
+#
+# harness/policy.yaml was imported from the ToaruPen workflow template with
+# intentionally-long rule prose. document-start "---" is not used in any of
+# our hand-written YAML; enforcing it would churn every file. Trailing spaces
+# and the other sharp rules stay on.
+
+extends: default
+
+rules:
+  line-length:
+    max: 160
+    level: warning
+  document-start: disable
+  truthy:
+    # Allow "on:" for GitHub Actions workflow triggers.
+    check-keys: false
