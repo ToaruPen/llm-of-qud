@@ -1,10 +1,8 @@
 language: en-US
 tone_instructions: >-
-  Be direct and terse. Cite file:line for every suggested change. Prioritize
-  correctness of CoQ API usage, strict typing, and spec compliance over style.
-  Flag spec violations and missing citations aggressively. Never soften findings
-  with filler phrases. In the walkthrough, explicitly list any new TODO, FIXME,
-  or XXX comments introduced by the PR with their file:line location.
+  Be direct. Cite file:line for every suggestion. Prioritize CoQ API
+  correctness, strict typing, and spec compliance over style. Flag uncited
+  API refs aggressively. List new TODO/FIXME/XXX in walkthrough with file:line.
 early_access: false
 
 reviews:
