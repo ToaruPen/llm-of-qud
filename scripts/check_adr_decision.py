@@ -2,12 +2,11 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
-from pathlib import Path
 import re
 import subprocess
 import sys
-
+from dataclasses import dataclass
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 ADR_DIR = ROOT / "docs" / "adr"
@@ -46,6 +45,9 @@ def staged_files() -> list[str]:
     return git_lines("diff", "--cached", "--name-only", "--diff-filter=ACMR")
 
 
+PRE_PUSH_LINE_FIELD_COUNT = 4  # git pre-push input: local_ref local_sha remote_ref remote_sha
+
+
 def push_files() -> list[str]:
     zero = "0" * 40
     raw = sys.stdin.read().strip().splitlines()
@@ -58,7 +60,7 @@ def push_files() -> list[str]:
     changed: set[str] = set()
     for line in raw:
         parts = line.split()
-        if len(parts) != 4:
+        if len(parts) != PRE_PUSH_LINE_FIELD_COUNT:
             print(
                 f"BLOCKED: malformed pre-push input line: {line!r}",
                 file=sys.stderr,
@@ -146,9 +148,7 @@ def parse_decision_file(path: Path) -> DecisionEntry | None:
 
     if required is None or not saw_files or not saw_adr_paths:
         return None
-    return DecisionEntry(
-        required=required, rationale=rationale, files=files, adr_paths=adr_paths
-    )
+    return DecisionEntry(required=required, rationale=rationale, files=files, adr_paths=adr_paths)
 
 
 def latest_decision_path() -> Path | None:
@@ -196,9 +196,7 @@ def main() -> None:
         )
         raise SystemExit(1)
 
-    decision_artifacts = sorted(
-        path for path in changed if path.startswith("docs/adr/decisions/")
-    )
+    decision_artifacts = sorted(path for path in changed if path.startswith("docs/adr/decisions/"))
     if not decision_artifacts:
         print(
             "BLOCKED: ADR-triggering change requires a docs/adr/decisions/*.md record",
@@ -224,16 +222,18 @@ def main() -> None:
 
     decision = parse_decision_file(decision_path)
     if decision is None:
+        relative = decision_path.relative_to(ROOT)
         print(
-            f"BLOCKED: ADR decision file is missing or malformed: {decision_path.relative_to(ROOT)}",
+            f"BLOCKED: ADR decision file is missing or malformed: {relative}",
             file=sys.stderr,
         )
         raise SystemExit(1)
 
     missing = [path for path in triggered if path not in decision.files]
     if missing:
+        joined = ", ".join(missing)
         print(
-            f"BLOCKED: latest ADR decision entry does not cover changed files: {', '.join(missing)}",
+            f"BLOCKED: latest ADR decision entry does not cover changed files: {joined}",
             file=sys.stderr,
         )
         raise SystemExit(1)
@@ -251,10 +251,11 @@ def main() -> None:
             )
             raise SystemExit(1)
         if sorted(decision.adr_paths) != adr_changes:
-            print(
-                "BLOCKED: adr_required=true but latest decision entry adr_paths do not match changed ADR files",
-                file=sys.stderr,
+            msg = (
+                "BLOCKED: adr_required=true but decision entry adr_paths do "
+                "not match changed ADR files"
             )
+            print(msg, file=sys.stderr)
             raise SystemExit(1)
 
     print("ADR decision gate passed")

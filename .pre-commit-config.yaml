@@ -29,9 +29,10 @@ repos:
 
       # ── Python type check (mypy) ─────────────────────────────────────────────
       # brain/ uses a flat layout (architecture-v5.md:1838-1864), not brain/src/.
+      # scripts/run-mypy.sh skips when brain/ has no .py files (Phase 0 state).
       - id: python-typecheck-mypy
         name: python-typecheck (mypy --strict)
-        entry: uv run mypy --strict brain
+        entry: scripts/run-mypy.sh
         language: system
         pass_filenames: false
         stages: [pre-commit]
@@ -45,9 +46,11 @@ repos:
         stages: [pre-commit]
 
       # ── Secret scanning (secretlint) ─────────────────────────────────────────
+      # The preset rule package must be resolvable in the same npx bundle as
+      # the secretlint CLI; the bare `npx secretlint` invocation won't find it.
       - id: secretlint
         name: secretlint
-        entry: npx --yes secretlint .
+        entry: npx --yes -p secretlint -p @secretlint/secretlint-rule-preset-recommend secretlint .
         language: system
         pass_filenames: false
         stages: [pre-commit]

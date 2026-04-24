@@ -2,13 +2,12 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
-from datetime import UTC, datetime
-from pathlib import Path
 import re
 import subprocess
 import sys
-
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 ADR_DIR = ROOT / "docs" / "adr"
@@ -177,8 +176,12 @@ def main() -> None:
     required = args.required == "true"
     change = require_single_line(field="change", value=args.change)
     rationale = require_single_line(field="rationale", value=args.rationale)
-    files = unique_paths([path for path in changed_files(args.mode) if not is_decision_artifact(path)])
-    adr_paths = unique_paths([require_single_line(field="adr", value=path) for path in args.adr_paths])
+    files = unique_paths(
+        [path for path in changed_files(args.mode) if not is_decision_artifact(path)]
+    )
+    adr_paths = unique_paths(
+        [require_single_line(field="adr", value=path) for path in args.adr_paths]
+    )
     if required and not adr_paths:
         print("--adr is required when --required=true", file=sys.stderr)
         raise SystemExit(1)

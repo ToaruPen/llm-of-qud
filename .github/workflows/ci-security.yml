@@ -35,12 +35,13 @@ jobs:
       - name: Run secretlint
         run: |
           if [ -f .secretlintrc.json ]; then
-            npx --yes secretlint "**/*"
+            npx --yes \
+              -p secretlint \
+              -p @secretlint/secretlint-rule-preset-recommend \
+              secretlint "**/*"
           else
-            echo "::notice::.secretlintrc.json not found; skipping secretlint (file expected from sibling subagent)"
-            # TODO: Remove this exit 0 once .secretlintrc.json is committed.
-            # After that, a missing config should be treated as a fatal error.
-            exit 0
+            echo "::notice::.secretlintrc.json not found; skipping secretlint"
+            exit 1
           fi
 
       - name: Run semgrep

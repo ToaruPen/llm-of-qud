@@ -27,7 +27,12 @@ unless ADR_DIR.directory?
   fail_with(["docs/adr directory does not exist"])
 end
 
-files = ADR_DIR.children.select(&:file?).sort
+# decision-log.md and everything under decisions/ are gate artifacts, not ADR
+# documents — they follow a different schema and are validated by
+# check_adr_decision.py. Skip them here.
+EXCLUDED_BASENAMES = ['decision-log.md'].freeze
+
+files = ADR_DIR.children.select(&:file?).reject { |p| EXCLUDED_BASENAMES.include?(p.basename.to_s) }.sort
 template_present = false
 accepted_present = false
 
