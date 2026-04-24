@@ -35,7 +35,7 @@ is the **only** file with `pull_request` / `push` triggers. All leaf workflows u
 
 ### Prerequisites
 
-1. Repo pushed to GitHub: `git remote add origin https://github.com/SankenBisha/llm-of-qud.git && git push -u origin main`
+1. Repo pushed to GitHub: `git remote add origin git@github.com:ToaruPen/llm-of-qud.git && git push -u origin main`
 2. `gh` CLI installed and authenticated: `gh auth login`
 3. **Trigger a CI run first.** GitHub cannot require a status check that has never reported.
    Push a test commit or open a draft PR to main so `required-checks-gate` appears at least once
@@ -124,7 +124,7 @@ as a GitHub Action and there is no `.github/workflows/coderabbit.yml`. CodeRabbi
 in the PR review UI automatically once the GitHub App is installed on the repo.
 
 To enable: visit [coderabbit.ai](https://coderabbit.ai) → install GitHub App →
-select `SankenBisha/llm-of-qud`.
+select `ToaruPen/llm-of-qud`.
 
 ---
 
