@@ -1,6 +1,6 @@
 # References:
-#   actions/checkout@v4                           (https://github.com/actions/checkout/releases)
-#   DavidAnson/markdownlint-cli2-action@v20       (https://github.com/DavidAnson/markdownlint-cli2-action/releases)
+#   actions/checkout@v6                           (https://github.com/actions/checkout/releases)
+#   DavidAnson/markdownlint-cli2-action@v23       (https://github.com/DavidAnson/markdownlint-cli2-action/releases)
 #   ruby/setup-ruby@v1                            (https://github.com/ruby/setup-ruby/releases)
 #
 # Jobs: markdown-lint, adr-checks, harness-lint, frozen-file-guard
@@ -16,10 +16,10 @@ jobs:
     name: markdown-lint
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Run markdownlint-cli2
-        uses: DavidAnson/markdownlint-cli2-action@v20
+        uses: DavidAnson/markdownlint-cli2-action@v23
         with:
           globs: |
             **/*.md
@@ -31,7 +31,7 @@ jobs:
     name: adr-checks
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Detect Ruby scripts
         id: detect-rb
@@ -66,7 +66,7 @@ jobs:
 
       - name: Install uv (for ADR decision check)
         if: steps.detect-py.outputs.found == 'true'
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
 
@@ -78,7 +78,7 @@ jobs:
     name: harness-lint
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Detect harness YAML
         id: detect
@@ -137,7 +137,7 @@ jobs:
             echo "::notice::frozen-file-guard skipped on non-PR push"
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         if: steps.event-check.outputs.is_pr == 'true'
         with:
           fetch-depth: 0
