@@ -84,7 +84,7 @@ gh api \
 | `enforce_admins` | `true` | Admins must also go through PR flow |
 | `required_approving_review_count` | `1` | At least one human approval |
 | `dismiss_stale_reviews` | `true` | New commits invalidate prior approval |
-| `require_code_owner_reviews` | `false` | CODEOWNERS populated later; enable when ready |
+| `require_code_owner_reviews` | `false` | CODEOWNERS points to `@coderabbitai` (bot-only); enabling this setting would block merges since GitHub doesn't count bot reviews toward the code-owner requirement. Keep disabled. |
 | `require_last_push_approval` | `true` | Prevents self-approval after final push |
 | `allow_force_pushes` | `false` | Protect commit history |
 | `allow_deletions` | `false` | Protect main from accidental deletion |
