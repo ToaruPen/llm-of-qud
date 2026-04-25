@@ -48,7 +48,7 @@ The every-turn full dump approach is provisional. Re-open the cadence design whe
 1. Phase 1 WebSocket boundary lands and per-turn payload becomes a measurable bandwidth or token-cost item.
 2. `Player.log` size becomes a deployment-blocker on long streaming sessions, OR a single Unity log line approaches an output truncation limit (Unity historically truncates long single-line `Debug.Log` calls — re-verify under the Unity 6000.0.41f1 build CoQ 2.0.210 ships).
 3. Provider-neutral request / token / cache-cost metrics show the redundant stable-list portion harms cost or cache reuse.
-4. Phase 0-H `snapshot_hash` design needs separated stable / volatile components for a meaningful hash.
+4. Phase 0-H `snapshot_hash` design needs to be separated into stable and volatile components for a meaningful hash.
 5. A future phase introduces inventory full dump and per-turn payload doubles.
 6. Game-thread frame-time or GC pressure regression attributable to `BuildCapsJson` allocations (full `StringBuilder` + boxed numerics every turn). Profile under sustained Joppa play if subjective frame stutter appears around player-turn boundary.
 7. Save / load round-trip semantics become load-bearing: `BodyPart.ID` is serialized state. If a phase ever re-uses `part_id` across save / load, validate that the value space we emit survives a save → quit → reload cycle.
@@ -64,7 +64,7 @@ At any of those triggers, re-evaluate the candidates noted in the Phase 0-D plan
 ## Feed-forward for Phase 0-E
 Phase 0-E (`BirthBuildProfile`: genotype, calling, attributes) per `docs/architecture-v5.md:2802`. Decompiled starting points the next plan will likely need (verify before re-citing):
 - `decompiled/XRL.World/GameObject.cs` — `GetGenotype()`, `GetSubtype()`, `GetGameStat`/`GetStat` for attributes
-- `decompiled/XRL.World.Parts/Statistics.cs` — `Statistics["Strength"].Value/.BaseValue` etc
+- `decompiled/XRL.World.Parts/Statistics.cs` — `Statistics["Strength"].Value/.BaseValue` etc.
 - `decompiled/XRL.UI/CharacterCreate.cs` (or equivalent) — birth-time vs runtime delta
 
 Open design questions for Phase 0-E (not for this exit memo):

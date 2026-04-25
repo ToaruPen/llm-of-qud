@@ -278,6 +278,9 @@ namespace LLMOfQud
                     i++;
 
                     string className = m.GetType().Name;
+                    // m.Name is the inherited IPart property — resolves to the
+                    // mutation's runtime type name via ModManager.ResolveTypeName.
+                    // decompiled/XRL.World/IPart.cs:99 (Name)
                     string name = m.Name ?? "";
                     // m.DisplayName getter is [Obsolete] in CoQ 2.0.210+; use
                     // GetDisplayName() directly. WithAnnotations:false drops
@@ -287,11 +290,14 @@ namespace LLMOfQud
                     // decompiled/XRL.World.Parts.Mutation/BaseMutation.cs:71-83 (DisplayName getter [Obsolete])
                     // decompiled/XRL.World.Parts.Mutation/BaseMutation.cs:166-185 (GetDisplayName(bool WithAnnotations))
                     string displayName = (m.GetDisplayName(WithAnnotations: false) ?? m.Name ?? "").Strip() ?? "";
+                    // decompiled/XRL.World.Parts.Mutation/BaseMutation.cs:35 (BaseLevel)
                     int baseLevel = m.BaseLevel;
+                    // decompiled/XRL.World.Parts.Mutation/BaseMutation.cs:117-130 (Level getter -> CalcLevel)
                     int level = m.Level;
                     // base default returns Level; subclasses override (CoQ's character-sheet UI consumes this).
                     // decompiled/XRL.World.Parts.Mutation/BaseMutation.cs:209-212 (GetUIDisplayLevel)
                     int uiDisplayLevel = m.GetUIDisplayLevel();
+                    // decompiled/XRL.World.Parts.Mutation/BaseMutation.cs:134-145 (Type getter -> GetMutationType)
                     string type = m.Type ?? "";
                     // CanLevel is a method (NOT a property) on BaseMutation.
                     // decompiled/XRL.World.Parts.Mutation/BaseMutation.cs:732 (CanLevel)
@@ -372,18 +378,32 @@ namespace LLMOfQud
                     i++;
 
                     string guid = kv.Key.ToString();
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:42 (Command field)
                     string command = e.Command ?? "";
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:40 (DisplayName field)
                     string displayName = (e.DisplayName ?? e.Command ?? "").Strip() ?? "";
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:44 (Class field)
                     string className = e.Class ?? "";
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:123 (Enabled property)
                     bool enabled = e.Enabled;
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:83 (Toggleable property)
                     bool toggleable = e.Toggleable;
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:95 (ToggleState property)
                     bool toggleState = e.ToggleState;
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:111 (ActiveToggle property)
                     bool activeToggle = e.ActiveToggle;
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:183 (AlwaysAllowToggleOff property)
                     bool alwaysAllowToggleOff = e.AlwaysAllowToggleOff;
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:195 (Visible property)
                     bool visible = e.Visible;
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:54 (CommandCooldown field)
+                    // decompiled/XRL.World/CommandCooldown.cs:13 (Segments field — true storage, bypasses Cooldown getter toggle special-case)
                     int cooldownRaw = (e.CommandCooldown != null) ? e.CommandCooldown.Segments : 0;
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:259-284 (Cooldown getter — toggle-aware)
                     int cooldownEffective = e.Cooldown; // getter returns 0 for AlwaysAllowToggleOff && ToggleState && Toggleable
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:286 (CooldownRounds = ceil(Cooldown / 10))
                     int cooldownRounds = e.CooldownRounds;
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:290-308 (IsUsable rollup)
                     bool isUsable = e.IsUsable;
 
                     sb.Append("{\"guid\":");
@@ -526,15 +546,22 @@ namespace LLMOfQud
                         // in the ID getter (BodyPart.cs:365-381) which would
                         // increment The.Game.BodyPartIDSequence during what is
                         // supposed to be a pure observation pass.
+                        // decompiled/XRL.World.Anatomy/BodyPart.cs:438-440 (HasID())
+                        // decompiled/XRL.World.Anatomy/BodyPart.cs:365-381 (ID getter — lazy-allocates)
                         bool partHasId = p.HasID();
                         int partId = partHasId ? p.ID : 0;
+                        // decompiled/XRL.World.Anatomy/BodyPart.cs:62 (Name field)
                         string partName = p.Name ?? "";
+                        // decompiled/XRL.World.Anatomy/BodyPart.cs:54 (Type field)
                         string partType = p.Type ?? "";
                         // GetOrdinalName() wraps the result in {{<color>|...}}
                         // markup (BodyPart.cs:5709-5726). Strip for plain text.
+                        // decompiled/XRL.World.Anatomy/BodyPart.cs:5706-5727 (GetOrdinalName)
                         string ordinalNameRaw = p.GetOrdinalName() ?? partName;
                         string ordinalName = ordinalNameRaw.Strip() ?? partName;
+                        // decompiled/XRL.World/GameObject.cs:766 (ShortDisplayNameStripped)
                         string itemName = item.ShortDisplayNameStripped ?? "<unknown>";
+                        // decompiled/XRL.World/GameObject.cs:125 (Blueprint field)
                         string blueprint = item.Blueprint ?? "";
 
                         if (partHasId)
