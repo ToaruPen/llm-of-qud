@@ -1,9 +1,12 @@
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using XRL;
 using XRL.UI;
 using XRL.World;
+using XRL.World.Anatomy;
 using XRL.World.Parts;
+using XRL.World.Parts.Mutation;
 
 namespace LLMOfQud
 {
@@ -18,6 +21,13 @@ namespace LLMOfQud
         // same turn. See ADR 0002 + game-thread routing rule
         // docs/architecture-v5.md:1787-1790.
         public string DisplayMode;
+        // Phase 0-D: RuntimeCapabilityProfile JSON for this turn. Built on the
+        // game thread inside HandleEvent so all CoQ API reads stay on the
+        // game queue (docs/architecture-v5.md:1787-1790). Render thread emits
+        // verbatim. Per docs/memo/phase-0-c-exit-2026-04-25.md:117, future
+        // observation fields thread through this object, never as parallel
+        // Interlocked.Exchange slots.
+        public string CapsJson;
     }
 
     internal static class SnapshotState
@@ -223,6 +233,385 @@ namespace LLMOfQud
                 }
             }
             sb.Append(']');
+
+            sb.Append('}');
+            return sb.ToString();
+        }
+
+        // Schema:
+        //   [
+        //     {
+        //       "class": "Carapace",                  // BaseMutation type-name
+        //       "name": "Carapace",                    // Mutation entry Name
+        //       "display_name": "Carapace",            // Stripped display string
+        //       "base_level": 4,                       // Player-invested level
+        //       "level": 4,                            // Resolved level (CalcLevel)
+        //       "ui_display_level": 4,                 // m.GetUIDisplayLevel():
+        //                                              //   the actual UI-displayed
+        //                                              //   value. Default returns
+        //                                              //   Level, but specific
+        //                                              //   mutation subclasses
+        //                                              //   override it (CoQ's
+        //                                              //   own character-sheet UI
+        //                                              //   consumes this method).
+        //       "type": "Physical",                    // Mutation category
+        //       "can_level": true,                     // Whether further leveling
+        //                                              //   is possible
+        //       "is_active": true                      // Level > 0 (matches
+        //                                              //   ActiveMutationList filter)
+        //     }
+        //   ]
+        // decompiled/XRL.World.Parts/Mutations.cs:86 (MutationList)
+        // decompiled/XRL.World.Parts.Mutation/BaseMutation.cs:117-130 (Level/BaseLevel)
+        internal static void AppendMutations(StringBuilder sb, GameObject player)
+        {
+            sb.Append('[');
+            Mutations mutPart = player?.GetPart<Mutations>();
+            List<BaseMutation> list = mutPart?.MutationList;
+            if (list != null && list.Count > 0)
+            {
+                int i = 0;
+                foreach (BaseMutation m in list)
+                {
+                    if (m == null) continue;
+                    if (i > 0) sb.Append(',');
+                    i++;
+
+                    string className = m.GetType().Name;
+                    // m.Name is the inherited IPart property — resolves to the
+                    // mutation's runtime type name via ModManager.ResolveTypeName.
+                    // decompiled/XRL.World/IPart.cs:99 (Name)
+                    string name = m.Name ?? "";
+                    // m.DisplayName getter is [Obsolete] in CoQ 2.0.210+; use
+                    // GetDisplayName() directly. WithAnnotations:false drops
+                    // the "(D)" defect annotation so display_name is plain text;
+                    // is_active / can_level / level fields already encode the
+                    // semantic axes a defect annotation would convey.
+                    // decompiled/XRL.World.Parts.Mutation/BaseMutation.cs:71-83 (DisplayName getter [Obsolete])
+                    // decompiled/XRL.World.Parts.Mutation/BaseMutation.cs:166-185 (GetDisplayName(bool WithAnnotations))
+                    string displayName = (m.GetDisplayName(WithAnnotations: false) ?? m.Name ?? "").Strip() ?? "";
+                    // decompiled/XRL.World.Parts.Mutation/BaseMutation.cs:35 (BaseLevel)
+                    int baseLevel = m.BaseLevel;
+                    // decompiled/XRL.World.Parts.Mutation/BaseMutation.cs:117-130 (Level getter -> CalcLevel)
+                    int level = m.Level;
+                    // base default returns Level; subclasses override (CoQ's character-sheet UI consumes this).
+                    // decompiled/XRL.World.Parts.Mutation/BaseMutation.cs:209-212 (GetUIDisplayLevel)
+                    int uiDisplayLevel = m.GetUIDisplayLevel();
+                    // decompiled/XRL.World.Parts.Mutation/BaseMutation.cs:134-145 (Type getter -> GetMutationType)
+                    string type = m.Type ?? "";
+                    // CanLevel is a method (NOT a property) on BaseMutation.
+                    // decompiled/XRL.World.Parts.Mutation/BaseMutation.cs:732 (CanLevel)
+                    bool canLevel = m.CanLevel();
+                    bool isActive = level > 0;
+
+                    sb.Append("{\"class\":");
+                    AppendJsonString(sb, className);
+                    sb.Append(",\"name\":");
+                    AppendJsonString(sb, name);
+                    sb.Append(",\"display_name\":");
+                    AppendJsonString(sb, displayName);
+                    sb.Append(",\"base_level\":").Append(baseLevel.ToString(CultureInfo.InvariantCulture));
+                    sb.Append(",\"level\":").Append(level.ToString(CultureInfo.InvariantCulture));
+                    sb.Append(",\"ui_display_level\":").Append(uiDisplayLevel.ToString(CultureInfo.InvariantCulture));
+                    sb.Append(",\"type\":");
+                    AppendJsonString(sb, type);
+                    sb.Append(",\"can_level\":").Append(canLevel ? "true" : "false");
+                    sb.Append(",\"is_active\":").Append(isActive ? "true" : "false");
+                    sb.Append('}');
+                }
+            }
+            sb.Append(']');
+        }
+
+        // Schema:
+        //   [
+        //     {
+        //       "guid": "5e4f3...e",                  // ActivatedAbilityEntry.ID
+        //       "command": "CommandFireMissileWeapon",
+        //       "display_name": "Fire Missile Weapon",
+        //       "class": "Carapace",                   // ActivatedAbilityEntry.Class
+        //       "enabled": true,
+        //       "toggleable": false,
+        //       "toggle_state": false,
+        //       "active_toggle": false,
+        //       "always_allow_toggle_off": false,
+        //       "visible": true,                       // ActivatedAbilityEntry.Visible
+        //                                              //   (UI surfacing, separate
+        //                                              //   from enabled / usability)
+        //       "cooldown_segments_raw": 0,            // CommandCooldown.Segments
+        //                                              //   (true storage; bypasses
+        //                                              //   the toggle special-case
+        //                                              //   in the Cooldown getter)
+        //       "cooldown_segments_effective": 0,      // ActivatedAbilityEntry.Cooldown
+        //                                              //   getter: returns Segments
+        //                                              //   in the normal case;
+        //                                              //   returns 0 ONLY when
+        //                                              //   AlwaysAllowToggleOff &&
+        //                                              //   ToggleState &&
+        //                                              //   Toggleable (toggle is
+        //                                              //   currently ON for an
+        //                                              //   indefinitely-on ability)
+        //       "cooldown_rounds": 0,                  // ceil(cooldown_segments_effective/10)
+        //                                              //   matches the in-game UI
+        //                                              //   "rounds remaining" value
+        //       "is_usable": true                      // Enabled && (cooldown_effective==0 ||
+        //                                              //   (toggle_state && active_toggle))
+        //     }
+        //   ]
+        // decompiled/XRL.World.Parts/ActivatedAbilities.cs:181 (AbilityByGuid)
+        // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:195 (Visible)
+        // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:259-308 (Cooldown/CooldownRounds/IsUsable)
+        // decompiled/XRL.World/CommandCooldown.cs:11-13 (Command/Segments)
+        internal static void AppendAbilities(StringBuilder sb, GameObject player)
+        {
+            sb.Append('[');
+            ActivatedAbilities aaPart = player?.GetPart<ActivatedAbilities>();
+            Dictionary<System.Guid, ActivatedAbilityEntry> map = aaPart?.AbilityByGuid;
+            if (map != null && map.Count > 0)
+            {
+                int i = 0;
+                foreach (KeyValuePair<System.Guid, ActivatedAbilityEntry> kv in map)
+                {
+                    ActivatedAbilityEntry e = kv.Value;
+                    if (e == null) continue;
+                    if (i > 0) sb.Append(',');
+                    i++;
+
+                    string guid = kv.Key.ToString();
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:42 (Command field)
+                    string command = e.Command ?? "";
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:40 (DisplayName field)
+                    string displayName = (e.DisplayName ?? e.Command ?? "").Strip() ?? "";
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:44 (Class field)
+                    string className = e.Class ?? "";
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:123 (Enabled property)
+                    bool enabled = e.Enabled;
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:83 (Toggleable property)
+                    bool toggleable = e.Toggleable;
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:95 (ToggleState property)
+                    bool toggleState = e.ToggleState;
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:111 (ActiveToggle property)
+                    bool activeToggle = e.ActiveToggle;
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:183 (AlwaysAllowToggleOff property)
+                    bool alwaysAllowToggleOff = e.AlwaysAllowToggleOff;
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:195 (Visible property)
+                    bool visible = e.Visible;
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:54 (CommandCooldown field)
+                    // decompiled/XRL.World/CommandCooldown.cs:13 (Segments field — true storage, bypasses Cooldown getter toggle special-case)
+                    int cooldownRaw = (e.CommandCooldown != null) ? e.CommandCooldown.Segments : 0;
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:259-284 (Cooldown getter — toggle-aware)
+                    int cooldownEffective = e.Cooldown; // getter returns 0 for AlwaysAllowToggleOff && ToggleState && Toggleable
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:286 (CooldownRounds = ceil(Cooldown / 10))
+                    int cooldownRounds = e.CooldownRounds;
+                    // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:290-308 (IsUsable rollup)
+                    bool isUsable = e.IsUsable;
+
+                    sb.Append("{\"guid\":");
+                    AppendJsonString(sb, guid);
+                    sb.Append(",\"command\":");
+                    AppendJsonString(sb, command);
+                    sb.Append(",\"display_name\":");
+                    AppendJsonString(sb, displayName);
+                    sb.Append(",\"class\":");
+                    AppendJsonString(sb, className);
+                    sb.Append(",\"enabled\":").Append(enabled ? "true" : "false");
+                    sb.Append(",\"toggleable\":").Append(toggleable ? "true" : "false");
+                    sb.Append(",\"toggle_state\":").Append(toggleState ? "true" : "false");
+                    sb.Append(",\"active_toggle\":").Append(activeToggle ? "true" : "false");
+                    sb.Append(",\"always_allow_toggle_off\":").Append(alwaysAllowToggleOff ? "true" : "false");
+                    sb.Append(",\"visible\":").Append(visible ? "true" : "false");
+                    sb.Append(",\"cooldown_segments_raw\":").Append(cooldownRaw.ToString(CultureInfo.InvariantCulture));
+                    sb.Append(",\"cooldown_segments_effective\":").Append(cooldownEffective.ToString(CultureInfo.InvariantCulture));
+                    sb.Append(",\"cooldown_rounds\":").Append(cooldownRounds.ToString(CultureInfo.InvariantCulture));
+                    sb.Append(",\"is_usable\":").Append(isUsable ? "true" : "false");
+                    sb.Append('}');
+                }
+            }
+            sb.Append(']');
+        }
+
+        // Schema:
+        //   [
+        //     {
+        //       "class": "Dazed",
+        //       "display_name": "Dazed",
+        //       "display_name_stripped": "Dazed",      // .Strip() applied
+        //       "duration_raw": 3,                      // Effect.Duration verbatim
+        //       "duration_kind": "finite"               // | "indefinite" | "unknown"
+        //                                               // finite:     0 < Duration < 9999
+        //                                               // indefinite: Duration == 9999
+        //                                               //             (DURATION_INDEFINITE)
+        //                                               // unknown:    Duration <= 0
+        //                                               //             (post-Expired,
+        //                                               //              pre-CleanEffects)
+        //                                               //             OR Duration > 9999
+        //     }
+        //   ]
+        // observed_at: BeginTakeActionEvent on player. POST pre-action / Begin
+        //   handlers (UseStandardDurationCountdown effects + Begin-decrementing
+        //   effects like Dazed/Asleep/Healing have already ticked). NOT
+        //   post-decrement for EndTurn-decrementing effects (Meditating,
+        //   PhasedWhileStuck) or thaw-update effects (Lovesick) — see plan
+        //   "Why this task exists" body for the full ordering note.
+        // decompiled/XRL.World/Effect.cs:92 (DURATION_INDEFINITE = 9999)
+        // decompiled/XRL.World/Effect.cs:101-109 (Duration / DisplayName fields)
+        // decompiled/XRL.World/Effect.cs:153 (DisplayNameStripped)
+        // decompiled/XRL.World/Effect.cs:644-648 (standard BeforeBegin decrement)
+        // decompiled/XRL.World/EffectRack.cs:5 (EffectRack : Rack<Effect>)
+        // decompiled/XRL.Collections/Rack.cs:10 (Rack<T> : IEnumerable<T>)
+        internal static void AppendEffects(StringBuilder sb, GameObject player)
+        {
+            sb.Append('[');
+            if (player != null)
+            {
+                int i = 0;
+                foreach (Effect e in player.Effects)
+                {
+                    if (e == null) continue;
+                    if (i > 0) sb.Append(',');
+                    i++;
+
+                    string className = e.GetType().Name;
+                    string displayName = e.DisplayName ?? "";
+                    string displayNameStripped = e.DisplayNameStripped ?? displayName;
+                    int duration = e.Duration;
+                    string durationKind;
+                    if (duration == 9999) durationKind = "indefinite";
+                    else if (duration > 0 && duration < 9999) durationKind = "finite";
+                    else durationKind = "unknown";
+
+                    sb.Append("{\"class\":");
+                    AppendJsonString(sb, className);
+                    sb.Append(",\"display_name\":");
+                    AppendJsonString(sb, displayName);
+                    sb.Append(",\"display_name_stripped\":");
+                    AppendJsonString(sb, displayNameStripped);
+                    sb.Append(",\"duration_raw\":").Append(duration.ToString(CultureInfo.InvariantCulture));
+                    sb.Append(",\"duration_kind\":");
+                    AppendJsonString(sb, durationKind);
+                    sb.Append('}');
+                }
+            }
+            sb.Append(']');
+        }
+
+        // Schema:
+        //   [
+        //     {
+        //       "part_id": 12,                           // BodyPart.ID when HasID(),
+        //                                                //   else null. Reading the
+        //                                                //   ID getter when _ID == 0
+        //                                                //   lazily increments
+        //                                                //   The.Game.BodyPartIDSequence
+        //                                                //   (BodyPart.cs:365-381),
+        //                                                //   which is a game-state
+        //                                                //   mutation we MUST avoid
+        //                                                //   from an observation pass.
+        //       "part_name": "Hand",                      // BodyPart.Name
+        //       "part_type": "Hand",                      // BodyPart.Type
+        //       "ordinal_name": "Right Hand",             // GetOrdinalName().Strip()
+        //                                                //   strips the {{<color>|...}}
+        //                                                //   markup CoQ wraps the
+        //                                                //   ordinal name in.
+        //       "equipped": {
+        //         "name": "iron long sword",              // ShortDisplayNameStripped
+        //         "blueprint": "Iron Long Sword"          // GameObject.Blueprint
+        //       }
+        //     }
+        //   ]
+        // decompiled/XRL.World.Parts/Body.cs:883-897 (GetEquippedParts)
+        // decompiled/XRL.World.Anatomy/BodyPart.cs:345-347 (Equipped)
+        // decompiled/XRL.World.Anatomy/BodyPart.cs:365-381 (ID — lazy-allocates side-effect)
+        // decompiled/XRL.World.Anatomy/BodyPart.cs:438-440 (HasID())
+        // decompiled/XRL.World.Anatomy/BodyPart.cs:5706-5727 (GetOrdinalName — wraps in markup)
+        internal static void AppendEquipment(StringBuilder sb, GameObject player)
+        {
+            sb.Append('[');
+            Body bodyPart = player?.GetPart<Body>();
+            if (bodyPart != null)
+            {
+                List<BodyPart> equipped = bodyPart.GetEquippedParts();
+                if (equipped != null && equipped.Count > 0)
+                {
+                    int i = 0;
+                    foreach (BodyPart p in equipped)
+                    {
+                        if (p == null) continue;
+                        GameObject item = p.Equipped;
+                        if (item == null) continue; // GetEquippedParts already filters; defensive
+                        if (i > 0) sb.Append(',');
+                        i++;
+
+                        // p.HasID() guards against the lazy-allocate side-effect
+                        // in the ID getter (BodyPart.cs:365-381) which would
+                        // increment The.Game.BodyPartIDSequence during what is
+                        // supposed to be a pure observation pass.
+                        // decompiled/XRL.World.Anatomy/BodyPart.cs:438-440 (HasID())
+                        // decompiled/XRL.World.Anatomy/BodyPart.cs:365-381 (ID getter — lazy-allocates)
+                        bool partHasId = p.HasID();
+                        int partId = partHasId ? p.ID : 0;
+                        // decompiled/XRL.World.Anatomy/BodyPart.cs:62 (Name field)
+                        string partName = p.Name ?? "";
+                        // decompiled/XRL.World.Anatomy/BodyPart.cs:54 (Type field)
+                        string partType = p.Type ?? "";
+                        // GetOrdinalName() wraps the result in {{<color>|...}}
+                        // markup (BodyPart.cs:5709-5726). Strip for plain text.
+                        // decompiled/XRL.World.Anatomy/BodyPart.cs:5706-5727 (GetOrdinalName)
+                        string ordinalNameRaw = p.GetOrdinalName() ?? partName;
+                        string ordinalName = ordinalNameRaw.Strip() ?? partName;
+                        // decompiled/XRL.World/GameObject.cs:766 (ShortDisplayNameStripped)
+                        string itemName = item.ShortDisplayNameStripped ?? "<unknown>";
+                        // decompiled/XRL.World/GameObject.cs:125 (Blueprint field)
+                        string blueprint = item.Blueprint ?? "";
+
+                        if (partHasId)
+                        {
+                            sb.Append("{\"part_id\":").Append(partId.ToString(CultureInfo.InvariantCulture));
+                        }
+                        else
+                        {
+                            sb.Append("{\"part_id\":null");
+                        }
+                        sb.Append(",\"part_name\":");
+                        AppendJsonString(sb, partName);
+                        sb.Append(",\"part_type\":");
+                        AppendJsonString(sb, partType);
+                        sb.Append(",\"ordinal_name\":");
+                        AppendJsonString(sb, ordinalName);
+                        sb.Append(",\"equipped\":{\"name\":");
+                        AppendJsonString(sb, itemName);
+                        sb.Append(",\"blueprint\":");
+                        AppendJsonString(sb, blueprint);
+                        sb.Append('}');
+                        sb.Append('}');
+                    }
+                }
+            }
+            sb.Append(']');
+        }
+
+        // Entry point used by HandleEvent to build the caps line payload
+        // (the value of the [LLMOfQud][caps] line; caller adds the prefix).
+        // Schema runtime_caps.v1 = {turn, schema, mutations, abilities,
+        // effects, equipment}. Schema bumps (v2+) require an ADR. Field
+        // order is locked; reordering requires an ADR.
+        internal static string BuildCapsJson(int turn, GameObject player)
+        {
+            StringBuilder sb = new StringBuilder(8192);
+            sb.Append("{\"turn\":").Append(turn.ToString(CultureInfo.InvariantCulture));
+            sb.Append(",\"schema\":\"runtime_caps.v1\"");
+
+            sb.Append(",\"mutations\":");
+            AppendMutations(sb, player);
+
+            sb.Append(",\"abilities\":");
+            AppendAbilities(sb, player);
+
+            sb.Append(",\"effects\":");
+            AppendEffects(sb, player);
+
+            sb.Append(",\"equipment\":");
+            AppendEquipment(sb, player);
 
             sb.Append('}');
             return sb.ToString();
