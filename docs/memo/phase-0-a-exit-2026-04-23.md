@@ -1,10 +1,14 @@
-# Phase 0-A / 0-A2 Exit — 2026-04-23 (reload acceptance deferred)
+# Phase 0-A / 0-A2 Exit — 2026-04-23 (Task 7 closed by ADR 0003)
 
 > Plan authoring date: 2026-04-23. Execution and verification completed: 2026-04-24.
+> Task 7 closure recorded: 2026-04-25.
 >
 > **Status:** Phase 0-A2 fully met. Phase 0-A met except Task 7 (mid-session mod
-> reload acceptance) which is deliberately deferred. See "Task 7 resolution"
-> below for what this means and when it must be re-opened.
+> reload acceptance), which was originally deferred and is now formally CLOSED
+> by [ADR 0003](../adr/0003-phase-0-a-task-7-closure-by-design.md) as a
+> design-decision closure (the streaming runtime fixes mods at launch; the
+> toggle path is non-applicable to production operation). See "Task 7
+> resolution" below for the closure rationale and the re-open triggers.
 
 ## Environment (empirically verified, not plan-assumed)
 
@@ -61,13 +65,18 @@ Codex advisor confirmed `Freehold Games/CavesOfQud` is the correct/current path
       5 player actions instead of 10 — i.e. the whole sequence would arrive in
       half the real play time. Session C's cadence against a ~30-action play
       session is consistent only with single dispatch per action.
-- [~] **Reload acceptance (Task 7) — DEFERRED.** `IPlayerSystem`-based architecture
-      eliminates the `XRLCore.RegisterOnBeginPlayerTurnCallback` duplicate-guard
-      hazard that motivated the plan's Task 7 (see "Task 7 resolution" below for
-      the architectural argument), but the mid-session Mods-menu toggle path
-      itself remains empirically unverified. This is acceptable for Phase 0-A's
-      harness-skeleton goal but **must be re-opened before any future phase
-      that relies on hot-reload behavior.**
+- [x] **Reload acceptance (Task 7) — CLOSED by ADR 0003 (2026-04-25).**
+      `IPlayerSystem`-based architecture eliminates the
+      `XRLCore.RegisterOnBeginPlayerTurnCallback` duplicate-guard hazard that
+      motivated the plan's Task 7. The mid-session Mods-menu toggle path is
+      formally **not measured**, but the streaming harness's runtime contract
+      fixes mods at launch (architecture-v5.9 Phase 2+), so the toggle path is
+      non-applicable to production operation. Closed as design-decision, not
+      empirical PASS. **Re-open triggers** are enumerated in ADR 0003 ("Decision"
+      section) — primarily any phase introducing dev-loop iteration, runtime
+      A/B switching of mod logic, or reliance on specific in-process
+      assembly-swap state-survival semantics. See "Task 7 resolution" below for
+      the original deferral context that ADR 0003 supersedes.
 
 ## Execution deviations from plan (recorded here for traceability)
 
@@ -90,7 +99,18 @@ not spec amendments:
    is in effect; all Phase 0-A files are currently uncommitted, awaiting explicit
    staging.
 
-## Task 7 resolution: acceptance criterion deferred, architectural hazard removed
+## Task 7 resolution: acceptance criterion CLOSED by ADR 0003 (2026-04-25), architectural hazard removed
+
+> **Update 2026-04-25:** What follows is the original deferral analysis written
+> on 2026-04-24. The acceptance gap it describes is now formally **CLOSED** by
+> [ADR 0003](../adr/0003-phase-0-a-task-7-closure-by-design.md) as a
+> design-decision closure (no in-game delta measurement performed). The
+> closure rests on the streaming runtime's fixed-launch contract; the four
+> behavioral questions enumerated in this section remain formally unanswered
+> and ADR 0003 lists the re-open triggers that would require them to be
+> answered.
+
+
 
 The plan's Task 7 targets the `XRLCore.RegisterOnBeginPlayerTurnCallback` API,
 which has no duplicate-registration guard. Its implementation body (`decompiled/XRL.Core/XRLCore.cs:576-579`)
