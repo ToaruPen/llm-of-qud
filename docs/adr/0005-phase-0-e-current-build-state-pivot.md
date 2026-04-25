@@ -15,7 +15,7 @@ capture path that duplicates Birth's data shape with different
 freshness semantics.
 
 The retrospective use case for actual birth-time capture (DeathLogger
-/ cross-run learning per `:1683-1687`) is real, but is gated by phases
+/ cross-run learning per `:1696-1710`) is real, but is gated by phases
 that have not yet started (Phase 0-? death recording, Phase 1+ Brain
 that compares cross-run trajectories). Implementing literal Birth
 capture in 0-E would either ship dead code or commit to a

@@ -163,7 +163,7 @@ capture path that duplicates Birth's data shape with different
 freshness semantics.
 
 The retrospective use case for actual birth-time capture (DeathLogger
-/ cross-run learning per `:1683-1687`) is real, but is gated by phases
+/ cross-run learning per `:1696-1710`) is real, but is gated by phases
 that have not yet started (Phase 0-? death recording, Phase 1+ Brain
 that compares cross-run trajectories). Implementing literal Birth
 capture in 0-E would either ship dead code or commit to a
@@ -1337,7 +1337,7 @@ The every-turn full dump approach is provisional. Re-open the cadence design whe
 
 ## Feed-forward for the next phase
 Phase 0-F (TBD per `docs/architecture-v5.md:2810+`). Open design questions surfaced during 0-E that may feed forward:
-- Whether retrospective birth-profile capture (DeathLogger / cross-run learning per `docs/architecture-v5.md:1683-1687`) lands as a parallel `[birth]` line, a write-once memo file replayed on Brain reconnect, or via reuse of `[build]` cadence with a "captured_at_birth" snapshot.
+- Whether retrospective birth-profile capture (DeathLogger / cross-run learning per `docs/architecture-v5.md:1696-1710`) lands as a parallel `[birth]` line, a write-once memo file replayed on Brain reconnect, or via reuse of `[build]` cadence with a "captured_at_birth" snapshot.
 - Whether `check_status` adapter responsibility documented in the spec hazard ("check_status adapter responsibility") materializes in Phase 1+ as a Python adapter class or as a Brain prompt-template responsibility.
 
 ## Open hazards (still tracked from earlier phases)
