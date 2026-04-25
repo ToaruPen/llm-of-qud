@@ -306,6 +306,99 @@ namespace LLMOfQud
             sb.Append(']');
         }
 
+        // Schema:
+        //   [
+        //     {
+        //       "guid": "5e4f3...e",                  // ActivatedAbilityEntry.ID
+        //       "command": "CommandFireMissileWeapon",
+        //       "display_name": "Fire Missile Weapon",
+        //       "class": "Carapace",                   // ActivatedAbilityEntry.Class
+        //       "enabled": true,
+        //       "toggleable": false,
+        //       "toggle_state": false,
+        //       "active_toggle": false,
+        //       "always_allow_toggle_off": false,
+        //       "visible": true,                       // ActivatedAbilityEntry.Visible
+        //                                              //   (UI surfacing, separate
+        //                                              //   from enabled / usability)
+        //       "cooldown_segments_raw": 0,            // CommandCooldown.Segments
+        //                                              //   (true storage; bypasses
+        //                                              //   the toggle special-case
+        //                                              //   in the Cooldown getter)
+        //       "cooldown_segments_effective": 0,      // ActivatedAbilityEntry.Cooldown
+        //                                              //   getter: returns Segments
+        //                                              //   in the normal case;
+        //                                              //   returns 0 ONLY when
+        //                                              //   AlwaysAllowToggleOff &&
+        //                                              //   ToggleState &&
+        //                                              //   Toggleable (toggle is
+        //                                              //   currently ON for an
+        //                                              //   indefinitely-on ability)
+        //       "cooldown_rounds": 0,                  // ceil(cooldown_segments_effective/10)
+        //                                              //   matches the in-game UI
+        //                                              //   "rounds remaining" value
+        //       "is_usable": true                      // Enabled && (cooldown_effective==0 ||
+        //                                              //   (toggle_state && active_toggle))
+        //     }
+        //   ]
+        // decompiled/XRL.World.Parts/ActivatedAbilities.cs:181 (AbilityByGuid)
+        // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:195 (Visible)
+        // decompiled/XRL.World.Parts/ActivatedAbilityEntry.cs:259-308 (Cooldown/CooldownRounds/IsUsable)
+        // decompiled/XRL.World/CommandCooldown.cs:11-13 (Command/Segments)
+        internal static void AppendAbilities(StringBuilder sb, GameObject player)
+        {
+            sb.Append('[');
+            ActivatedAbilities aaPart = player?.GetPart<ActivatedAbilities>();
+            Dictionary<System.Guid, ActivatedAbilityEntry> map = aaPart?.AbilityByGuid;
+            if (map != null && map.Count > 0)
+            {
+                int i = 0;
+                foreach (KeyValuePair<System.Guid, ActivatedAbilityEntry> kv in map)
+                {
+                    ActivatedAbilityEntry e = kv.Value;
+                    if (e == null) continue;
+                    if (i > 0) sb.Append(',');
+                    i++;
+
+                    string guid = kv.Key.ToString();
+                    string command = e.Command ?? "";
+                    string displayName = (e.DisplayName ?? e.Command ?? "").Strip() ?? "";
+                    string className = e.Class ?? "";
+                    bool enabled = e.Enabled;
+                    bool toggleable = e.Toggleable;
+                    bool toggleState = e.ToggleState;
+                    bool activeToggle = e.ActiveToggle;
+                    bool alwaysAllowToggleOff = e.AlwaysAllowToggleOff;
+                    bool visible = e.Visible;
+                    int cooldownRaw = (e.CommandCooldown != null) ? e.CommandCooldown.Segments : 0;
+                    int cooldownEffective = e.Cooldown; // getter returns 0 for AlwaysAllowToggleOff && ToggleState && Toggleable
+                    int cooldownRounds = e.CooldownRounds;
+                    bool isUsable = e.IsUsable;
+
+                    sb.Append("{\"guid\":");
+                    AppendJsonString(sb, guid);
+                    sb.Append(",\"command\":");
+                    AppendJsonString(sb, command);
+                    sb.Append(",\"display_name\":");
+                    AppendJsonString(sb, displayName);
+                    sb.Append(",\"class\":");
+                    AppendJsonString(sb, className);
+                    sb.Append(",\"enabled\":").Append(enabled ? "true" : "false");
+                    sb.Append(",\"toggleable\":").Append(toggleable ? "true" : "false");
+                    sb.Append(",\"toggle_state\":").Append(toggleState ? "true" : "false");
+                    sb.Append(",\"active_toggle\":").Append(activeToggle ? "true" : "false");
+                    sb.Append(",\"always_allow_toggle_off\":").Append(alwaysAllowToggleOff ? "true" : "false");
+                    sb.Append(",\"visible\":").Append(visible ? "true" : "false");
+                    sb.Append(",\"cooldown_segments_raw\":").Append(cooldownRaw.ToString(CultureInfo.InvariantCulture));
+                    sb.Append(",\"cooldown_segments_effective\":").Append(cooldownEffective.ToString(CultureInfo.InvariantCulture));
+                    sb.Append(",\"cooldown_rounds\":").Append(cooldownRounds.ToString(CultureInfo.InvariantCulture));
+                    sb.Append(",\"is_usable\":").Append(isUsable ? "true" : "false");
+                    sb.Append('}');
+                }
+            }
+            sb.Append(']');
+        }
+
         // Entry point used by HandleEvent to build the caps line payload
         // (the value of the [LLMOfQud][caps] line; caller adds the prefix).
         // Schema runtime_caps.v1 = {turn, schema, mutations, abilities,
@@ -313,12 +406,15 @@ namespace LLMOfQud
         // order is locked; reordering requires an ADR.
         internal static string BuildCapsJson(int turn, GameObject player)
         {
-            StringBuilder sb = new StringBuilder(4096);
+            StringBuilder sb = new StringBuilder(8192);
             sb.Append("{\"turn\":").Append(turn.ToString(CultureInfo.InvariantCulture));
             sb.Append(",\"schema\":\"runtime_caps.v1\"");
 
             sb.Append(",\"mutations\":");
             AppendMutations(sb, player);
+
+            sb.Append(",\"abilities\":");
+            AppendAbilities(sb, player);
 
             sb.Append('}');
             return sb.ToString();
