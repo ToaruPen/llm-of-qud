@@ -238,16 +238,88 @@ namespace LLMOfQud
             return sb.ToString();
         }
 
+        // Schema:
+        //   [
+        //     {
+        //       "class": "Carapace",                  // BaseMutation type-name
+        //       "name": "Carapace",                    // Mutation entry Name
+        //       "display_name": "Carapace",            // Stripped display string
+        //       "base_level": 4,                       // Player-invested level
+        //       "level": 4,                            // Resolved level (CalcLevel)
+        //       "ui_display_level": 4,                 // m.GetUIDisplayLevel():
+        //                                              //   the actual UI-displayed
+        //                                              //   value. Default returns
+        //                                              //   Level, but specific
+        //                                              //   mutation subclasses
+        //                                              //   override it (CoQ's
+        //                                              //   own character-sheet UI
+        //                                              //   consumes this method).
+        //       "type": "Physical",                    // Mutation category
+        //       "can_level": true,                     // Whether further leveling
+        //                                              //   is possible
+        //       "is_active": true                      // Level > 0 (matches
+        //                                              //   ActiveMutationList filter)
+        //     }
+        //   ]
+        // decompiled/XRL.World.Parts/Mutations.cs:86 (MutationList)
+        // decompiled/XRL.World.Parts.Mutation/BaseMutation.cs:117-130 (Level/BaseLevel)
+        internal static void AppendMutations(StringBuilder sb, GameObject player)
+        {
+            sb.Append('[');
+            Mutations mutPart = player?.GetPart<Mutations>();
+            List<BaseMutation> list = mutPart?.MutationList;
+            if (list != null && list.Count > 0)
+            {
+                int i = 0;
+                foreach (BaseMutation m in list)
+                {
+                    if (m == null) continue;
+                    if (i > 0) sb.Append(',');
+                    i++;
+
+                    string className = m.GetType().Name;
+                    string name = m.Name ?? "";
+                    string displayName = (m.DisplayName ?? m.Name ?? "").Strip() ?? "";
+                    int baseLevel = m.BaseLevel;
+                    int level = m.Level;
+                    int uiDisplayLevel = m.GetUIDisplayLevel(); // base default is Level; subclasses override
+                    string type = m.Type ?? "";
+                    bool canLevel = m.CanLevel();
+                    bool isActive = level > 0;
+
+                    sb.Append("{\"class\":");
+                    AppendJsonString(sb, className);
+                    sb.Append(",\"name\":");
+                    AppendJsonString(sb, name);
+                    sb.Append(",\"display_name\":");
+                    AppendJsonString(sb, displayName);
+                    sb.Append(",\"base_level\":").Append(baseLevel.ToString(CultureInfo.InvariantCulture));
+                    sb.Append(",\"level\":").Append(level.ToString(CultureInfo.InvariantCulture));
+                    sb.Append(",\"ui_display_level\":").Append(uiDisplayLevel.ToString(CultureInfo.InvariantCulture));
+                    sb.Append(",\"type\":");
+                    AppendJsonString(sb, type);
+                    sb.Append(",\"can_level\":").Append(canLevel ? "true" : "false");
+                    sb.Append(",\"is_active\":").Append(isActive ? "true" : "false");
+                    sb.Append('}');
+                }
+            }
+            sb.Append(']');
+        }
+
         // Entry point used by HandleEvent to build the caps line payload
         // (the value of the [LLMOfQud][caps] line; caller adds the prefix).
-        // Phase 0-D Task 1: stub returning {"turn":N,"schema":"runtime_caps.v1"}.
-        // Subsequent tasks fill in mutations / abilities / effects / equipment.
-        // Schema bumps (v2+) require an ADR.
+        // Schema runtime_caps.v1 = {turn, schema, mutations, abilities,
+        // effects, equipment}. Schema bumps (v2+) require an ADR. Field
+        // order is locked; reordering requires an ADR.
         internal static string BuildCapsJson(int turn, GameObject player)
         {
-            StringBuilder sb = new StringBuilder(2048);
+            StringBuilder sb = new StringBuilder(4096);
             sb.Append("{\"turn\":").Append(turn.ToString(CultureInfo.InvariantCulture));
             sb.Append(",\"schema\":\"runtime_caps.v1\"");
+
+            sb.Append(",\"mutations\":");
+            AppendMutations(sb, player);
+
             sb.Append('}');
             return sb.ToString();
         }
