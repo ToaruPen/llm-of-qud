@@ -259,8 +259,11 @@ private static void AfterRenderCallback(XRLCore core, ScreenBuffer buf)
     }
     catch (Exception ex)
     {
-        // Never let observation kill the mod. Report once per failure kind via LogInfo
-        // so the problem surfaces in Player.log without crashing the game.
+        // Never let observation kill the mod. Each exception is logged
+        // verbatim (type + message) so transient and recurring failures
+        // both surface in Player.log without crashing the game. Phase 0-B
+        // accepted ERROR=0 over 95 turns; if log spam ever shows up here,
+        // dedupe at that point rather than pre-engineering a HashSet now.
         MetricsManager.LogInfo(
             "[LLMOfQud][screen] ERROR turn=" + turn + " " + ex.GetType().Name + ": " + ex.Message);
     }
@@ -329,7 +332,6 @@ public override void RegisterPlayer(GameObject Player, IEventRegistrar Registrar
     }
     if (!Registrar.IsUnregister && !_afterRenderRegistered)
     {
-        _afterRenderRegistered = true;
         // XRLCore fires this after Zone.Render populates the source buffer
         // (including BackupChar for tile-mode cells) and BEFORE DrawBuffer
         // copies that source into CurrentBuffer through ConsoleChar.Copy,
@@ -339,6 +341,10 @@ public override void RegisterPlayer(GameObject Player, IEventRegistrar Registrar
         // decompiled/XRL.Core/XRLCore.cs:624-626 (RegisterAfterRenderCallback)
         // decompiled/XRL.Core/XRLCore.cs:2347-2351, 2380-2383, 2423-2426 (invocation sites)
         XRLCore.RegisterAfterRenderCallback(AfterRenderCallback);
+        // Set the guard flag only after a successful Add so a hypothetical
+        // throw inside RegisterAfterRenderCallback does not permanently
+        // block future re-registration attempts.
+        _afterRenderRegistered = true;
     }
     Registrar.Register(SingletonEvent<BeginTakeActionEvent>.ID);
     base.RegisterPlayer(Player, Registrar);
@@ -357,6 +363,10 @@ public override bool HandleEvent(BeginTakeActionEvent E)
     // by the time HandleEvent runs, the only buffer we can reach
     // (TextConsole.CurrentBuffer) has already gone through
     // ScreenBuffer.Copy / ConsoleChar.Copy, which drops BackupChar.
+    // decompiled/ConsoleLib.Console/TextConsole.cs:31 (CurrentBuffer)
+    // decompiled/ConsoleLib.Console/TextConsole.cs:142-163 (DrawBuffer -> CurrentBuffer.Copy(Buffer))
+    // decompiled/ConsoleLib.Console/ScreenBuffer.cs:291-308 (Copy dispatches per-cell ConsoleChar.Copy)
+    // decompiled/ConsoleLib.Console/ConsoleChar.cs:385-400 (Copy omits BackupChar)
     Interlocked.Exchange(ref _pendingSnapshotTurn, _beginTurnCount);
     if (_beginTurnCount % 10 == 0)
     {
@@ -381,7 +391,7 @@ Expected (line numbers approximate):
 
 ```
 RegisterAfterRenderCallback(AfterRenderCallback);  // inside RegisterPlayer
-_afterRenderRegistered = true;                     // immediately above the subscription
+_afterRenderRegistered = true;                     // set AFTER successful registration (lockout-safe)
 _beginTurnCount++;                                 // inside HandleEvent
 Interlocked.Exchange(ref _pendingSnapshotTurn, _beginTurnCount);  // after the counter
 ```
@@ -637,8 +647,8 @@ EOF
 
 - Spec coverage: `docs/architecture-v5.md:2799` ("0-B: ScreenBuffer observation (ASCII map dump to log)") → covered by Tasks 1–3 (implementation) + Tasks 4–6 (acceptance against the same `Player.log` gate Phase 0-A used).
 - Placeholder scan: no "TBD"/"implement later"/"similar to Task N"; every code-change step shows the exact code.
-- Type consistency: `SnapshotAscii(ScreenBuffer)` → `string` and `LogScreenSnapshot(int turn)` → `void` are used consistently across Tasks 1–3; `_beginTurnCount` matches the existing Phase 0-A field name (`mod/LLMOfQud/LLMOfQudSystem.cs:14`).
-- Hazards accounted for: Task 7 hot-reload hazard explicitly *not* reintroduced (no `RegisterAfterRenderCallback`); timing assumption treated as empirical (Task 5 FAIL → Pivot branch, not a silent fix); exception-safety inside `LogScreenSnapshot` is the one documented exception to the "no defensive validation" rule, with rationale cited inline.
+- Type consistency (amended per ADR 0002): `SnapshotAscii(ScreenBuffer)` → `string` and `AfterRenderCallback(XRLCore, ScreenBuffer)` → `void` are used consistently across Tasks 1–3; `_beginTurnCount` matches the existing Phase 0-A field name (`mod/LLMOfQud/LLMOfQudSystem.cs:14`); the new static fields `_afterRenderRegistered` and `_pendingSnapshotTurn` are referenced in Tasks 2–3 with the same names.
+- Hazards accounted for (amended per ADR 0002): Phase 0-A Task 7 hot-reload hazard is acknowledged, not eliminated — `_afterRenderRegistered` gates duplicate registration within one process but mid-session reload remains unverified, recorded in `docs/memo/phase-0-a-exit-2026-04-23.md` and the Phase 0-B exit memo. Timing assumption treated as empirical (95-turn run with three-cell spot-check PASS in lieu of the original Pivot-branch fallback). Exception-safety inside `AfterRenderCallback` is the one documented exception to the "no defensive validation" rule — a throw on the render thread could poison the game's frame loop — with rationale cited inline.
 
 ## Execution handoff
 

@@ -35,7 +35,6 @@ namespace LLMOfQud
             }
             if (!Registrar.IsUnregister && !_afterRenderRegistered)
             {
-                _afterRenderRegistered = true;
                 // XRLCore fires this after Zone.Render populates the source buffer
                 // (including BackupChar for tile-mode cells) and BEFORE DrawBuffer
                 // copies that source into CurrentBuffer through ConsoleChar.Copy,
@@ -45,6 +44,10 @@ namespace LLMOfQud
                 // decompiled/XRL.Core/XRLCore.cs:624-626 (RegisterAfterRenderCallback)
                 // decompiled/XRL.Core/XRLCore.cs:2347-2351, 2380-2383, 2423-2426 (invocation sites)
                 XRLCore.RegisterAfterRenderCallback(AfterRenderCallback);
+                // Set the guard flag only after a successful Add so a hypothetical
+                // throw inside RegisterAfterRenderCallback does not permanently
+                // block future re-registration attempts.
+                _afterRenderRegistered = true;
             }
             Registrar.Register(SingletonEvent<BeginTakeActionEvent>.ID);
             base.RegisterPlayer(Player, Registrar);
@@ -57,6 +60,10 @@ namespace LLMOfQud
             // by the time HandleEvent runs, the only buffer we can reach
             // (TextConsole.CurrentBuffer) has already gone through
             // ScreenBuffer.Copy / ConsoleChar.Copy, which drops BackupChar.
+            // decompiled/ConsoleLib.Console/TextConsole.cs:31 (CurrentBuffer)
+            // decompiled/ConsoleLib.Console/TextConsole.cs:142-163 (DrawBuffer -> CurrentBuffer.Copy(Buffer))
+            // decompiled/ConsoleLib.Console/ScreenBuffer.cs:291-308 (Copy dispatches per-cell ConsoleChar.Copy)
+            // decompiled/ConsoleLib.Console/ConsoleChar.cs:385-400 (Copy omits BackupChar)
             Interlocked.Exchange(ref _pendingSnapshotTurn, _beginTurnCount);
             if (_beginTurnCount % 10 == 0)
             {
@@ -123,8 +130,11 @@ namespace LLMOfQud
             }
             catch (Exception ex)
             {
-                // Never let observation kill the mod. Report once per failure kind via LogInfo
-                // so the problem surfaces in Player.log without crashing the game.
+                // Never let observation kill the mod. Each exception is logged
+                // verbatim (type + message) so transient and recurring failures
+                // both surface in Player.log without crashing the game. Phase 0-B
+                // accepted ERROR=0 over 95 turns; if log spam ever shows up here,
+                // dedupe at that point rather than pre-engineering a HashSet now.
                 MetricsManager.LogInfo(
                     "[LLMOfQud][screen] ERROR turn=" + turn + " " + ex.GetType().Name + ": " + ex.Message);
             }
