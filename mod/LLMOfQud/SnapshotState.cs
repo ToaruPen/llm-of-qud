@@ -284,11 +284,17 @@ namespace LLMOfQud
                     // the "(D)" defect annotation so display_name is plain text;
                     // is_active / can_level / level fields already encode the
                     // semantic axes a defect annotation would convey.
+                    // decompiled/XRL.World.Parts.Mutation/BaseMutation.cs:71-83 (DisplayName getter [Obsolete])
+                    // decompiled/XRL.World.Parts.Mutation/BaseMutation.cs:166-185 (GetDisplayName(bool WithAnnotations))
                     string displayName = (m.GetDisplayName(WithAnnotations: false) ?? m.Name ?? "").Strip() ?? "";
                     int baseLevel = m.BaseLevel;
                     int level = m.Level;
-                    int uiDisplayLevel = m.GetUIDisplayLevel(); // base default is Level; subclasses override
+                    // base default returns Level; subclasses override (CoQ's character-sheet UI consumes this).
+                    // decompiled/XRL.World.Parts.Mutation/BaseMutation.cs:209-212 (GetUIDisplayLevel)
+                    int uiDisplayLevel = m.GetUIDisplayLevel();
                     string type = m.Type ?? "";
+                    // CanLevel is a method (NOT a property) on BaseMutation.
+                    // decompiled/XRL.World.Parts.Mutation/BaseMutation.cs:732 (CanLevel)
                     bool canLevel = m.CanLevel();
                     bool isActive = level > 0;
 

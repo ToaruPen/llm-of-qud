@@ -10,6 +10,7 @@
 - Initial 139-turn True Kin smoke run preceded this Warden-strict run. The True Kin pass surfaced the only issue caught this phase: a `MODWARN CS0618` for `BaseMutation.DisplayName.get` being `[Obsolete]` in CoQ 2.0.210 (commit `9d369ea`); switched to `m.GetDisplayName(WithAnnotations: false)` and re-verified clean compile + clean MODWARN scan on the second run.
 
 ## Acceptance counts
+
 | Frame | Count |
 |---|---|
 | [screen] BEGIN | 112 |
@@ -75,6 +76,7 @@ Open design questions for Phase 0-E (not for this exit memo):
 - Multi-mod coexistence: untested across all four phases. Revisit when a phase needs multi-mod observation. Phase 0-D acceptance run had QudJP, Dynamic Background Color, and Equippable Handcart present but `Skipping, state: Disabled` — the `1: LLMOfQud` load order was clean.
 
 ## Files modified / created in Phase 0-D
+
 | Path | Change |
 |---|---|
 | `mod/LLMOfQud/SnapshotState.cs` | Added `CapsJson` field to `PendingSnapshot`; added `BuildCapsJson` + `AppendMutations` + `AppendAbilities` + `AppendEffects` + `AppendEquipment` static helpers. ~250 lines. |
