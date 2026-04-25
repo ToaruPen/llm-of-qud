@@ -76,13 +76,13 @@ namespace LLMOfQud
         {
             if (buf == null)
             {
-                return "<null-buffer>";
+                return "<null-buffer>\n";
             }
             int w = buf.Width;
             int h = buf.Height;
             if (w <= 0 || h <= 0 || buf.Buffer == null)
             {
-                return "<empty-buffer w=" + w + " h=" + h + ">";
+                return "<empty-buffer w=" + w + " h=" + h + ">\n";
             }
             StringBuilder sb = new StringBuilder(w * h + h);
             for (int y = 0; y < h; y++)

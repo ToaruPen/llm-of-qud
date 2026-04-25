@@ -2,7 +2,7 @@
 
 > **AMENDED 2026-04-25 per ADR 0002** (`docs/adr/0002-phase-0-b-render-callback-pivot.md`).
 > The original design (synchronous read from `HandleEvent` via `TextConsole.GetScrapBuffer1`) was empirically falsified mid-implementation: `ConsoleChar.Copy` does NOT propagate `BackupChar`, so every buffer reachable from `HandleEvent` lost the tile-mode ASCII fallback. Pivoted to `XRLCore.RegisterAfterRenderCallback` + `Interlocked.Exchange` handshake, which `docs/architecture-v5.md:408-411` already sanctioned. Empirical record at `docs/memo/phase-0-b-tile-mode-finding-2026-04-25.md`. Affected sections below: **Architecture**, **Why we use `RegisterAfterRenderCallback`**, **Timing correctness**, **Pivot branch (executed)**, **Reference**, **File Structure**, **Task 2**, **Task 3**, **Task 9 PR body**.
-
+>
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Emit one 80×25 ASCII snapshot of CoQ's current screen to `Player.log` at every player decision point (one per `BeginTakeActionEvent`), so Phase 0-C+ has a concrete observation primitive that the Python Brain will eventually consume over WebSocket.
