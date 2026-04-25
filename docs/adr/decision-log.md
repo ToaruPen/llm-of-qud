@@ -13,3 +13,7 @@ individual decision artifact under `docs/adr/decisions/`.
 - 2026-04-25T04:16:27Z | adr_required=true | Defer C# unit-test infrastructure for Phase 0-C AppendJsonString to Phase 2a | [details](decisions/2026-04-25-defer-c-unit-test-infrastructure-for-phase-0-c-appendjsonstring-to-phase-2a.md)
 - 2026-04-25T05:14:27Z | adr_required=false | Phase 0-C readiness rollup push (ADRs 0003 + 0004 + plan body) | [details](decisions/2026-04-25-phase-0-c-readiness-rollup.md)
 - 2026-04-25T05:55:28Z | adr_required=false | CodeRabbit follow-up fixes on PR #7 | [details](decisions/2026-04-25-coderabbit-follow-up-fixes-on-pr-7.md)
+- 2026-04-25T13:59:06Z | adr_required=true | Phase 0-E pivot from BirthBuildProfile to current build state | [details](decisions/2026-04-25-phase-0-e-pivot-from-birthbuildprofile-to-current-build-state.md)
+- 2026-04-25T14:26:22Z | adr_required=true | Add Related Artifacts section to ADR 0005 to comply with template | [details](decisions/2026-04-25-add-related-artifacts-section-to-adr-0005-to-comply-with-template.md)
+- 2026-04-25T14:30:00Z | adr_required=false | Correct DeathLogger / cross-run learning citation from :1683-1687 to :1696-1710 | [details](decisions/2026-04-25-correct-deathlogger-citation-to-1696-1710.md)
+- 2026-04-25T14:32:26Z | adr_required=true | Reorder ADR 0005 sections and add Supersedes per template | [details](decisions/2026-04-25-reorder-adr-0005-sections-and-add-supersedes-per-template.md)
