@@ -735,6 +735,73 @@ namespace LLMOfQud
             sb.Append('}');
         }
 
+        // Strip CoQ {{<color>|...}} markup, drop a trailing "!" if present,
+        // and lowercase. Used by AppendBuildResources for hunger/thirst.
+        // Examples (decompiled/XRL.World.Parts/Stomach.cs:87-143):
+        //   "{{g|Sated}}"        -> "sated"
+        //   "{{W|Hungry}}"       -> "hungry"
+        //   "{{R|Wilted!}}"      -> "wilted"     (PhotosyntheticSkin only)
+        //   "{{R|Famished!}}"    -> "famished"
+        //   "{{R|Dehydrated!}}"  -> "dehydrated"
+        //   "{{r|Parched}}"      -> "parched"
+        //   "{{Y|Thirsty}}"      -> "thirsty"
+        //   "{{g|Quenched}}"     -> "quenched"
+        //   "{{G|Tumescent}}"    -> "tumescent"
+        // Returns null if input is null (caller emits JSON null in that
+        // case, NOT empty string). Returns input verbatim (lowercased)
+        // if no markup matched, so future markup style changes do not
+        // silently drop content — they show up as a non-enum bucket
+        // and trip acceptance criterion 8.
+        private static string NormalizeStomachStatus(string raw)
+        {
+            if (raw == null) return null;
+            string s = raw;
+            // Strip leading "{{<C>|" if present.
+            if (s.Length >= 5 && s[0] == '{' && s[1] == '{' && s.IndexOf('|') > 2)
+            {
+                int barIdx = s.IndexOf('|');
+                s = s.Substring(barIdx + 1);
+            }
+            // Strip trailing "}}" if present.
+            if (s.EndsWith("}}"))
+            {
+                s = s.Substring(0, s.Length - 2);
+            }
+            // Strip trailing "!" if present (Famished!/Wilted!/Dehydrated!/Desiccated!).
+            if (s.Length > 0 && s[s.Length - 1] == '!')
+            {
+                s = s.Substring(0, s.Length - 1);
+            }
+            return s.ToLowerInvariant();
+        }
+
+        // Schema slice (current_build.v1):
+        //   "hunger": <string-or-null>,
+        //   "thirst": <string-or-null>
+        // Both emitted as JSON null when player.GetPart<Stomach>() is null
+        // (robot body, body-swap to non-creature object) per spec line 118.
+        // For non-amphibious bodies the bucket sets are:
+        //   hunger: {sated, hungry, wilted, famished}
+        //     (wilted only for PhotosyntheticSkin)
+        //   thirst: {tumescent, quenched, thirsty, parched, dehydrated}
+        // Amphibious bodies use a separate thirst bucket family
+        // (desiccated/dry/moist/wet/soaked) which the v1 acceptance gate
+        // does not assert (spec hazard "Hunger/thirst bucket stability").
+        // decompiled/XRL.World.Parts/Stomach.cs:87-102 (FoodStatus)
+        // decompiled/XRL.World.Parts/Stomach.cs:104-143 (WaterStatus)
+        internal static void AppendBuildResources(StringBuilder sb, GameObject player)
+        {
+            Stomach stomach = player?.GetPart<Stomach>();
+            string hunger = (stomach != null) ? NormalizeStomachStatus(stomach.FoodStatus()) : null;
+            string thirst = (stomach != null) ? NormalizeStomachStatus(stomach.WaterStatus()) : null;
+
+            sb.Append("\"hunger\":");
+            if (hunger == null) sb.Append("null"); else AppendJsonString(sb, hunger);
+
+            sb.Append(",\"thirst\":");
+            if (thirst == null) sb.Append("null"); else AppendJsonString(sb, thirst);
+        }
+
         // Entry point used by HandleEvent to build the build line payload
         // (the value of the [LLMOfQud][build] line; caller adds the prefix).
         // Schema current_build.v1: {turn, schema, genotype_kind, genotype_id,
@@ -748,6 +815,8 @@ namespace LLMOfQud
             AppendBuildIdentity(sb, player);
             sb.Append(',');
             AppendBuildAttributes(sb, player);
+            sb.Append(',');
+            AppendBuildResources(sb, player);
             sb.Append('}');
             return sb.ToString();
         }
