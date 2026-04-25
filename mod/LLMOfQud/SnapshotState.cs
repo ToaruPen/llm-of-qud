@@ -682,6 +682,59 @@ namespace LLMOfQud
             }
         }
 
+        // The 6 canonical attribute names CoQ stores under (CapsCase per
+        // Statistic.Attributes at decompiled/XRL.World/Statistic.cs:51-53).
+        // Output JSON uses lowercase keys per current_build.v1 schema lock.
+        // Order matches Statistic.Attributes (Strength/Agility/Toughness/
+        // Intelligence/Willpower/Ego), preserved here so the JSON object
+        // key ordering is stable across turns.
+        private static readonly string[] _AttrCoqNames = new string[]
+        {
+            "Strength", "Agility", "Toughness",
+            "Intelligence", "Willpower", "Ego",
+        };
+        private static readonly string[] _AttrJsonKeys = new string[]
+        {
+            "strength", "agility", "toughness",
+            "intelligence", "willpower", "ego",
+        };
+
+        // Schema slice (current_build.v1):
+        //   "level": <int>,
+        //   "attributes": {
+        //     "strength": <int>, "agility": <int>, "toughness": <int>,
+        //     "intelligence": <int>, "willpower": <int>, "ego": <int>
+        //   }
+        // Statistic.Value is the clamped, modifier-applied effective value
+        // (decompiled/XRL.World/Statistic.cs:238-252); _Value+_Bonus-_Penalty.
+        // Consumers do NOT need to recompute. base_value/modifier_total were
+        // dropped from v1 per spec line 61.
+        // GetStat returns null if the stat is missing
+        // (decompiled/XRL.World/GameObject.cs:4373-4383); on null we emit
+        // 0 for that attribute and continue (no sentinel) — a missing stat
+        // is informative-by-zero, not a build error.
+        // GameObject.Level (decompiled/XRL.World/GameObject.cs:642) is
+        // GetStat("Level")?.Value ?? 1; we read it through the same path.
+        internal static void AppendBuildAttributes(StringBuilder sb, GameObject player)
+        {
+            // Level is a top-level field per current_build.v1, not nested
+            // under attributes. Co-located here only for Stat-read locality.
+            int level = player?.Level ?? 1;
+            sb.Append("\"level\":").Append(level.ToString(CultureInfo.InvariantCulture));
+
+            sb.Append(",\"attributes\":{");
+            for (int i = 0; i < _AttrCoqNames.Length; i++)
+            {
+                if (i > 0) sb.Append(',');
+                AppendJsonString(sb, _AttrJsonKeys[i]);
+                sb.Append(':');
+                Statistic stat = player?.GetStat(_AttrCoqNames[i]);
+                int value = stat?.Value ?? 0;
+                sb.Append(value.ToString(CultureInfo.InvariantCulture));
+            }
+            sb.Append('}');
+        }
+
         // Entry point used by HandleEvent to build the build line payload
         // (the value of the [LLMOfQud][build] line; caller adds the prefix).
         // Schema current_build.v1: {turn, schema, genotype_kind, genotype_id,
@@ -693,6 +746,8 @@ namespace LLMOfQud
             sb.Append("{\"turn\":").Append(turn.ToString(CultureInfo.InvariantCulture));
             sb.Append(",\"schema\":\"current_build.v1\",");
             AppendBuildIdentity(sb, player);
+            sb.Append(',');
+            AppendBuildAttributes(sb, player);
             sb.Append('}');
             return sb.ToString();
         }
