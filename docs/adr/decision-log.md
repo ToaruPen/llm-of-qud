@@ -11,3 +11,4 @@ individual decision artifact under `docs/adr/decisions/`.
 - 2026-04-24T23:43:02Z | adr_required=true | Phase 0-B observation pivot to AfterRenderCallback | [details](decisions/2026-04-24-phase-0-b-observation-pivot-to-afterrendercallback.md)
 - 2026-04-25T01:10:46Z | adr_required=true | Phase 0-A Task 7 closure by operational scope | [details](decisions/2026-04-25-phase-0-a-task-7-closure-by-operational-scope.md)
 - 2026-04-25T04:16:27Z | adr_required=true | Defer C# unit-test infrastructure for Phase 0-C AppendJsonString to Phase 2a | [details](decisions/2026-04-25-defer-c-unit-test-infrastructure-for-phase-0-c-appendjsonstring-to-phase-2a.md)
+- 2026-04-25T05:14:27Z | adr_required=false | Phase 0-C readiness rollup push (ADRs 0003 + 0004 + plan body) | [details](decisions/2026-04-25-phase-0-c-readiness-rollup.md)
