@@ -464,6 +464,94 @@ namespace LLMOfQud
             sb.Append(']');
         }
 
+        // Schema:
+        //   [
+        //     {
+        //       "part_id": 12,                           // BodyPart.ID when HasID(),
+        //                                                //   else null. Reading the
+        //                                                //   ID getter when _ID == 0
+        //                                                //   lazily increments
+        //                                                //   The.Game.BodyPartIDSequence
+        //                                                //   (BodyPart.cs:365-381),
+        //                                                //   which is a game-state
+        //                                                //   mutation we MUST avoid
+        //                                                //   from an observation pass.
+        //       "part_name": "Hand",                      // BodyPart.Name
+        //       "part_type": "Hand",                      // BodyPart.Type
+        //       "ordinal_name": "Right Hand",             // GetOrdinalName().Strip()
+        //                                                //   strips the {{<color>|...}}
+        //                                                //   markup CoQ wraps the
+        //                                                //   ordinal name in.
+        //       "equipped": {
+        //         "name": "iron long sword",              // ShortDisplayNameStripped
+        //         "blueprint": "Iron Long Sword"          // GameObject.Blueprint
+        //       }
+        //     }
+        //   ]
+        // decompiled/XRL.World.Parts/Body.cs:883-897 (GetEquippedParts)
+        // decompiled/XRL.World.Anatomy/BodyPart.cs:345-347 (Equipped)
+        // decompiled/XRL.World.Anatomy/BodyPart.cs:365-381 (ID — lazy-allocates side-effect)
+        // decompiled/XRL.World.Anatomy/BodyPart.cs:438-440 (HasID())
+        // decompiled/XRL.World.Anatomy/BodyPart.cs:5706-5727 (GetOrdinalName — wraps in markup)
+        internal static void AppendEquipment(StringBuilder sb, GameObject player)
+        {
+            sb.Append('[');
+            Body bodyPart = player?.GetPart<Body>();
+            if (bodyPart != null)
+            {
+                List<BodyPart> equipped = bodyPart.GetEquippedParts();
+                if (equipped != null && equipped.Count > 0)
+                {
+                    int i = 0;
+                    foreach (BodyPart p in equipped)
+                    {
+                        if (p == null) continue;
+                        GameObject item = p.Equipped;
+                        if (item == null) continue; // GetEquippedParts already filters; defensive
+                        if (i > 0) sb.Append(',');
+                        i++;
+
+                        // p.HasID() guards against the lazy-allocate side-effect
+                        // in the ID getter (BodyPart.cs:365-381) which would
+                        // increment The.Game.BodyPartIDSequence during what is
+                        // supposed to be a pure observation pass.
+                        bool partHasId = p.HasID();
+                        int partId = partHasId ? p.ID : 0;
+                        string partName = p.Name ?? "";
+                        string partType = p.Type ?? "";
+                        // GetOrdinalName() wraps the result in {{<color>|...}}
+                        // markup (BodyPart.cs:5709-5726). Strip for plain text.
+                        string ordinalNameRaw = p.GetOrdinalName() ?? partName;
+                        string ordinalName = ordinalNameRaw.Strip() ?? partName;
+                        string itemName = item.ShortDisplayNameStripped ?? "<unknown>";
+                        string blueprint = item.Blueprint ?? "";
+
+                        if (partHasId)
+                        {
+                            sb.Append("{\"part_id\":").Append(partId.ToString(CultureInfo.InvariantCulture));
+                        }
+                        else
+                        {
+                            sb.Append("{\"part_id\":null");
+                        }
+                        sb.Append(",\"part_name\":");
+                        AppendJsonString(sb, partName);
+                        sb.Append(",\"part_type\":");
+                        AppendJsonString(sb, partType);
+                        sb.Append(",\"ordinal_name\":");
+                        AppendJsonString(sb, ordinalName);
+                        sb.Append(",\"equipped\":{\"name\":");
+                        AppendJsonString(sb, itemName);
+                        sb.Append(",\"blueprint\":");
+                        AppendJsonString(sb, blueprint);
+                        sb.Append('}');
+                        sb.Append('}');
+                    }
+                }
+            }
+            sb.Append(']');
+        }
+
         // Entry point used by HandleEvent to build the caps line payload
         // (the value of the [LLMOfQud][caps] line; caller adds the prefix).
         // Schema runtime_caps.v1 = {turn, schema, mutations, abilities,
@@ -483,6 +571,9 @@ namespace LLMOfQud
 
             sb.Append(",\"effects\":");
             AppendEffects(sb, player);
+
+            sb.Append(",\"equipment\":");
+            AppendEquipment(sb, player);
 
             sb.Append('}');
             return sb.ToString();
