@@ -622,18 +622,77 @@ namespace LLMOfQud
             return sb.ToString();
         }
 
+        // Schema slice (current_build.v1):
+        //   "genotype_kind": "mutant" | "true_kin" | "unknown",
+        //   "genotype_id": <string or null>,
+        //   "subtype_id": <string or null>
+        // genotype_kind is derived from IsTrueKin/IsMutant (mutually
+        // exclusive in normal CoQ play). "unknown" is exposed honestly
+        // rather than silently coerced; acceptance criterion 8 hard-gates
+        // count("unknown") == 0 across both runs.
+        // Per spec line 58: AppendJsonString(null) emits "" (empty string),
+        // NOT JSON null; for the genotype_id/subtype_id null case we MUST
+        // emit sb.Append("null") explicitly.
+        // decompiled/XRL.World/GameObject.cs:10019 (GetGenotype)
+        // decompiled/XRL.World/GameObject.cs:10024 (GetSubtype)
+        // decompiled/XRL.World/GameObject.cs:10029-10031 (IsTrueKin)
+        // decompiled/XRL.World/GameObject.cs:10034-10036 (IsMutant)
+        internal static void AppendBuildIdentity(StringBuilder sb, GameObject player)
+        {
+            string kind;
+            if (player == null)
+            {
+                kind = "unknown";
+            }
+            else if (player.IsTrueKin())
+            {
+                kind = "true_kin";
+            }
+            else if (player.IsMutant())
+            {
+                kind = "mutant";
+            }
+            else
+            {
+                kind = "unknown";
+            }
+            sb.Append("\"genotype_kind\":");
+            AppendJsonString(sb, kind);
+
+            sb.Append(",\"genotype_id\":");
+            string genotypeId = player?.GetGenotype();
+            if (genotypeId == null)
+            {
+                sb.Append("null");
+            }
+            else
+            {
+                AppendJsonString(sb, genotypeId);
+            }
+
+            sb.Append(",\"subtype_id\":");
+            string subtypeId = player?.GetSubtype();
+            if (subtypeId == null)
+            {
+                sb.Append("null");
+            }
+            else
+            {
+                AppendJsonString(sb, subtypeId);
+            }
+        }
+
         // Entry point used by HandleEvent to build the build line payload
         // (the value of the [LLMOfQud][build] line; caller adds the prefix).
-        // Phase 0-E Task 1: stub returning {"turn":N,"schema":"current_build.v1"}.
-        // Tasks 2-4 fill in identity / attributes / resources. Schema bumps
-        // (v2+) require an ADR. Field order is locked; reordering requires
-        // an ADR. See docs/superpowers/specs/2026-04-25-phase-0-e-current-build-
-        // state-design.md for the schema and field semantics.
+        // Schema current_build.v1: {turn, schema, genotype_kind, genotype_id,
+        // subtype_id, level, attributes, hunger, thirst}. Schema bumps (v2+)
+        // require an ADR. Field order is locked; reordering requires an ADR.
         internal static string BuildBuildJson(int turn, GameObject player)
         {
             StringBuilder sb = new StringBuilder(512);
             sb.Append("{\"turn\":").Append(turn.ToString(CultureInfo.InvariantCulture));
-            sb.Append(",\"schema\":\"current_build.v1\"");
+            sb.Append(",\"schema\":\"current_build.v1\",");
+            AppendBuildIdentity(sb, player);
             sb.Append('}');
             return sb.ToString();
         }
