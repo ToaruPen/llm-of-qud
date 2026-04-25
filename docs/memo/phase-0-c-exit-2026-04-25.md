@@ -157,7 +157,7 @@ Open design questions for Phase 0-D planning (not for this exit memo):
 | `docs/memo/phase-0-a-exit-2026-04-23.md` | Updated. Task 7 status DEFERRED → CLOSED (ADR 0003). |
 | `docs/memo/phase-0-c-exit-2026-04-25.md` | This file. |
 
-Per AGENTS.md §Imperatives item 5, no PR has been opened for `feat/phase-0-c-implementation` yet — that's the next step (Task 8). Commits already on `origin/feat/phase-0-c-implementation`: `1007520`, `7754f56`, `056d396`, `ab2c848`, `4f2ce93`. The exit memo + this run's evidence belong on top before opening the PR.
+This memo and the implementation that produced it are bundled in the Phase 0-C feat PR (originally #8 against `docs/phase-0-c-readiness`; reopened against `main` after PR #7 merged). Implementation commits on `feat/phase-0-c-implementation`: `4f2ce93` (Tasks 1-3 SnapshotState + game-thread state JSON), `9c77070` (this exit memo), `6ea8f2b` (merge of docs lint fix `7935c21`), `e4c87f4` (merge of docs CodeRabbit fix `50c866a`), plus subsequent fix commits addressing PR #8 review.
 
 ## References
 

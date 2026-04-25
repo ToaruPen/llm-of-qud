@@ -65,10 +65,17 @@ namespace LLMOfQud
             // The.Player / Zone.GetObjects() / GameObject statistics — see
             // docs/architecture-v5.md:1787-1790 for the canonical routing rule.
             // Reading these on the render thread risks tearing.
+            // Capture display_mode on the game thread so [screen] mode= and
+            // [state] display_mode= for this turn are guaranteed to agree even
+            // if Options.UseTiles flips before AfterRenderCallback fires.
+            // BuildStateJson reads Options.UseTiles exactly once for the
+            // [state] payload and returns the captured value via out so we
+            // can reuse it for the [screen] header.
             string stateJson;
+            string displayMode;
             try
             {
-                stateJson = SnapshotState.BuildStateJson(_beginTurnCount);
+                stateJson = SnapshotState.BuildStateJson(_beginTurnCount, out displayMode);
             }
             catch (Exception ex)
             {
@@ -78,6 +85,7 @@ namespace LLMOfQud
                 // for the next turn.
                 stateJson = "{\"turn\":" + _beginTurnCount.ToString() +
                     ",\"error\":\"" + ex.GetType().Name + "\"}";
+                displayMode = Options.UseTiles ? "tile" : "ascii";
                 MetricsManager.LogInfo(
                     "[LLMOfQud][state] ERROR turn=" + _beginTurnCount +
                     " " + ex.GetType().Name + ": " + ex.Message);
@@ -87,6 +95,7 @@ namespace LLMOfQud
             {
                 Turn = _beginTurnCount,
                 StateJson = stateJson,
+                DisplayMode = displayMode,
             };
             Interlocked.Exchange(ref _pendingSnapshot, pending);
 
@@ -172,13 +181,17 @@ namespace LLMOfQud
             }
             int turn = pending.Turn;
             string stateJson = pending.StateJson;
+            // Reuse the game-thread-captured DisplayMode so the [screen] mode=
+            // header and the embedded [state] display_mode= for the same turn
+            // are guaranteed to agree even if Options.UseTiles flipped between
+            // HandleEvent and AfterRenderCallback.
+            string displayMode = pending.DisplayMode;
             try
             {
                 int w = buf != null ? buf.Width : 0;
                 int h = buf != null ? buf.Height : 0;
                 int charCount, backupCount, blankCount;
                 string body = SnapshotAscii(buf, out charCount, out backupCount, out blankCount);
-                string displayMode = Options.UseTiles ? "tile" : "ascii";
 
                 // Frame 1: [screen] block, augmented with display_mode and counts
                 // on the BEGIN line. END line is unchanged from 0-B for parser

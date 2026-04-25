@@ -11,6 +11,13 @@ namespace LLMOfQud
     {
         public int Turn;
         public string StateJson;
+        // Captured on the game thread alongside StateJson. AfterRenderCallback
+        // MUST consume this rather than re-reading Options.UseTiles, which can
+        // flip between turns and would otherwise produce inconsistent
+        // mode= (in [screen]) vs display_mode= (in [state]) framing for the
+        // same turn. See ADR 0002 + game-thread routing rule
+        // docs/architecture-v5.md:1787-1790.
+        public string DisplayMode;
     }
 
     internal static class SnapshotState
@@ -152,7 +159,7 @@ namespace LLMOfQud
         // decompiled/XRL.World/Cell.cs:210 (X), :212 (Y), :214 (ParentZone)
         // decompiled/XRL.UI/Options.cs:574-576 (UseTiles)
         // decompiled/XRL.World/GameObject.cs:9930- (IsVisible)
-        internal static string BuildStateJson(int turn)
+        internal static string BuildStateJson(int turn, out string displayMode)
         {
             GameObject player = The.Player;
             Cell pCell = player?.CurrentCell;
@@ -162,7 +169,7 @@ namespace LLMOfQud
             int py = pCell != null ? pCell.Y : 0;
             int hp = player?.hitpoints ?? 0;
             int hpMax = player?.baseHitpoints ?? 0;
-            string displayMode = Options.UseTiles ? "tile" : "ascii";
+            displayMode = Options.UseTiles ? "tile" : "ascii";
 
             StringBuilder sb = new StringBuilder(2048);
             sb.Append("{\"turn\":").Append(turn.ToString(CultureInfo.InvariantCulture));
