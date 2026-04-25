@@ -28,6 +28,11 @@ namespace LLMOfQud
         // observation fields thread through this object, never as parallel
         // Interlocked.Exchange slots.
         public string CapsJson;
+        // Phase 0-E: current build state JSON for this turn. Built on the
+        // game thread inside HandleEvent (same routing rule as CapsJson).
+        // Schema current_build.v1, locked at design spec commit 8861358 +
+        // ADR 0005. Render thread emits verbatim.
+        public string BuildJson;
     }
 
     internal static class SnapshotState
@@ -613,6 +618,22 @@ namespace LLMOfQud
             sb.Append(",\"equipment\":");
             AppendEquipment(sb, player);
 
+            sb.Append('}');
+            return sb.ToString();
+        }
+
+        // Entry point used by HandleEvent to build the build line payload
+        // (the value of the [LLMOfQud][build] line; caller adds the prefix).
+        // Phase 0-E Task 1: stub returning {"turn":N,"schema":"current_build.v1"}.
+        // Tasks 2-4 fill in identity / attributes / resources. Schema bumps
+        // (v2+) require an ADR. Field order is locked; reordering requires
+        // an ADR. See docs/superpowers/specs/2026-04-25-phase-0-e-current-build-
+        // state-design.md for the schema and field semantics.
+        internal static string BuildBuildJson(int turn, GameObject player)
+        {
+            StringBuilder sb = new StringBuilder(512);
+            sb.Append("{\"turn\":").Append(turn.ToString(CultureInfo.InvariantCulture));
+            sb.Append(",\"schema\":\"current_build.v1\"");
             sb.Append('}');
             return sb.ToString();
         }

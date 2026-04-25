@@ -120,12 +120,41 @@ namespace LLMOfQud
                     " " + ex.GetType().Name + ": " + ex.Message);
             }
 
+            // Phase 0-E: build build JSON on the game thread in a separate
+            // try/catch. Failure here MUST NOT kill [state] or [caps]
+            // emission; produce a valid-JSON sentinel so downstream parsers
+            // always see a parseable [build] line for this turn. Use the
+            // existing SnapshotState.AppendJsonString helper so control
+            // characters (newline / tab / U+0000-U+001F) in ex.Message are
+            // escaped RFC-8259 correctly.
+            string buildJson;
+            try
+            {
+                buildJson = SnapshotState.BuildBuildJson(_beginTurnCount, The.Player);
+            }
+            catch (Exception ex)
+            {
+                StringBuilder errSb = new StringBuilder(256);
+                errSb.Append("{\"turn\":").Append(_beginTurnCount.ToString())
+                    .Append(",\"schema\":\"current_build.v1\"")
+                    .Append(",\"error\":{\"type\":");
+                SnapshotState.AppendJsonString(errSb, ex.GetType().Name);
+                errSb.Append(",\"message\":");
+                SnapshotState.AppendJsonString(errSb, ex.Message ?? "");
+                errSb.Append("}}");
+                buildJson = errSb.ToString();
+                MetricsManager.LogInfo(
+                    "[LLMOfQud][build] ERROR turn=" + _beginTurnCount +
+                    " " + ex.GetType().Name + ": " + ex.Message);
+            }
+
             PendingSnapshot pending = new PendingSnapshot
             {
                 Turn = _beginTurnCount,
                 StateJson = stateJson,
                 DisplayMode = displayMode,
                 CapsJson = capsJson,
+                BuildJson = buildJson,
             };
             Interlocked.Exchange(ref _pendingSnapshot, pending);
 
@@ -212,6 +241,7 @@ namespace LLMOfQud
             int turn = pending.Turn;
             string stateJson = pending.StateJson;
             string capsJson = pending.CapsJson;
+            string buildJson = pending.BuildJson;
             // Reuse the game-thread-captured DisplayMode so the [screen] mode=
             // header and the embedded [state] display_mode= for the same turn
             // are guaranteed to agree even if Options.UseTiles flipped between
@@ -265,6 +295,21 @@ namespace LLMOfQud
             {
                 MetricsManager.LogInfo(
                     "[LLMOfQud][caps] ERROR turn=" + turn + " " + ex.GetType().Name + ": " + ex.Message);
+            }
+
+            // Phase 0-E: emit [build] in its own try scope. A [build] failure
+            // here MUST NOT blank [screen]/[state]/[caps] for this turn (those
+            // have already emitted above). The buildJson value was prepared
+            // on the game thread; if its build threw, buildJson is already an
+            // error sentinel and this block just emits it verbatim.
+            try
+            {
+                MetricsManager.LogInfo("[LLMOfQud][build] " + buildJson);
+            }
+            catch (Exception ex)
+            {
+                MetricsManager.LogInfo(
+                    "[LLMOfQud][build] ERROR turn=" + turn + " " + ex.GetType().Name + ": " + ex.Message);
             }
         }
     }
