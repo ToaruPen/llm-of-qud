@@ -85,18 +85,29 @@ substrate) remains an open future phase, NOT subsumed by Phase 0-E.
    dump is simpler for a payload this small. See the design spec's
    "Cadence" section for the full bypass enumeration with citations.
 
+## Related Artifacts
+
+- `docs/superpowers/specs/2026-04-25-phase-0-e-current-build-state-design.md`
+  — design spec at commit `8861358` (codex PASS after 4 review rounds);
+  defines the `current_build.v1` schema, field semantics, error posture,
+  and acceptance criteria this ADR formalizes.
+- `docs/superpowers/plans/2026-04-25-phase-0-e-current-build-state.md`
+  — implementation plan (lands in the same docs-only PR as this ADR).
+- `docs/adr/decisions/2026-04-25-phase-0-e-pivot-from-birthbuildprofile-to-current-build-state.md`
+  — machine-readable decision record produced by
+  `scripts/create_adr_decision.py` for the pre-commit ADR gate.
+
 ## References
 
 - `docs/architecture-v5.md:443-468` (`check_status` consumer
   contract — drove the pivot).
 - `docs/architecture-v5.md:2802` (Phase 0-E line being
   reinterpreted).
+- `docs/architecture-v5.md:1696-1710` (Layer 3 Cross-Run Knowledge —
+  the deferred phase the retrospective birth-profile use case is
+  gated on).
 - `docs/adr/0001-architecture-v5-9-freeze.md` — freeze rule that
   required this ADR.
-- `docs/superpowers/specs/2026-04-25-phase-0-e-current-build-state-design.md`
-  — design spec at commit `8861358`.
-- `docs/superpowers/plans/2026-04-25-phase-0-e-current-build-state.md`
-  — implementation plan (this directory, lands in the same docs PR).
 - `docs/memo/phase-0-d-exit-2026-04-25.md` — Phase 0-D exit memo
   whose "Feed-forward for Phase 0-E" section seeded the design
   questions resolved by this ADR.
