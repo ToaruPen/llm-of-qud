@@ -39,27 +39,6 @@ documented in the design spec.
 The Phase 0-? retrospective birth-profile capture (DeathLogger
 substrate) remains an open future phase, NOT subsumed by Phase 0-E.
 
-## Consequences
-
-- The `:2802` spec line is reinterpreted: "BirthBuildProfile" naming in
-  the v5.9 freeze remains historically accurate but is overridden for
-  Phase 0-E semantics by this ADR. Future phase enumeration MUST
-  reference both `:2802` (frozen text) and ADR 0005 (override) when
-  citing Phase 0-E scope.
-- A separate `[build]` line is added (NOT a `runtime_caps.v2` schema
-  bump). `runtime_caps.v1` lock from Phase 0-D is preserved.
-- The `check_status` Phase 1+ adapter assembles its return contract
-  from per-turn observation lines: `[caps]` supplies effects /
-  abilities / equipment; `[state]` supplies hp / position; `[build]`
-  supplies level / attributes / hunger / thirst directly. See the
-  design spec's "check_status adapter responsibility" hazard for the
-  field-name mapping the adapter must perform.
-- A future Phase 0-? for retrospective birth capture remains in the
-  phase enumeration. When that phase lands it will need to either
-  reuse `[build]` cadence (capture-once at birth, persist to a memo
-  file, replay on Brain reconnect) or introduce a parallel `[birth]`
-  line + ADR re-open.
-
 ## Alternatives Considered
 
 1. **Literal BirthBuildProfile capture, write-once at first
@@ -85,6 +64,27 @@ substrate) remains an open future phase, NOT subsumed by Phase 0-E.
    dump is simpler for a payload this small. See the design spec's
    "Cadence" section for the full bypass enumeration with citations.
 
+## Consequences
+
+- The `:2802` spec line is reinterpreted: "BirthBuildProfile" naming in
+  the v5.9 freeze remains historically accurate but is overridden for
+  Phase 0-E semantics by this ADR. Future phase enumeration MUST
+  reference both `:2802` (frozen text) and ADR 0005 (override) when
+  citing Phase 0-E scope.
+- A separate `[build]` line is added (NOT a `runtime_caps.v2` schema
+  bump). `runtime_caps.v1` lock from Phase 0-D is preserved.
+- The `check_status` Phase 1+ adapter assembles its return contract
+  from per-turn observation lines: `[caps]` supplies effects /
+  abilities / equipment; `[state]` supplies hp / position; `[build]`
+  supplies level / attributes / hunger / thirst directly. See the
+  design spec's "check_status adapter responsibility" hazard for the
+  field-name mapping the adapter must perform.
+- A future Phase 0-? for retrospective birth capture remains in the
+  phase enumeration. When that phase lands it will need to either
+  reuse `[build]` cadence (capture-once at birth, persist to a memo
+  file, replay on Brain reconnect) or introduce a parallel `[birth]`
+  line + ADR re-open.
+
 ## Related Artifacts
 
 - `docs/superpowers/specs/2026-04-25-phase-0-e-current-build-state-design.md`
@@ -96,18 +96,18 @@ substrate) remains an open future phase, NOT subsumed by Phase 0-E.
 - `docs/adr/decisions/2026-04-25-phase-0-e-pivot-from-birthbuildprofile-to-current-build-state.md`
   — machine-readable decision record produced by
   `scripts/create_adr_decision.py` for the pre-commit ADR gate.
-
-## References
-
-- `docs/architecture-v5.md:443-468` (`check_status` consumer
-  contract — drove the pivot).
-- `docs/architecture-v5.md:2802` (Phase 0-E line being
-  reinterpreted).
-- `docs/architecture-v5.md:1696-1710` (Layer 3 Cross-Run Knowledge —
+- `docs/architecture-v5.md:443-468` — `check_status` consumer contract
+  (drove the pivot).
+- `docs/architecture-v5.md:2802` — Phase 0-E line being reinterpreted.
+- `docs/architecture-v5.md:1696-1710` — Layer 3 Cross-Run Knowledge,
   the deferred phase the retrospective birth-profile use case is
-  gated on).
+  gated on.
 - `docs/adr/0001-architecture-v5-9-freeze.md` — freeze rule that
   required this ADR.
 - `docs/memo/phase-0-d-exit-2026-04-25.md` — Phase 0-D exit memo
   whose "Feed-forward for Phase 0-E" section seeded the design
   questions resolved by this ADR.
+
+## Supersedes
+
+None.
