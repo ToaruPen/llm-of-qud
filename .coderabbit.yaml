@@ -27,7 +27,13 @@ reviews:
     drafts: false
 
   path_filters:
-    - "!decompiled/**"
+    # Narrow exclusion: only the gitignored proprietary CoQ source artifacts
+    # (decompiled/**/*.cs, decompiled/Assembly-CSharp.csproj). Tracked
+    # decompiled/AGENTS.md, decompiled/CLAUDE.md, decompiled/Directory.Build.props
+    # remain reviewable AND loadable by knowledge_base.code_guidelines below
+    # (the wider "!decompiled/**" used to neutralize that load).
+    - "!decompiled/**/*.cs"
+    - "!decompiled/Assembly-CSharp.csproj"
     - "!test-results/**"
     - "!.claude/**"
     - "!build_log.txt"
@@ -41,7 +47,14 @@ reviews:
         Enforce:
         - Any new CoQ API reference (type, method, event) must cite a `decompiled/` path
           and line number inline (e.g., `// decompiled/XRL/ModInfo.cs:757`). Flag
-          uncited API usage.
+          uncited API usage. Note: `decompiled/**/*.cs` and
+          `decompiled/Assembly-CSharp.csproj` are intentionally gitignored
+          (proprietary CoQ source extracted from `Assembly-CSharp.dll`, see
+          `decompiled/AGENTS.md`). The cited paths resolve only on a maintainer's
+          local CoQ install. Do NOT flag a citation as broken solely because the
+          target file is absent in hosted CI / review checkout. Flag only uncited
+          CoQ API references or malformed citations (missing file path, missing
+          line number, or wrong `decompiled/<path>.cs:<line>` shape).
         - Compile-phase log output must use `Logger.buildLog.Info(msg)` only. Runtime
           info must use `MetricsManager.LogInfo(msg)` only (mod/AGENTS.md §Logging).
           Flag any other logging call in either context.
@@ -164,5 +177,6 @@ knowledge_base:
       - "brain/AGENTS.md"
       - "docs/AGENTS.md"
       - "scripts/AGENTS.md"
+      - "decompiled/AGENTS.md"
       - "docs/architecture-v5.md"
       - "docs/adr/**/*.md"
