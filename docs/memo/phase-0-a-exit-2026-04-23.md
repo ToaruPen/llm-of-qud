@@ -70,13 +70,20 @@ Codex advisor confirmed `Freehold Games/CavesOfQud` is the correct/current path
       `XRLCore.RegisterOnBeginPlayerTurnCallback` duplicate-guard hazard that
       motivated the plan's Task 7. The mid-session Mods-menu toggle path is
       formally **not measured**, but the streaming harness's runtime contract
-      fixes mods at launch (architecture-v5.9 Phase 2+), so the toggle path is
-      non-applicable to production operation. Closed as design-decision, not
-      empirical PASS. **Re-open triggers** are enumerated in ADR 0003 ("Decision"
-      section) — primarily any phase introducing dev-loop iteration, runtime
-      A/B switching of mod logic, or reliance on specific in-process
-      assembly-swap state-survival semantics. See "Task 7 resolution" below for
-      the original deferral context that ADR 0003 supersedes.
+      fixes mods at launch — the LLM-integration runtime (`docs/architecture-v5.md:2866-2925`,
+      "Phase 2a: LLM Integration Core — Can the LLM Play?") drives a single
+      tool-calling session against a CoQ process where the mod set is fixed by
+      Roslyn compile-at-launch (`decompiled/XRL/ModInfo.cs:478, 757-823`,
+      invoked exactly once during `ModManager.BuildMods()` at boot per
+      `decompiled/XRL/ModManager.cs:417-464`); no Phase 2 task in the
+      dependency DAG (`docs/architecture-v5.md:2870-2890`) introduces
+      mid-session mod toggling. The toggle path is therefore non-applicable to
+      production operation. Closed as design-decision, not empirical PASS.
+      **Re-open triggers** are enumerated in ADR 0003 ("Decision" section) —
+      primarily any phase introducing dev-loop iteration, runtime A/B
+      switching of mod logic, or reliance on specific in-process assembly-swap
+      state-survival semantics. See "Task 7 resolution" below for the original
+      deferral context that ADR 0003 supersedes.
 
 ## Execution deviations from plan (recorded here for traceability)
 
