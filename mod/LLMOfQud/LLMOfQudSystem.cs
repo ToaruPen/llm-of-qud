@@ -91,11 +91,41 @@ namespace LLMOfQud
                     " " + ex.GetType().Name + ": " + ex.Message);
             }
 
+            // Phase 0-D: build caps JSON on the game thread in a separate
+            // try/catch. Failure here MUST NOT kill the [state] emission;
+            // produce a valid-JSON sentinel so downstream parsers always
+            // see a parseable [caps] line for this turn. Use the existing
+            // SnapshotState.AppendJsonString helper so control characters
+            // (newline / tab / U+0000-U+001F) in ex.Message are escaped
+            // RFC-8259 correctly — a coarse Replace chain would emit
+            // invalid JSON exactly when a parser is most likely to break.
+            string capsJson;
+            try
+            {
+                capsJson = SnapshotState.BuildCapsJson(_beginTurnCount, The.Player);
+            }
+            catch (Exception ex)
+            {
+                StringBuilder errSb = new StringBuilder(256);
+                errSb.Append("{\"turn\":").Append(_beginTurnCount.ToString())
+                    .Append(",\"schema\":\"runtime_caps.v1\"")
+                    .Append(",\"error\":{\"type\":");
+                SnapshotState.AppendJsonString(errSb, ex.GetType().Name);
+                errSb.Append(",\"message\":");
+                SnapshotState.AppendJsonString(errSb, ex.Message ?? "");
+                errSb.Append("}}");
+                capsJson = errSb.ToString();
+                MetricsManager.LogInfo(
+                    "[LLMOfQud][caps] ERROR turn=" + _beginTurnCount +
+                    " " + ex.GetType().Name + ": " + ex.Message);
+            }
+
             PendingSnapshot pending = new PendingSnapshot
             {
                 Turn = _beginTurnCount,
                 StateJson = stateJson,
                 DisplayMode = displayMode,
+                CapsJson = capsJson,
             };
             Interlocked.Exchange(ref _pendingSnapshot, pending);
 
@@ -165,11 +195,11 @@ namespace LLMOfQud
         // Fires on the render thread after Zone.Render but before DrawBuffer.
         // No-op unless HandleEvent published a PendingSnapshot. Interlocked.Exchange
         // atomically captures-and-clears the slot so concurrent BeginTakeActionEvent
-        // fires cannot double-log the same snapshot. Emits two LogInfo calls per
-        // snapshot — one [screen] block (with display_mode + ascii_sources metadata)
-        // and one [state] structured line — sharing turn=N as the parser-side
-        // correlation key. The parser must NOT assume adjacency; LogInfo lines
-        // from other game subsystems can interleave between the two.
+        // fires cannot double-log the same snapshot. Emits THREE LogInfo calls per
+        // snapshot — one [screen] block (with display_mode + ascii_sources metadata),
+        // one [state] structured line, one [caps] structured line — all sharing
+        // turn=N as the parser-side correlation key. The parser must NOT assume
+        // adjacency; LogInfo lines from other game subsystems can interleave.
         // decompiled/MetricsManager.cs:407-409 (LogInfo -> Player.log)
         // decompiled/XRL.UI/Options.cs:574-576 (Options.UseTiles)
         private static void AfterRenderCallback(XRLCore core, ScreenBuffer buf)
@@ -181,6 +211,7 @@ namespace LLMOfQud
             }
             int turn = pending.Turn;
             string stateJson = pending.StateJson;
+            string capsJson = pending.CapsJson;
             // Reuse the game-thread-captured DisplayMode so the [screen] mode=
             // header and the embedded [state] display_mode= for the same turn
             // are guaranteed to agree even if Options.UseTiles flipped between
@@ -219,6 +250,21 @@ namespace LLMOfQud
                 // dedupe at that point rather than pre-engineering a HashSet now.
                 MetricsManager.LogInfo(
                     "[LLMOfQud][screen] ERROR turn=" + turn + " " + ex.GetType().Name + ": " + ex.Message);
+            }
+
+            // Phase 0-D: emit [caps] in its own try scope. A [caps] failure
+            // here MUST NOT blank [screen]/[state] for this turn (those have
+            // already emitted above). The capsJson value was prepared on the
+            // game thread; if its build threw, capsJson is already an error
+            // sentinel and this block just emits it verbatim.
+            try
+            {
+                MetricsManager.LogInfo("[LLMOfQud][caps] " + capsJson);
+            }
+            catch (Exception ex)
+            {
+                MetricsManager.LogInfo(
+                    "[LLMOfQud][caps] ERROR turn=" + turn + " " + ex.GetType().Name + ": " + ex.Message);
             }
         }
     }

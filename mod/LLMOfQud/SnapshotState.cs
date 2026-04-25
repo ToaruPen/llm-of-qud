@@ -1,9 +1,12 @@
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using XRL;
 using XRL.UI;
 using XRL.World;
+using XRL.World.Anatomy;
 using XRL.World.Parts;
+using XRL.World.Parts.Mutation;
 
 namespace LLMOfQud
 {
@@ -18,6 +21,13 @@ namespace LLMOfQud
         // same turn. See ADR 0002 + game-thread routing rule
         // docs/architecture-v5.md:1787-1790.
         public string DisplayMode;
+        // Phase 0-D: RuntimeCapabilityProfile JSON for this turn. Built on the
+        // game thread inside HandleEvent so all CoQ API reads stay on the
+        // game queue (docs/architecture-v5.md:1787-1790). Render thread emits
+        // verbatim. Per docs/memo/phase-0-c-exit-2026-04-25.md:117, future
+        // observation fields thread through this object, never as parallel
+        // Interlocked.Exchange slots.
+        public string CapsJson;
     }
 
     internal static class SnapshotState
@@ -224,6 +234,20 @@ namespace LLMOfQud
             }
             sb.Append(']');
 
+            sb.Append('}');
+            return sb.ToString();
+        }
+
+        // Entry point used by HandleEvent to build the caps line payload
+        // (the value of the [LLMOfQud][caps] line; caller adds the prefix).
+        // Phase 0-D Task 1: stub returning {"turn":N,"schema":"runtime_caps.v1"}.
+        // Subsequent tasks fill in mutations / abilities / effects / equipment.
+        // Schema bumps (v2+) require an ADR.
+        internal static string BuildCapsJson(int turn, GameObject player)
+        {
+            StringBuilder sb = new StringBuilder(2048);
+            sb.Append("{\"turn\":").Append(turn.ToString(CultureInfo.InvariantCulture));
+            sb.Append(",\"schema\":\"runtime_caps.v1\"");
             sb.Append('}');
             return sb.ToString();
         }
