@@ -11,4 +11,5 @@ files:
   - docs/adr/decisions/2026-04-25-defer-c-unit-test-infrastructure-for-phase-0-c-appendjsonstring-to-phase-2a.md
   - docs/adr/decisions/2026-04-25-phase-0-a-task-7-closure-by-operational-scope.md
   - docs/adr/decisions/2026-04-25-phase-0-c-readiness-rollup.md
+  - docs/superpowers/plans/2026-04-25-phase-0-c-internal-api-observation.md
 adr_paths: []

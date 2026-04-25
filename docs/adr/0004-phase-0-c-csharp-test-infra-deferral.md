@@ -175,7 +175,8 @@ it can rely on AppendJsonString**):
   display name surfaces feeding `AppendJsonString`
 - `docs/adr/0002-phase-0-b-render-callback-pivot.md:55-66, 106-108` —
   Phase 0-B render-callback request/emit path extended by Phase 0-C
-- (To be created in same change) `mod/LLMOfQud/SnapshotState.cs` —
+- `mod/LLMOfQud/SnapshotState.cs` (implemented on the Phase 0-C feat
+  branch — `feat/phase-0-c-implementation` PR #8 — not in this docs PR) —
   implementation of `AppendJsonString` and Phase 0-C state extraction
 
 ## Supersedes
