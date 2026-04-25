@@ -279,7 +279,12 @@ namespace LLMOfQud
 
                     string className = m.GetType().Name;
                     string name = m.Name ?? "";
-                    string displayName = (m.DisplayName ?? m.Name ?? "").Strip() ?? "";
+                    // m.DisplayName getter is [Obsolete] in CoQ 2.0.210+; use
+                    // GetDisplayName() directly. WithAnnotations:false drops
+                    // the "(D)" defect annotation so display_name is plain text;
+                    // is_active / can_level / level fields already encode the
+                    // semantic axes a defect annotation would convey.
+                    string displayName = (m.GetDisplayName(WithAnnotations: false) ?? m.Name ?? "").Strip() ?? "";
                     int baseLevel = m.BaseLevel;
                     int level = m.Level;
                     int uiDisplayLevel = m.GetUIDisplayLevel(); // base default is Level; subclasses override
