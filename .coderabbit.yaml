@@ -27,7 +27,13 @@ reviews:
     drafts: false
 
   path_filters:
-    - "!decompiled/**"
+    # Narrow exclusion: only the gitignored proprietary CoQ source artifacts
+    # (decompiled/**/*.cs, decompiled/Assembly-CSharp.csproj). Tracked
+    # decompiled/AGENTS.md, decompiled/CLAUDE.md, decompiled/Directory.Build.props
+    # remain reviewable AND loadable by knowledge_base.code_guidelines below
+    # (the wider "!decompiled/**" used to neutralize that load).
+    - "!decompiled/**/*.cs"
+    - "!decompiled/Assembly-CSharp.csproj"
     - "!test-results/**"
     - "!.claude/**"
     - "!build_log.txt"
