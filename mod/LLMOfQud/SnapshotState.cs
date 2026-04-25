@@ -28,6 +28,11 @@ namespace LLMOfQud
         // observation fields thread through this object, never as parallel
         // Interlocked.Exchange slots.
         public string CapsJson;
+        // Phase 0-E: current build state JSON for this turn. Built on the
+        // game thread inside HandleEvent (same routing rule as CapsJson).
+        // Schema current_build.v1, locked at design spec commit 8861358 +
+        // ADR 0005. Render thread emits verbatim.
+        public string BuildJson;
     }
 
     internal static class SnapshotState
@@ -613,6 +618,205 @@ namespace LLMOfQud
             sb.Append(",\"equipment\":");
             AppendEquipment(sb, player);
 
+            sb.Append('}');
+            return sb.ToString();
+        }
+
+        // Schema slice (current_build.v1):
+        //   "genotype_kind": "mutant" | "true_kin" | "unknown",
+        //   "genotype_id": <string or null>,
+        //   "subtype_id": <string or null>
+        // genotype_kind is derived from IsTrueKin/IsMutant (mutually
+        // exclusive in normal CoQ play). "unknown" is exposed honestly
+        // rather than silently coerced; acceptance criterion 8 hard-gates
+        // count("unknown") == 0 across both runs.
+        // Per spec line 58: AppendJsonString(null) emits "" (empty string),
+        // NOT JSON null; for the genotype_id/subtype_id null case we MUST
+        // emit sb.Append("null") explicitly.
+        // decompiled/XRL.World/GameObject.cs:10019 (GetGenotype)
+        // decompiled/XRL.World/GameObject.cs:10024 (GetSubtype)
+        // decompiled/XRL.World/GameObject.cs:10029-10031 (IsTrueKin)
+        // decompiled/XRL.World/GameObject.cs:10034-10036 (IsMutant)
+        internal static void AppendBuildIdentity(StringBuilder sb, GameObject player)
+        {
+            string kind;
+            if (player == null)
+            {
+                kind = "unknown";
+            }
+            else if (player.IsTrueKin())
+            {
+                kind = "true_kin";
+            }
+            else if (player.IsMutant())
+            {
+                kind = "mutant";
+            }
+            else
+            {
+                kind = "unknown";
+            }
+            sb.Append("\"genotype_kind\":");
+            AppendJsonString(sb, kind);
+
+            sb.Append(",\"genotype_id\":");
+            string genotypeId = player?.GetGenotype();
+            if (genotypeId == null)
+            {
+                sb.Append("null");
+            }
+            else
+            {
+                AppendJsonString(sb, genotypeId);
+            }
+
+            sb.Append(",\"subtype_id\":");
+            string subtypeId = player?.GetSubtype();
+            if (subtypeId == null)
+            {
+                sb.Append("null");
+            }
+            else
+            {
+                AppendJsonString(sb, subtypeId);
+            }
+        }
+
+        // The 6 canonical attribute names CoQ stores under (CapsCase per
+        // Statistic.Attributes at decompiled/XRL.World/Statistic.cs:51-53).
+        // Output JSON uses lowercase keys per current_build.v1 schema lock.
+        // Order matches Statistic.Attributes (Strength/Agility/Toughness/
+        // Intelligence/Willpower/Ego), preserved here so the JSON object
+        // key ordering is stable across turns.
+        private static readonly string[] _AttrCoqNames = new string[]
+        {
+            "Strength", "Agility", "Toughness",
+            "Intelligence", "Willpower", "Ego",
+        };
+        private static readonly string[] _AttrJsonKeys = new string[]
+        {
+            "strength", "agility", "toughness",
+            "intelligence", "willpower", "ego",
+        };
+
+        // Schema slice (current_build.v1):
+        //   "level": <int>,
+        //   "attributes": {
+        //     "strength": <int>, "agility": <int>, "toughness": <int>,
+        //     "intelligence": <int>, "willpower": <int>, "ego": <int>
+        //   }
+        // Statistic.Value is the clamped, modifier-applied effective value
+        // (decompiled/XRL.World/Statistic.cs:238-252); _Value+_Bonus-_Penalty.
+        // Consumers do NOT need to recompute. base_value/modifier_total were
+        // dropped from v1 per spec line 61.
+        // GetStat returns null if the stat is missing
+        // (decompiled/XRL.World/GameObject.cs:4373-4383); on null we emit
+        // 0 for that attribute and continue (no sentinel) — a missing stat
+        // is informative-by-zero, not a build error.
+        // GameObject.Level (decompiled/XRL.World/GameObject.cs:642) is
+        // GetStat("Level")?.Value ?? 1; we read it through the same path.
+        internal static void AppendBuildAttributes(StringBuilder sb, GameObject player)
+        {
+            // Level is a top-level field per current_build.v1, not nested
+            // under attributes. Co-located here only for Stat-read locality.
+            int level = player?.Level ?? 1;
+            sb.Append("\"level\":").Append(level.ToString(CultureInfo.InvariantCulture));
+
+            sb.Append(",\"attributes\":{");
+            for (int i = 0; i < _AttrCoqNames.Length; i++)
+            {
+                if (i > 0) sb.Append(',');
+                AppendJsonString(sb, _AttrJsonKeys[i]);
+                sb.Append(':');
+                Statistic stat = player?.GetStat(_AttrCoqNames[i]);
+                int value = stat?.Value ?? 0;
+                sb.Append(value.ToString(CultureInfo.InvariantCulture));
+            }
+            sb.Append('}');
+        }
+
+        // Strip CoQ {{<color>|...}} markup, drop a trailing "!" if present,
+        // and lowercase. Used by AppendBuildResources for hunger/thirst.
+        // Examples (decompiled/XRL.World.Parts/Stomach.cs:87-143):
+        //   "{{g|Sated}}"        -> "sated"
+        //   "{{W|Hungry}}"       -> "hungry"
+        //   "{{R|Wilted!}}"      -> "wilted"     (PhotosyntheticSkin only)
+        //   "{{R|Famished!}}"    -> "famished"
+        //   "{{R|Dehydrated!}}"  -> "dehydrated"
+        //   "{{r|Parched}}"      -> "parched"
+        //   "{{Y|Thirsty}}"      -> "thirsty"
+        //   "{{g|Quenched}}"     -> "quenched"
+        //   "{{G|Tumescent}}"    -> "tumescent"
+        // Returns null if input is null (caller emits JSON null in that
+        // case, NOT empty string). Returns input verbatim (lowercased)
+        // if no markup matched, so future markup style changes do not
+        // silently drop content — they show up as a non-enum bucket
+        // and trip acceptance criterion 8.
+        private static string NormalizeStomachStatus(string raw)
+        {
+            if (raw == null) return null;
+            string s = raw;
+            // Strip leading "{{<C>|" if present.
+            if (s.Length >= 5 && s[0] == '{' && s[1] == '{' && s.IndexOf('|') > 2)
+            {
+                int barIdx = s.IndexOf('|');
+                s = s.Substring(barIdx + 1);
+            }
+            // Strip trailing "}}" if present.
+            if (s.EndsWith("}}"))
+            {
+                s = s.Substring(0, s.Length - 2);
+            }
+            // Strip trailing "!" if present (Famished!/Wilted!/Dehydrated!/Desiccated!).
+            if (s.Length > 0 && s[s.Length - 1] == '!')
+            {
+                s = s.Substring(0, s.Length - 1);
+            }
+            return s.ToLowerInvariant();
+        }
+
+        // Schema slice (current_build.v1):
+        //   "hunger": <string-or-null>,
+        //   "thirst": <string-or-null>
+        // Both emitted as JSON null when player.GetPart<Stomach>() is null
+        // (robot body, body-swap to non-creature object) per spec line 118.
+        // For non-amphibious bodies the bucket sets are:
+        //   hunger: {sated, hungry, wilted, famished}
+        //     (wilted only for PhotosyntheticSkin)
+        //   thirst: {tumescent, quenched, thirsty, parched, dehydrated}
+        // Amphibious bodies use a separate thirst bucket family
+        // (desiccated/dry/moist/wet/soaked) which the v1 acceptance gate
+        // does not assert (spec hazard "Hunger/thirst bucket stability").
+        // decompiled/XRL.World.Parts/Stomach.cs:87-102 (FoodStatus)
+        // decompiled/XRL.World.Parts/Stomach.cs:104-143 (WaterStatus)
+        internal static void AppendBuildResources(StringBuilder sb, GameObject player)
+        {
+            Stomach stomach = player?.GetPart<Stomach>();
+            string hunger = (stomach != null) ? NormalizeStomachStatus(stomach.FoodStatus()) : null;
+            string thirst = (stomach != null) ? NormalizeStomachStatus(stomach.WaterStatus()) : null;
+
+            sb.Append("\"hunger\":");
+            if (hunger == null) sb.Append("null"); else AppendJsonString(sb, hunger);
+
+            sb.Append(",\"thirst\":");
+            if (thirst == null) sb.Append("null"); else AppendJsonString(sb, thirst);
+        }
+
+        // Entry point used by HandleEvent to build the build line payload
+        // (the value of the [LLMOfQud][build] line; caller adds the prefix).
+        // Schema current_build.v1: {turn, schema, genotype_kind, genotype_id,
+        // subtype_id, level, attributes, hunger, thirst}. Schema bumps (v2+)
+        // require an ADR. Field order is locked; reordering requires an ADR.
+        internal static string BuildBuildJson(int turn, GameObject player)
+        {
+            StringBuilder sb = new StringBuilder(512);
+            sb.Append("{\"turn\":").Append(turn.ToString(CultureInfo.InvariantCulture));
+            sb.Append(",\"schema\":\"current_build.v1\",");
+            AppendBuildIdentity(sb, player);
+            sb.Append(',');
+            AppendBuildAttributes(sb, player);
+            sb.Append(',');
+            AppendBuildResources(sb, player);
             sb.Append('}');
             return sb.ToString();
         }

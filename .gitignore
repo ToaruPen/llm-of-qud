@@ -18,3 +18,8 @@ decompiled/Assembly-CSharp.csproj
 
 # Transient test runner state (e.g., playwright last-run cache)
 test-results/
+
+# Python bytecode + pytest cache
+__pycache__/
+*.py[cod]
+.pytest_cache/

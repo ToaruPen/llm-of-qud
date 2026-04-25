@@ -56,7 +56,11 @@ Bundled by CoQ — do NOT redistribute. Auto-referenced (`ModManager.cs:402-405`
 | Compile-phase messages | `Logger.buildLog.Info(msg)` | `{save_dir}/build_log.txt` |
 | Runtime info | `MetricsManager.LogInfo(msg)` | `Player.log` (Unity log) |
 
-On macOS save dir: `~/Library/Application Support/Kitfox Games/Caves of Qud/`
+On macOS:
+- Save dir: `~/Library/Application Support/Freehold Games/CavesOfQud/` (holds `build_log.txt`, `Mods/`, `ModAssemblies/`).
+- Runtime log: `~/Library/Logs/Freehold Games/CavesOfQud/Player.log` (Unity macOS standard location — outside the save dir).
+
+The publisher rebranded Kitfox Games → Freehold Games; older docs may still cite the Kitfox path, which no longer resolves.
 
 ## Verification Pattern
 
@@ -64,12 +68,12 @@ Compile output lives in `build_log.txt`, NOT `Player.log` (see Logging table abo
 
 ```bash
 # Compile / load-probe output
-grep -E "^\[[^]]+\] (=== LLM OF QUD ===|Compiling \d+ files?\.\.\.|Success :\)|COMPILER ERRORS)" \
-  "$HOME/Library/Application Support/Kitfox Games/Caves of Qud/build_log.txt"
+grep -E "^\[[^]]+\] (=== LLM OF QUD ===|Compiling [0-9]+ files?\.\.\.|Success :\)|COMPILER ERRORS)" \
+  "$HOME/Library/Application Support/Freehold Games/CavesOfQud/build_log.txt"
 
 # Runtime info (MetricsManager.LogInfo → "INFO - " prefix)
 grep "INFO - \[LLMOfQud\]" \
-  "$HOME/Library/Application Support/Kitfox Games/Caves of Qud/Player.log"
+  "$HOME/Library/Logs/Freehold Games/CavesOfQud/Player.log"
 ```
 
 ## Phase Reference
