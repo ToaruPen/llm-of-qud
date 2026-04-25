@@ -110,8 +110,6 @@ not spec amendments:
 > and ADR 0003 lists the re-open triggers that would require them to be
 > answered.
 
-
-
 The plan's Task 7 targets the `XRLCore.RegisterOnBeginPlayerTurnCallback` API,
 which has no duplicate-registration guard. Its implementation body (`decompiled/XRL.Core/XRLCore.cs:576-579`)
 is simply `OnBeginPlayerTurnCallbacks.Add(action);`. Mid-session reload through
