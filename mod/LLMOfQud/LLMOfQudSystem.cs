@@ -4,6 +4,7 @@ using System.Threading;
 using ConsoleLib.Console;
 using XRL;
 using XRL.Core;
+using XRL.UI;
 using XRL.World;
 
 namespace LLMOfQud
@@ -17,10 +18,12 @@ namespace LLMOfQud
         private static bool _afterRenderRegistered;
 
         // Snapshot request handshake between HandleEvent (game thread) and
-        // AfterRenderCallback (render thread). Non-zero = "next render should
-        // snapshot this turn number". Interlocked.Exchange on both sides gives
-        // the full memory barrier; a plain int field is sufficient.
-        private static int _pendingSnapshotTurn;
+        // AfterRenderCallback (render thread). null = no pending request.
+        // Game thread: Interlocked.Exchange a fully built PendingSnapshot.
+        // Render thread: Interlocked.Exchange to null, captures the prior value.
+        // Single class-instance keeps Turn and StateJson paired atomically;
+        // a pair of int+string slots would not be atomic across the two writes.
+        private static PendingSnapshot _pendingSnapshot;
 
         private int _beginTurnCount;
 
@@ -56,15 +59,37 @@ namespace LLMOfQud
         public override bool HandleEvent(BeginTakeActionEvent E)
         {
             _beginTurnCount++;
-            // Ask the next render to snapshot. We cannot snapshot from here:
-            // by the time HandleEvent runs, the only buffer we can reach
-            // (TextConsole.CurrentBuffer) has already gone through
-            // ScreenBuffer.Copy / ConsoleChar.Copy, which drops BackupChar.
-            // decompiled/ConsoleLib.Console/TextConsole.cs:31 (CurrentBuffer)
-            // decompiled/ConsoleLib.Console/TextConsole.cs:142-163 (DrawBuffer -> CurrentBuffer.Copy(Buffer))
-            // decompiled/ConsoleLib.Console/ScreenBuffer.cs:291-308 (Copy dispatches per-cell ConsoleChar.Copy)
-            // decompiled/ConsoleLib.Console/ConsoleChar.cs:385-400 (Copy omits BackupChar)
-            Interlocked.Exchange(ref _pendingSnapshotTurn, _beginTurnCount);
+
+            // Build the structured state JSON on the game thread. This MUST run
+            // on the game thread (not the render callback) because it reads
+            // The.Player / Zone.GetObjects() / GameObject statistics — see
+            // docs/architecture-v5.md:1787-1790 for the canonical routing rule.
+            // Reading these on the render thread risks tearing.
+            string stateJson;
+            try
+            {
+                stateJson = SnapshotState.BuildStateJson(_beginTurnCount);
+            }
+            catch (Exception ex)
+            {
+                // Mirror the AfterRenderCallback exception posture: never let
+                // observation kill the mod. Emit a sentinel JSON so the parser
+                // sees a valid line; the broader [state] line will still flow
+                // for the next turn.
+                stateJson = "{\"turn\":" + _beginTurnCount.ToString() +
+                    ",\"error\":\"" + ex.GetType().Name + "\"}";
+                MetricsManager.LogInfo(
+                    "[LLMOfQud][state] ERROR turn=" + _beginTurnCount +
+                    " " + ex.GetType().Name + ": " + ex.Message);
+            }
+
+            PendingSnapshot pending = new PendingSnapshot
+            {
+                Turn = _beginTurnCount,
+                StateJson = stateJson,
+            };
+            Interlocked.Exchange(ref _pendingSnapshot, pending);
+
             if (_beginTurnCount % 10 == 0)
             {
                 MetricsManager.LogInfo(
@@ -76,11 +101,16 @@ namespace LLMOfQud
         // Render a ScreenBuffer as an ASCII grid. Tile-mode cells hold the
         // ASCII glyph in BackupChar (written by Zone.Render when _Tile is set,
         // decompiled/XRL.World/Zone.cs:5411-5418); non-tile cells keep the
-        // glyph in Char. Fall back Char -> BackupChar -> space.
+        // glyph in Char. Fall back Char -> BackupChar -> space, and count each
+        // cell's source so AfterRenderCallback can emit ascii_sources metadata.
         // decompiled/ConsoleLib.Console/ScreenBuffer.cs:21 (Buffer[,]), :79-100 (Width/Height)
         // decompiled/ConsoleLib.Console/ConsoleChar.cs:65 (BackupChar), :116 (Char property)
-        private static string SnapshotAscii(ScreenBuffer buf)
+        private static string SnapshotAscii(
+            ScreenBuffer buf, out int charCount, out int backupCount, out int blankCount)
         {
+            charCount = 0;
+            backupCount = 0;
+            blankCount = 0;
             if (buf == null)
             {
                 return "<null-buffer>\n";
@@ -98,8 +128,25 @@ namespace LLMOfQud
                 {
                     ConsoleChar cell = buf.Buffer[x, y];
                     char c = cell.Char;
-                    if (c == '\0') c = cell.BackupChar;
-                    sb.Append(c == '\0' ? ' ' : c);
+                    if (c == '\0')
+                    {
+                        char backup = cell.BackupChar;
+                        if (backup == '\0')
+                        {
+                            blankCount++;
+                            sb.Append(' ');
+                        }
+                        else
+                        {
+                            backupCount++;
+                            sb.Append(backup);
+                        }
+                    }
+                    else
+                    {
+                        charCount++;
+                        sb.Append(c);
+                    }
                 }
                 sb.Append('\n');
             }
@@ -107,26 +154,48 @@ namespace LLMOfQud
         }
 
         // Fires on the render thread after Zone.Render but before DrawBuffer.
-        // No-op unless HandleEvent requested a snapshot. Interlocked.Exchange
-        // atomically captures-and-clears the requested turn so concurrent
-        // BeginTakeActionEvent fires cannot double-log the same snapshot.
+        // No-op unless HandleEvent published a PendingSnapshot. Interlocked.Exchange
+        // atomically captures-and-clears the slot so concurrent BeginTakeActionEvent
+        // fires cannot double-log the same snapshot. Emits two LogInfo calls per
+        // snapshot — one [screen] block (with display_mode + ascii_sources metadata)
+        // and one [state] structured line — sharing turn=N as the parser-side
+        // correlation key. The parser must NOT assume adjacency; LogInfo lines
+        // from other game subsystems can interleave between the two.
         // decompiled/MetricsManager.cs:407-409 (LogInfo -> Player.log)
+        // decompiled/XRL.UI/Options.cs:574-576 (Options.UseTiles)
         private static void AfterRenderCallback(XRLCore core, ScreenBuffer buf)
         {
-            int turn = Interlocked.Exchange(ref _pendingSnapshotTurn, 0);
-            if (turn == 0)
+            PendingSnapshot pending = Interlocked.Exchange<PendingSnapshot>(ref _pendingSnapshot, null);
+            if (pending == null)
             {
                 return;
             }
+            int turn = pending.Turn;
+            string stateJson = pending.StateJson;
             try
             {
                 int w = buf != null ? buf.Width : 0;
                 int h = buf != null ? buf.Height : 0;
-                string body = SnapshotAscii(buf);
+                int charCount, backupCount, blankCount;
+                string body = SnapshotAscii(buf, out charCount, out backupCount, out blankCount);
+                string displayMode = Options.UseTiles ? "tile" : "ascii";
+
+                // Frame 1: [screen] block, augmented with display_mode and counts
+                // on the BEGIN line. END line is unchanged from 0-B for parser
+                // continuity.
                 MetricsManager.LogInfo(
-                    "[LLMOfQud][screen] BEGIN turn=" + turn + " w=" + w + " h=" + h + "\n" +
-                    body +
+                    "[LLMOfQud][screen] BEGIN turn=" + turn +
+                    " w=" + w + " h=" + h +
+                    " mode=" + displayMode +
+                    " src=char:" + charCount + ",backup:" + backupCount + ",blank:" + blankCount +
+                    "\n" + body +
                     "[LLMOfQud][screen] END turn=" + turn);
+
+                // Frame 2: [state] structured line. Parser keys on turn=N to
+                // correlate with the [screen] block; adjacency is NOT assumed
+                // (see ADR 0004 acceptance step and docs/memo/phase-0-b-exit-
+                // 2026-04-25.md).
+                MetricsManager.LogInfo("[LLMOfQud][state] " + stateJson);
             }
             catch (Exception ex)
             {
