@@ -399,6 +399,71 @@ namespace LLMOfQud
             sb.Append(']');
         }
 
+        // Schema:
+        //   [
+        //     {
+        //       "class": "Dazed",
+        //       "display_name": "Dazed",
+        //       "display_name_stripped": "Dazed",      // .Strip() applied
+        //       "duration_raw": 3,                      // Effect.Duration verbatim
+        //       "duration_kind": "finite"               // | "indefinite" | "unknown"
+        //                                               // finite:     0 < Duration < 9999
+        //                                               // indefinite: Duration == 9999
+        //                                               //             (DURATION_INDEFINITE)
+        //                                               // unknown:    Duration <= 0
+        //                                               //             (post-Expired,
+        //                                               //              pre-CleanEffects)
+        //                                               //             OR Duration > 9999
+        //     }
+        //   ]
+        // observed_at: BeginTakeActionEvent on player. POST pre-action / Begin
+        //   handlers (UseStandardDurationCountdown effects + Begin-decrementing
+        //   effects like Dazed/Asleep/Healing have already ticked). NOT
+        //   post-decrement for EndTurn-decrementing effects (Meditating,
+        //   PhasedWhileStuck) or thaw-update effects (Lovesick) — see plan
+        //   "Why this task exists" body for the full ordering note.
+        // decompiled/XRL.World/Effect.cs:92 (DURATION_INDEFINITE = 9999)
+        // decompiled/XRL.World/Effect.cs:101-109 (Duration / DisplayName fields)
+        // decompiled/XRL.World/Effect.cs:153 (DisplayNameStripped)
+        // decompiled/XRL.World/Effect.cs:644-648 (standard BeforeBegin decrement)
+        // decompiled/XRL.World/EffectRack.cs:5 (EffectRack : Rack<Effect>)
+        // decompiled/XRL.Collections/Rack.cs:10 (Rack<T> : IEnumerable<T>)
+        internal static void AppendEffects(StringBuilder sb, GameObject player)
+        {
+            sb.Append('[');
+            if (player != null)
+            {
+                int i = 0;
+                foreach (Effect e in player.Effects)
+                {
+                    if (e == null) continue;
+                    if (i > 0) sb.Append(',');
+                    i++;
+
+                    string className = e.GetType().Name;
+                    string displayName = e.DisplayName ?? "";
+                    string displayNameStripped = e.DisplayNameStripped ?? displayName;
+                    int duration = e.Duration;
+                    string durationKind;
+                    if (duration == 9999) durationKind = "indefinite";
+                    else if (duration > 0 && duration < 9999) durationKind = "finite";
+                    else durationKind = "unknown";
+
+                    sb.Append("{\"class\":");
+                    AppendJsonString(sb, className);
+                    sb.Append(",\"display_name\":");
+                    AppendJsonString(sb, displayName);
+                    sb.Append(",\"display_name_stripped\":");
+                    AppendJsonString(sb, displayNameStripped);
+                    sb.Append(",\"duration_raw\":").Append(duration.ToString(CultureInfo.InvariantCulture));
+                    sb.Append(",\"duration_kind\":");
+                    AppendJsonString(sb, durationKind);
+                    sb.Append('}');
+                }
+            }
+            sb.Append(']');
+        }
+
         // Entry point used by HandleEvent to build the caps line payload
         // (the value of the [LLMOfQud][caps] line; caller adds the prefix).
         // Schema runtime_caps.v1 = {turn, schema, mutations, abilities,
@@ -415,6 +480,9 @@ namespace LLMOfQud
 
             sb.Append(",\"abilities\":");
             AppendAbilities(sb, player);
+
+            sb.Append(",\"effects\":");
+            AppendEffects(sb, player);
 
             sb.Append('}');
             return sb.ToString();
