@@ -38,7 +38,7 @@
 | CI workflows | `.github/workflows/` | `docs/ci-branch-protection.md` |
 | Repo-level tests | `tests/` | `brain/AGENTS.md` |
 
-External paths (macOS): `$COQ_SAVE_DIR=~/Library/Application Support/Kitfox Games/Caves of Qud/` (writes `build_log.txt` + `Player.log`); `$MODS_DIR=$COQ_SAVE_DIR/Mods/` (symlink target for `mod/LLMOfQud/`); CoQ install at `~/Library/Application Support/Steam/steamapps/common/Caves of Qud/`.
+External paths (macOS): `$COQ_SAVE_DIR=~/Library/Application Support/Freehold Games/CavesOfQud/` (writes `build_log.txt`; `Player.log` lives at `$PLAYER_LOG=~/Library/Logs/Freehold Games/CavesOfQud/Player.log` per Unity macOS log convention, NOT under `$COQ_SAVE_DIR`); `$MODS_DIR=$COQ_SAVE_DIR/Mods/` (symlink target for `mod/LLMOfQud/`); CoQ install at `~/Library/Application Support/Steam/steamapps/common/Caves of Qud/` (Steam still uses the legacy directory name post-rebrand).
 
 ## Tests and Checks
 
