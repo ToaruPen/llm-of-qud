@@ -108,7 +108,7 @@ namespace LLMOfQud
                 sb.Append("null");
                 return;
             }
-            sb.Append(n.Value);
+            sb.Append(n.Value.ToString(CultureInfo.InvariantCulture));
         }
 
         // Small JSON object for the ascii-source counter. Takes raw counts
@@ -878,7 +878,7 @@ namespace LLMOfQud
         {
             StringBuilder sb = new StringBuilder(512);
             sb.Append('{');
-            sb.Append("\"turn\":").Append(r.Turn);
+            sb.Append("\"turn\":").Append(r.Turn.ToString(CultureInfo.InvariantCulture));
             sb.Append(",\"schema\":\"command_issuance.v1\"");
             sb.Append(",\"hook\":\"CommandTakeActionEvent\"");
             sb.Append(",\"action\":");
@@ -888,8 +888,8 @@ namespace LLMOfQud
             sb.Append(",\"result\":").Append(r.Result ? "true" : "false");
             sb.Append(",\"fallback\":");
             AppendJsonStringOrNull(sb, r.Fallback);
-            sb.Append(",\"energy_before\":").Append(r.EnergyBefore);
-            sb.Append(",\"energy_after\":").Append(r.EnergyAfter);
+            sb.Append(",\"energy_before\":").Append(r.EnergyBefore.ToString(CultureInfo.InvariantCulture));
+            sb.Append(",\"energy_after\":").Append(r.EnergyAfter.ToString(CultureInfo.InvariantCulture));
             sb.Append(",\"pos_before\":");
             AppendPosObject(sb, r.PosBeforeX, r.PosBeforeY, r.PosBeforeZone);
             sb.Append(",\"pos_after\":");
@@ -925,7 +925,7 @@ namespace LLMOfQud
         {
             StringBuilder sb = new StringBuilder(256);
             sb.Append('{');
-            sb.Append("\"turn\":").Append(turn);
+            sb.Append("\"turn\":").Append(turn.ToString(CultureInfo.InvariantCulture));
             sb.Append(",\"schema\":\"command_issuance.v1\"");
             sb.Append(",\"error\":{\"type\":");
             AppendJsonString(sb, ex.GetType().Name);
@@ -943,8 +943,8 @@ namespace LLMOfQud
         // "zone":null instead of crashing the line build.
         private static void AppendPosObject(StringBuilder sb, int x, int y, string zone)
         {
-            sb.Append("{\"x\":").Append(x);
-            sb.Append(",\"y\":").Append(y);
+            sb.Append("{\"x\":").Append(x.ToString(CultureInfo.InvariantCulture));
+            sb.Append(",\"y\":").Append(y.ToString(CultureInfo.InvariantCulture));
             sb.Append(",\"zone\":");
             AppendJsonStringOrNull(sb, zone);
             sb.Append('}');
