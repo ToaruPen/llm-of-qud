@@ -839,26 +839,43 @@ Document outcome in `/tmp/phase-0-g-probes/probe-3-prime/3b/result.md`.
 
 - [ ] **Step 4: PROBE 3c — Blocked-direction memory.**
 
+`UpdateBlockedDirsMemory` adds a direction to `BlockedDirs` on the
+FIRST `Move` failure (Task 5 Step 1), and `HeuristicPolicy` skips
+any direction in `BlockedDirs` on its very next `Decide` call. So
+the policy switches direction on turn N+1, not on turn N+3 — the
+probe observes the SECOND decision after the wall-bump, not the
+fourth.
+
 Operator workflow:
 1. Fresh Warden, walk to a position with a wall directly east (or
-   whatever direction the policy picks for default explore).
-2. Let the policy attempt 3 consecutive turns in the wall direction
-   (the policy will Move E → fail → pass_turn × 3).
-3. Observe the 4th `[decision]`.
+   whatever direction the policy picks for default explore — peek
+   at the first `[decision]` to confirm).
+2. Let the policy take exactly ONE turn into the wall (the policy
+   issues `Move E`, the Move fails, `UpdateBlockedDirsMemory` adds
+   `"E"` to `BlockedDirs`, the 3-layer drain emits
+   `fallback="pass_turn"` on `[cmd]`).
+3. Observe the SECOND `[decision]` (the one immediately after the
+   wall-bump turn).
 
 ```bash
-grep "INFO - \[LLMOfQud\]\[decision\]" "$PLAYER_LOG" | tail -4 \
+grep "INFO - \[LLMOfQud\]\[decision\]" "$PLAYER_LOG" | tail -2 \
   > /tmp/phase-0-g-probes/probe-3-prime/3c/decisions.log
 cat /tmp/phase-0-g-probes/probe-3-prime/3c/decisions.log \
   | sed 's/^.*\[decision\] //' | jq -c '{turn, intent, action, dir, reason_code}'
 ```
 
 PASS criteria:
-- The 4th decision shows `action == "Move"` with `dir != <blocked
-  direction>`. (decision.v1 locks Action ∈ {Move, AttackDirection};
-  PassTurn is engine bookkeeping and never appears as a Decision
-  action.)
+- The 2nd captured decision (i.e., the turn immediately after the
+  wall-bump) shows `action == "Move"` with `dir != <blocked
+  direction>`. ReasonCode SHOULD be `"blocked_dir"` (the policy is
+  documented to set this when `BlockedDirs` is non-empty).
 - NOT another `Move` in the previously-blocked direction.
+
+(decision.v1 locks Action ∈ {Move, AttackDirection}; PassTurn is
+engine bookkeeping and never appears as a Decision action. If the
+operator observes the policy attempting the wall direction on turn 2
+or later, the policy implementation is buggy — `BlockedDirs` is not
+being threaded into `BuildDecisionInput` correctly.)
 
 Document outcome in `/tmp/phase-0-g-probes/probe-3-prime/3c/result.md`.
 
@@ -896,33 +913,58 @@ mkdir -p /tmp/phase-0-g-acceptance/run-{1,2,3,4,5}
 
 Operator workflow:
 1. Quit CoQ if running. Launch CoQ fresh.
-2. New Game → Mutated Human → Warden → Roleplay → Standard preset.
-   Skip tutorial.
-3. Once in Joppa, do NOT press keys — the policy dispatches
-   automatically.
-4. Watch for ≥50 `[cmd]` lines OR player death. Once turn 50 is
-   crossed (or player dies), quit CoQ.
+2. **BEFORE chargen**, record the Player.log byte-offset that
+   marks the start of this run:
 
-Capture all 6 channels:
+   ```bash
+   RUN=1
+   RUNDIR=/tmp/phase-0-g-acceptance/run-$RUN
+   PLAYER_LOG="$HOME/Library/Logs/Freehold Games/CavesOfQud/Player.log"
+   wc -c < "$PLAYER_LOG" > "$RUNDIR/start-offset.txt" 2>/dev/null \
+     || echo 0 > "$RUNDIR/start-offset.txt"
+   ```
+
+3. New Game → Mutated Human → Warden → Roleplay → Standard preset.
+   Skip tutorial.
+4. Once in Joppa, do NOT press keys — the policy dispatches
+   automatically.
+5. Watch for ≥50 `[cmd]` lines OR player death. Once turn 50 is
+   crossed (or player dies), quit back to the main menu (do NOT
+   exit CoQ if you plan to do RUN 2 in the same launch).
+
+Capture all 6 channels — slice by start-offset so this run's
+portion does not include any prior run in the same CoQ launch:
 
 ```bash
-RUN=1
-RUNDIR=/tmp/phase-0-g-acceptance/run-$RUN
-PLAYER_LOG="$HOME/Library/Logs/Freehold Games/CavesOfQud/Player.log"
-cp "$PLAYER_LOG" "$RUNDIR/raw-player.log"
+START=$(cat "$RUNDIR/start-offset.txt")
+END=$(wc -c < "$PLAYER_LOG")
+# tail -c +N is 1-indexed, so feed START+1
+tail -c +"$((START + 1))" "$PLAYER_LOG" \
+  | head -c "$((END - START))" \
+  > "$RUNDIR/raw-player.log"
 for ch in screen state caps build decision cmd; do
   grep "INFO - \[LLMOfQud\]\[$ch\]" "$RUNDIR/raw-player.log" > "$RUNDIR/$ch.log"
 done
 echo "Run $RUN: $(for ch in screen state caps build decision cmd; do
   echo -n "$ch=$(wc -l < $RUNDIR/$ch.log) "
-done)"
+done) (sliced bytes=$((END - START)))"
 ```
 
 - [ ] **Step 3: Repeat for RUN 2 through RUN 5.**
 
-Within a single CoQ launch, multiple runs are possible by quitting
-back to the main menu and starting a new game (`_beginTurnCount`
-resets per Phase 0-E behavior).
+For each subsequent run, repeat Step 2's full procedure with
+`RUN=2`, `3`, `4`, `5`. The `wc -c` offset captured BEFORE each
+chargen guarantees this run's `raw-player.log` slice excludes
+everything before it — required because Player.log accumulates
+across runs within a single CoQ launch (turn numbers reset per
+run via `_beginTurnCount`, so without offset slicing the validator
+would collapse cumulative-run duplicate turn ids and a bad run
+could be hidden by an earlier good one).
+
+Multiple runs in one CoQ launch are supported by quitting back to
+the main menu and starting a new game; alternatively, fully
+relaunch CoQ between runs (the offset capture works either way
+because it always records `wc -c` of the current Player.log).
 
 - [ ] **Step 4: Write the validator to disk, then validate per-run.**
 
