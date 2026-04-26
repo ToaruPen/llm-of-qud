@@ -78,7 +78,7 @@ ADR + plan + spec land in a docs-only PR (Task 0). Empirical probes (Task 1) run
 - Add: `docs/superpowers/plans/2026-04-26-phase-0-g-heuristic-bot.md` — this plan.
 - Create: `docs/adr/0008-phase-0-g-heuristic-interrupt-semantics.md` — ADR documenting the `:2817` interrupt-semantics interpretation, the new `[decision]` channel decision, and the heuristic-specifics lock.
 - Append to: `docs/adr/decision-log.md` — index entry for ADR 0008.
-- Create: `docs/adr/decisions/2026-04-26-phase-0-g-heuristic-interrupt-semantics-and-decision-channel.md` — machine-readable decision record produced by `scripts/create_adr_decision.py`.
+- Create: `docs/adr/decisions/2026-04-26-phase-0-g-heuristic-interrupt-semantics-new-decision-channel-heuristic-specifics-lock.md` — machine-readable decision record produced by `scripts/create_adr_decision.py`.
 
 **Empirical-probe stub (Task 1, NOT committed to main):**
 
@@ -110,7 +110,7 @@ No manifest edits. No symlink changes. No new dependencies. The Roslyn compile s
 
 - Create: `docs/adr/0008-phase-0-g-heuristic-interrupt-semantics.md`
 - Modify: `docs/adr/decision-log.md` (append index entry)
-- Create: `docs/adr/decisions/2026-04-26-phase-0-g-heuristic-interrupt-semantics-and-decision-channel.md`
+- Create: `docs/adr/decisions/2026-04-26-phase-0-g-heuristic-interrupt-semantics-new-decision-channel-heuristic-specifics-lock.md`
 - Add: `docs/superpowers/plans/2026-04-26-phase-0-g-heuristic-bot.md` (this plan, when staged for the docs PR)
 - Add: `docs/superpowers/specs/2026-04-26-phase-0-g-heuristic-bot-design.md` (already on the branch at Task 0 start)
 
@@ -156,7 +156,7 @@ python3 scripts/create_adr_decision.py \
   --adr docs/adr/0008-phase-0-g-heuristic-interrupt-semantics.md
 ```
 
-Expected: a new file at `docs/adr/decisions/2026-04-26-phase-0-g-heuristic-interrupt-semantics-and-decision-channel.md` (date stamp + title slug). If the script produces a different filename pattern, accept it — the script's output is the authoritative path.
+Expected: a new file at `docs/adr/decisions/2026-04-26-phase-0-g-heuristic-interrupt-semantics-new-decision-channel-heuristic-specifics-lock.md` (date stamp + title slug). If the script produces a different filename pattern, accept it — the script's output is the authoritative path.
 
 If the script fails with "decision already exists for this ADR", inspect `docs/adr/decisions/` for an existing `phase-0-g` record. If one is there from a prior attempt and is correct, reuse it; otherwise rename/remove it and re-run.
 
@@ -165,7 +165,7 @@ If the script fails with "decision already exists for this ADR", inspect `docs/a
 ```bash
 git add docs/adr/0008-phase-0-g-heuristic-interrupt-semantics.md
 git add docs/adr/decision-log.md
-git add docs/adr/decisions/2026-04-26-phase-0-g-heuristic-interrupt-semantics-and-decision-channel.md
+git add docs/adr/decisions/2026-04-26-phase-0-g-heuristic-interrupt-semantics-new-decision-channel-heuristic-specifics-lock.md
 git add docs/superpowers/plans/2026-04-26-phase-0-g-heuristic-bot.md
 git status   # verify only the four files above are staged
 git commit -m "docs(adr): ADR 0008 — Phase 0-G heuristic interrupt semantics + [decision] channel"

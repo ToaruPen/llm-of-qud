@@ -266,7 +266,7 @@ force.
   safe-cell predicate, and acceptance criteria this ADR formalizes.
 - `docs/superpowers/plans/2026-04-26-phase-0-g-heuristic-bot.md`
   — implementation plan (lands in the same docs-only PR as this ADR).
-- `docs/adr/decisions/2026-04-26-phase-0-g-heuristic-interrupt-semantics-and-decision-channel.md`
+- `docs/adr/decisions/2026-04-26-phase-0-g-heuristic-interrupt-semantics-new-decision-channel-heuristic-specifics-lock.md`
   — machine-readable decision record produced by
   `scripts/create_adr_decision.py` for the pre-commit ADR gate.
 - `docs/architecture-v5.md:2804` — Phase 0-G line being implemented as
@@ -294,10 +294,12 @@ force.
   (decision-then-execute extension to `HandleEvent(CommandTakeActionEvent)`),
   `mod/LLMOfQud/SnapshotState.cs`
   (`DecisionRecord`, `BuildDecisionJson`, `BuildDecisionSentinelJson`).
-- Codex consultation: `/tmp/phase-0-g-prep/codex-v3-answer.md`
-  (operator-local, not committed to repo) — the 2026-04-26 design
-  consultation that grounded this ADR's Decisions in decompiled
-  source citations.
+
+The Codex 2026-04-26 design consultation referenced in §Context (line 55)
+grounded this ADR's Decisions in decompiled-source citations. The
+operator-local capture at `/tmp/phase-0-g-prep/codex-v3-answer.md` is
+not part of the repo; the substantive findings are inlined into this
+ADR's Decisions and Alternatives Considered sections.
 
 Future artifact (not yet produced; will be linked here once written):
 the Phase 0-G exit memo, created at the implementation plan's last
