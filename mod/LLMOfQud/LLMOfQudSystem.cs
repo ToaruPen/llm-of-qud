@@ -183,10 +183,6 @@ namespace LLMOfQud
             int turn = _beginTurnCount;
             GameObject player = The.Player;
 
-            // Defensive: HandleEvent should not fire when player is null (the
-            // event is dispatched against the player object), but a body-swap
-            // window or shutdown race could leave us with no player. Emit a
-            // sentinel and let the loop fall through.
             if (player == null)
             {
                 MetricsManager.LogInfo(
@@ -205,40 +201,109 @@ namespace LLMOfQud
                 int posBeforeY = cellBefore?.Y ?? -1;
                 string posBeforeZone = cellBefore?.ParentZone?.ZoneID;
 
-                // Step A: hardcoded Move East. Step B detection is added in Task 5.
-                AutoAct.ClearAutoMoveStop();   // mirror XRLCore.cs:1108 wrapper
-                bool result = player.Move("E", DoConfirmations: false);
+                // Step B: adjacent hostile detection.
+                // Direction priority: N -> NE -> E -> SE -> S -> SW -> W -> NW.
+                // First non-null Cell.GetCombatTarget hit wins.
+                // The filter o => o != player && o.IsHostileTowards(player) mirrors
+                // what Combat.AttackCell uses internally (Combat.cs:877-889).
+                string targetDir = null;
+                GameObject targetObj = null;
+                if (cellBefore != null)
+                {
+                    string[] priority = new[] { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
+                    for (int i = 0; i < priority.Length; i++)
+                    {
+                        Cell adj = cellBefore.GetCellFromDirection(priority[i], BuiltOnly: false);
+                        if (adj == null) continue;
+                        // Verified signature at decompiled/XRL.World/Cell.cs:8511:
+                        //   GetCombatTarget(GameObject Attacker = null,
+                        //     bool IgnoreFlight = false, bool IgnoreAttackable = false,
+                        //     bool IgnorePhase = false, int Phase = 0,
+                        //     GameObject Projectile = null, GameObject Launcher = null,
+                        //     GameObject CheckPhaseAgainst = null,
+                        //     GameObject Skip = null, List<GameObject> SkipList = null,
+                        //     bool AllowInanimate = true, bool InanimateSolidOnly = false,
+                        //     Predicate<GameObject> Filter = null)
+                        // GameObject.cs:10887-10894 IsHostileTowards.
+                        GameObject t = adj.GetCombatTarget(
+                            Attacker: player,
+                            IgnoreFlight: false,
+                            IgnoreAttackable: false,
+                            IgnorePhase: false,
+                            Phase: 5,
+                            AllowInanimate: false,
+                            Filter: o => o != player && o.IsHostileTowards(player));
+                        if (t != null)
+                        {
+                            targetDir = priority[i];
+                            targetObj = t;
+                            break;
+                        }
+                    }
+                }
+
+                bool result;
+                string action;
+                string dir;
+                string targetId = null;
+                string targetName = null;
+                bool hasTargetPosBefore = false;
+                int targetPosBeforeX = -1;
+                int targetPosBeforeY = -1;
+                string targetPosBeforeZone = null;
+                int? targetHpBefore = null;
+
+                if (targetObj != null)
+                {
+                    targetId = targetObj.ID;
+                    targetName = targetObj.ShortDisplayNameStripped;
+                    Cell tCell = targetObj.CurrentCell;
+                    if (tCell != null)
+                    {
+                        hasTargetPosBefore = true;
+                        targetPosBeforeX = tCell.X;
+                        targetPosBeforeY = tCell.Y;
+                        targetPosBeforeZone = tCell.ParentZone?.ZoneID;
+                    }
+                    // hitpoints = Statistic.Value (live HP), per spec field semantics.
+                    // GameObject.cs:1177-1198: hitpoints / baseHitpoints.
+                    targetHpBefore = targetObj.hitpoints;
+                    result = player.AttackDirection(targetDir);
+                    action = "AttackDirection";
+                    dir = targetDir;
+                }
+                else
+                {
+                    // Step A fallback: Move East.
+                    AutoAct.ClearAutoMoveStop();   // mirror XRLCore.cs:1108
+                    result = player.Move("E", DoConfirmations: false);
+                    action = "Move";
+                    dir = "E";
+                }
 
                 bool energySpent = (player.Energy != null && player.Energy.Value < energyBefore);
 
                 string fallback = null;
                 if (!result && !energySpent)
                 {
-                    // Layer 2: action returned false without spending energy.
-                    // PassTurn() => UseEnergy(1000, "Pass", Passive:true) so the
-                    // turn advances and the engine doesn't fall through to
-                    // PlayerTurn() waiting on keyboard input.
                     player.PassTurn();
                     energySpent = true;
                     fallback = "pass_turn";
                 }
                 else if (!result)
                 {
-                    // API drained energy on its own fail path (e.g., flag=true
-                    // dashing case at GameObject.cs:15309 -> :15378-15382). Log as
-                    // pass_turn for accounting; the autonomy invariant
-                    // energy_after < energy_before still holds.
                     fallback = "pass_turn";
                 }
 
+                int? targetHpAfter = (targetObj != null) ? (int?)targetObj.hitpoints : null;
                 int energyAfter = player.Energy?.Value ?? 0;
                 Cell cellAfter = player.CurrentCell;
 
                 SnapshotState.CmdRecord rec = new SnapshotState.CmdRecord
                 {
                     Turn = turn,
-                    Action = "Move",
-                    Dir = "E",
+                    Action = action,
+                    Dir = dir,
                     Result = result,
                     Fallback = fallback,
                     EnergyBefore = energyBefore,
@@ -249,11 +314,14 @@ namespace LLMOfQud
                     PosAfterX = cellAfter?.X ?? -1,
                     PosAfterY = cellAfter?.Y ?? -1,
                     PosAfterZone = cellAfter?.ParentZone?.ZoneID,
-                    TargetId = null,
-                    TargetName = null,
-                    HasTargetPosBefore = false,
-                    TargetHpBefore = null,
-                    TargetHpAfter = null,
+                    TargetId = targetId,
+                    TargetName = targetName,
+                    HasTargetPosBefore = hasTargetPosBefore,
+                    TargetPosBeforeX = targetPosBeforeX,
+                    TargetPosBeforeY = targetPosBeforeY,
+                    TargetPosBeforeZone = targetPosBeforeZone,
+                    TargetHpBefore = targetHpBefore,
+                    TargetHpAfter = targetHpAfter,
                 };
 
                 MetricsManager.LogInfo("[LLMOfQud][cmd] " + SnapshotState.BuildCmdJson(rec));
@@ -262,23 +330,13 @@ namespace LLMOfQud
             {
                 MetricsManager.LogInfo(
                     "[LLMOfQud][cmd] " + SnapshotState.BuildCmdSentinelJson(turn, ex));
-                // Layer 3 ladder: if energy hasn't drained yet, try PassTurn first;
-                // if that also throws, set BaseValue=0 as a last-ditch emergency
-                // drain. ADR 0006 Consequence #5: BaseValue=0 is intentionally NOT
-                // equivalent to PassTurn — it bypasses UseEnergyEvent
-                // (decompiled/XRL.World/GameObject.cs:2925-2930). Direct BaseValue=0
-                // only runs the Statistic setter and NotifyChange
-                // (decompiled/XRL.World/Statistic.cs:218-232) and may fire
-                // StatChange_* listeners (:646-673), but no UseEnergyEvent. Use
-                // ONLY when PassTurn() itself throws.
-                // The threshold is the loop-gate condition (ActionManager.cs:800,
-                // :838): the engine reaches PlayerTurn() at :1797-1799 only when
-                // Energy.Value >= 1000. Compare against literal 1000 — NOT
-                // energyBefore — because (a) the exception may have fired BEFORE
-                // energyBefore was captured (initial value 0 → guard would skip
-                // drain incorrectly), (b) the autonomy invariant is "engine does
-                // not wait on keyboard input", which only depends on whether
-                // energy stays >= 1000 after our handler returns.
+                // Catch-path drain threshold = literal 1000, NOT energyBefore.
+                // See Task 4 commentary: the exception may fire before energyBefore
+                // is captured, in which case the local default of 0 would make a
+                // ">= energyBefore" guard incorrectly skip drain. The autonomy
+                // invariant is "engine does not wait on keyboard input"; that
+                // depends only on Energy.Value < 1000 after our handler returns
+                // (ActionManager.cs:800, :838, :1797-1799).
                 if (player?.Energy != null && player.Energy.Value >= 1000)
                 {
                     try { player.PassTurn(); } catch { /* swallow */ }
@@ -290,21 +348,9 @@ namespace LLMOfQud
             }
             finally
             {
-                // PreventAction = true makes CommandTakeActionEvent.Check return
-                // false, which causes ActionManager.cs:829-832's inner-loop continue
-                // to skip the rest of the action path for this segment. Combined
-                // with energy drain (Layers 1/2/3 above), this is what guarantees
-                // the engine never falls through to The.Core.PlayerTurn() at
-                // :1797-1799 waiting on keyboard input.
                 E.PreventAction = true;
             }
 
-            // Return true. Returning false would abort event dispatch — other
-            // handlers registered on CommandTakeActionEvent would not fire. The
-            // EventRegistry chain stops on false (decompiled/XRL.Collections/
-            // EventRegistry.cs:260-272); the GameObject parts/effects chain stops
-            // on false (decompiled/XRL.World/GameObject.cs:14024-14030, 14053-14059).
-            // PreventAction=true is the proper "skip this action" signal.
             return true;
         }
 
