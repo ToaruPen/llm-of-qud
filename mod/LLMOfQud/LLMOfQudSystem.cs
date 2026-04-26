@@ -384,11 +384,13 @@ namespace LLMOfQud
                 // ---- Execute ----
                 // target_* capture: snap hostileObj state BEFORE the action dispatch
                 // so target_hp_before reflects pre-attack HP (Phase 0-F invariant).
-                // For escape/explore Move decisions, hostileObj may be non-null
-                // (adjacent hostile was detected but policy chose to move away);
-                // target_* is populated from the scan regardless of action intent —
-                // matching Phase 0-F semantics ("what hostile was adjacent at scan
-                // time", not "what was attacked").
+                // target_* is populated ONLY when decision.Action == "AttackDirection",
+                // preserving Phase 0-F's structural invariant that target_id != null
+                // implies an attack outcome row (mirrors SnapshotState.CmdRecord
+                // docstring "null when no hostile attacked"). For escape/explore Move
+                // decisions, target_* stays null even when hostileObj is non-null —
+                // the [decision] line's input_summary.adjacent_hostile_dir captures
+                // the scan-time presence so downstream parsers don't lose that signal.
                 string targetId = null;
                 string targetName = null;
                 bool hasTargetPosBefore = false;
@@ -397,7 +399,7 @@ namespace LLMOfQud
                 string targetPosBeforeZone = null;
                 int? targetHpBefore = null;
 
-                if (hostileObj != null)
+                if (decision.Action == "AttackDirection" && hostileObj != null)
                 {
                     targetId = hostileObj.ID;
                     targetName = hostileObj.ShortDisplayNameStripped;
@@ -457,7 +459,14 @@ namespace LLMOfQud
                 UpdateBlockedDirsMemory(decision.Action, decision.Dir, result, fallback);
                 UpdateRecentHistory(decision.Action, decision.Dir, result, turn);
 
-                int? targetHpAfter = (hostileObj != null) ? (int?)hostileObj.hitpoints : null;
+                // target_hp_after gated on the same AttackDirection-only condition as
+                // target_hp_before so the [cmd] row remains internally consistent
+                // (an attack-only row has both before/after; a non-attack row has
+                // both null). hostileObj may have moved or died; the after-snapshot
+                // is taken from the same reference we recorded for before.
+                int? targetHpAfter = (decision.Action == "AttackDirection" && hostileObj != null)
+                    ? (int?)hostileObj.hitpoints
+                    : null;
                 int energyAfter = player.Energy?.Value ?? 0;
                 Cell cellAfter = player.CurrentCell;
 
