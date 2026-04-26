@@ -235,8 +235,11 @@ Phase 0-F implements movement and attack command issuance via:
   (`HandleEvent(CommandTakeActionEvent)`),
   `mod/LLMOfQud/SnapshotState.cs`
   (command JSON builders + helper extraction).
-- Exit memo: `docs/memo/phase-0-f-exit-<YYYY-MM-DD>.md` (created at
-  the implementation plan's Task 8).
+
+Future artifact (not yet produced; will be linked here once written):
+the Phase 0-F exit memo, created at the implementation plan's Task 8
+under `docs/memo/` with filename `phase-0-f-exit-YYYY-MM-DD.md` (the
+date stamp is fixed at memo-write time via `date -u +%Y-%m-%d`).
 
 ## Supersedes
 
