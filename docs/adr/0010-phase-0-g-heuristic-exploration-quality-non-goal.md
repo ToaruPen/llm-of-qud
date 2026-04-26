@@ -122,7 +122,7 @@ on top.
    ExploreOrder that produced the Run 5 U-pocket oscillation.
 
 5. **CoQ-side pathfinder (`XRL.World.AI.Pathfinding.FindPath`,
-   `decompiled/XRL.World.AI.Pathfinding/FindPath.cs`) integration
+   `decompiled/XRL.World.AI.Pathfinding/FindPath.cs:10`) integration
    is out of Phase 0-G scope.** The CoQ engine ships a navigation
    path solver used by mouse-click move and AI traversal. It is a
    plausible Phase 1+ System-layer safety-net candidate (e.g., when
@@ -249,7 +249,7 @@ on top.
   blocked-direction memory introduced for the Run 2 fix
   (commit `b726814`); kept as the boundary-correct form of
   feedback memory.
-- `decompiled/XRL.World.AI.Pathfinding/FindPath.cs` — CoQ engine
+- `decompiled/XRL.World.AI.Pathfinding/FindPath.cs:10` — CoQ engine
   pathfinder noted as plausible Phase 1+ System-layer safety-net
   candidate; not adopted in Phase 0-G.
 

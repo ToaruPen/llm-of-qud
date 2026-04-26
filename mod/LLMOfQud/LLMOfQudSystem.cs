@@ -473,6 +473,7 @@ namespace LLMOfQud
                 // command_issuance.v2 bump per spec.
                 if (decision.Action == "AttackDirection")
                 {
+                    // decompiled/XRL.World/GameObject.cs:17882
                     result = player.AttackDirection(decision.Dir);
                 }
                 else if (decision.Action == "Move")
@@ -481,6 +482,7 @@ namespace LLMOfQud
                     // regardless of intent (escape or explore).
                     // Mirrors decompiled/XRL.Core/XRLCore.cs:1108.
                     AutoAct.ClearAutoMoveStop();
+                    // decompiled/XRL.World/GameObject.cs:15719
                     result = player.Move(decision.Dir, DoConfirmations: false);
                 }
 
