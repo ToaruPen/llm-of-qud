@@ -17,3 +17,4 @@ individual decision artifact under `docs/adr/decisions/`.
 - 2026-04-25T14:26:22Z | adr_required=true | Add Related Artifacts section to ADR 0005 to comply with template | [details](decisions/2026-04-25-add-related-artifacts-section-to-adr-0005-to-comply-with-template.md)
 - 2026-04-25T14:30:00Z | adr_required=false | Correct DeathLogger / cross-run learning citation from :1683-1687 to :1696-1710 | [details](decisions/2026-04-25-correct-deathlogger-citation-to-1696-1710.md)
 - 2026-04-25T14:32:26Z | adr_required=true | Reorder ADR 0005 sections and add Supersedes per template | [details](decisions/2026-04-25-reorder-adr-0005-sections-and-add-supersedes-per-template.md)
+- 2026-04-26T02:12:01Z | adr_required=true | Phase 0-F command-issuance API pivot from CommandEvent.Send to direct Move/AttackDirection | [details](decisions/2026-04-26-phase-0-f-command-issuance-api-pivot-from-commandevent-send-to-direct-move-attackdirection.md)
