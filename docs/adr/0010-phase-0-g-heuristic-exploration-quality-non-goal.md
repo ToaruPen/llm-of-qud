@@ -35,8 +35,8 @@ degeneracy:
   "successful terminal action".
 
 The codex 2026-04-27 design consultation (operator-local capture
-referenced in §Related Artifacts) recommended sharpening Decision
-#5.4 with anti-cycle metrics
+referenced in §Related Artifacts) recommended sharpening
+Decision #5.4 with anti-cycle metrics
 (`longest_two_cell_cycle_streak ≤ 20`, `two_cell_cycle_rate ≤ 0.30`,
 `max_cell_visit_share ≤ 0.60`) plus an `Recent.LastDir`-aware
 anti-backtrack policy patch (Option A+B in the consultation).
