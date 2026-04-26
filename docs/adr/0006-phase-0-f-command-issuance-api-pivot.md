@@ -1,6 +1,6 @@
 # ADR 0006: Phase 0-F command-issuance API pivot from CommandEvent.Send to direct Move/AttackDirection
 
-Status: Accepted (2026-04-26)
+Status: Accepted (2026-04-26); Consequence #3 cadence framing partially superseded by ADR 0007 (2026-04-26)
 
 ## Context
 
@@ -100,4 +100,8 @@ date stamp is fixed at memo-write time via `date -u +%Y-%m-%d`).
 
 ## Supersedes
 
-None. ADR 0006 narrows the interpretation of `docs/architecture-v5.md:2803` under the freeze rule (ADR 0001) without superseding any prior ADR.
+None at the time of writing. ADR 0006 narrows the interpretation of `docs/architecture-v5.md:2803` under the freeze rule (ADR 0001) without superseding any prior ADR.
+
+## Superseded By (Partial)
+
+`docs/adr/0007-phase-0-f-prevent-action-scoped-to-abnormal-energy.md` (2026-04-26) partially supersedes Consequence #3 (cadence framing) above. The `[cmd]`/observation correlation contract (correlate by `turn`, not line adjacency) is retained; the implicit assumption that observation channels emit at any cadence during autonomous dispatch is replaced by ADR 0007's explicit "ActionManager render fallback at `decompiled/XRL.Core/ActionManager.cs:1806-1808` flushes per turn once `E.PreventAction` is scoped to the abnormal-energy catch path" contract.

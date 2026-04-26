@@ -1266,6 +1266,132 @@ EOF
 
 ---
 
+## Task 5b: ADR 0007 patch — scope `E.PreventAction` to abnormal-energy catch path
+
+**Why this task exists:** Empirical 488-turn run on commit `be2e6b2` showed the cross-channel parity gate failing: `[cmd] = 488` while `[screen]/[state]/[caps]/[build]` emit ~0× during autonomous dispatch. Root cause (per `docs/adr/0007-phase-0-f-prevent-action-scoped-to-abnormal-energy.md`): the success-path `finally { E.PreventAction = true; }` flips `CommandTakeActionEvent.Check` to false at `decompiled/XRL.Core/ActionManager.cs:829-832`, the iteration `continue`s, and the player render fallback at `decompiled/XRL.Core/ActionManager.cs:1806-1808` is never reached on the same iteration. ADR 0007 scopes `PreventAction = true` to the catch path with post-recovery `Energy.Value >= 1000` (Layer-4 abnormal-energy defense); the success path leaves `PreventAction` at its default `false` so the render fallback fires per turn.
+
+**Files:**
+
+- Modify: `mod/LLMOfQud/LLMOfQudSystem.cs` — replace the unconditional `finally { E.PreventAction = true; }` in `HandleEvent(CommandTakeActionEvent)` with a conditional that only sets `PreventAction = true` when `player?.Energy != null && player.Energy.Value >= 1000`. Update the existing comment to cite ADR 0007.
+
+**Branch:** `feat/phase-0-f-impl`.
+
+- [ ] **Step 1: Replace the `finally` block of `HandleEvent(CommandTakeActionEvent)` with the ADR-0007 conditional.**
+
+The current `finally` block (Task 5 / commit `be2e6b2`) is:
+
+```csharp
+            finally
+            {
+                E.PreventAction = true;
+            }
+```
+
+Replace it with:
+
+```csharp
+            finally
+            {
+                // ADR 0007: PreventAction is Layer-4 abnormal-energy defense, not
+                // the primary autonomy mechanism. The autonomy invariant (engine
+                // does not wait on keyboard input) depends on Energy.Value < 1000
+                // from Layers 1/2/3 (Move/AttackDirection success → PassTurn
+                // fallback → BaseValue=0 last-ditch). The `:838` energy guard at
+                // decompiled/XRL.Core/ActionManager.cs:838 already prevents the
+                // keyboard-input branch (PlayerTurn at :1797-1799) when
+                // Energy.Value < 1000; the iteration falls through to the
+                // player render fallback at decompiled/XRL.Core/ActionManager.cs:1806-1808
+                // and `[screen]/[state]/[caps]/[build]` flush per turn.
+                //
+                // Setting PreventAction = true would cause CommandTakeActionEvent.Check
+                // (decompiled/XRL.World/CommandTakeActionEvent.cs:37-39) to return
+                // false, the iteration to `continue` at decompiled/XRL.Core/ActionManager.cs:829-832,
+                // and the render fallback to be skipped — destroying the
+                // observation-channel cadence Phase 0-A through 0-E established.
+                //
+                // Reach this defense ONLY when post-recovery energy is still
+                // >= 1000 (i.e., Layers 1/2/3 all failed to drain). One render
+                // cadence is sacrificed to preserve autonomy.
+                if (player?.Energy != null && player.Energy.Value >= 1000)
+                {
+                    E.PreventAction = true;
+                }
+            }
+```
+
+The `player` variable is already defined at the top of `HandleEvent` (assigned from `The.Player`) and is non-null on the path that reaches this `finally` (the early `if (player == null)` guard above returns before we ever reach the `try`). The catch block's local `player?.Energy != null && player.Energy.Value >= 1000` ladder already does the recovery; this `finally` runs AFTER both `try` and `catch` complete, so by the time we evaluate the conditional, energy is either `< 1000` (success path or successful recovery) or `>= 1000` (all recovery failed).
+
+- [ ] **Step 2: Compile + load probe.**
+
+Launch CoQ:
+
+```
+Compiling 3 files... Success :)
+[LLMOfQud] loaded v0.0.1 at <timestamp>
+```
+
+No `COMPILER ERRORS`. The change is purely behavioral (no new types, no new APIs); compile is fast.
+
+- [ ] **Step 3: Quick runtime probe — east-walk run on a Phase 0-E save with parity check.**
+
+Open the Phase 0-E Marauder save in central Joppa. Watch the player walk east for ~20 turns. Tail:
+
+```bash
+tail -f "$PLAYER_LOG" | grep "INFO - \[LLMOfQud\]\[\(cmd\|state\|caps\|build\|screen\)\]" &
+```
+
+Expect: per-turn output is now 6 lines (`[screen] BEGIN`, `[screen] END`, `[state]`, `[caps]`, `[build]`, `[cmd]`) for each `CommandTakeActionEvent` dispatch. If only `[cmd]` is present, the patch did not land or the conditional is mis-evaluated.
+
+After 20+ turns, pause CoQ and run a sanity count:
+
+```bash
+PLAYER_LOG="$HOME/Library/Logs/Freehold Games/CavesOfQud/Player.log"
+for ch in cmd "screen\] BEGIN" "screen\] END" state caps build; do
+  printf "%-20s %s\n" "$ch" "$(grep -c "INFO - \[LLMOfQud\]\[$ch" "$PLAYER_LOG")"
+done
+```
+
+Expect all six counts to be approximately equal (within a small +/- of 1 to allow for the boundary turns of the run). Hard equality is required at acceptance time (Tasks 6 and 7); this Step 3 is a smoke check that the parity is restored at the right order of magnitude.
+
+- [ ] **Step 4: Commit.**
+
+```bash
+git add mod/LLMOfQud/LLMOfQudSystem.cs
+git commit -m "$(cat <<'EOF'
+fix(mod): Phase 0-F ADR 0007 — scope E.PreventAction to abnormal-energy catch path
+
+Empirical 488-turn run on commit be2e6b2 showed the cross-channel
+parity gate failing: [cmd]=488 while [screen]/[state]/[caps]/[build]
+emit ~0x during autonomous dispatch. Root cause: the success-path
+finally { E.PreventAction = true; } flips CommandTakeActionEvent.Check
+to false at decompiled/XRL.Core/ActionManager.cs:829-832, the
+iteration continues, and the player render fallback at
+decompiled/XRL.Core/ActionManager.cs:1806-1808 is never reached.
+
+Per ADR 0007: scope PreventAction = true to the abnormal-energy catch
+path only (post-recovery Energy.Value >= 1000). On the success path,
+PreventAction stays at its default false so:
+  - CommandTakeActionEvent.Check returns true
+  - decompiled/XRL.Core/ActionManager.cs:838 sees Energy.Value < 1000
+    and skips the keyboard-input branch (:1797-1799)
+  - control reaches the else if (Actor.IsPlayer()) { RenderBase(); }
+    fallback at :1806-1808
+  - AfterRenderCallbacks fires, [screen]/[state]/[caps]/[build] flush
+    per turn
+
+The autonomy invariant (engine does not wait on keyboard input) is
+preserved by Energy.Value < 1000 alone (Layers 1/2/3); PreventAction
+is Layer-4 last-line defense.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+EOF
+)"
+```
+
+Do NOT push yet. Tasks 6 and 7 (acceptance runs) verify the patch under formal acceptance criteria; if both pass, Task 8 finalizes the PR.
+
+---
+
 ## Task 6: Step A acceptance run
 
 **Why this task exists:** Per the design spec criterion 2: ≥10 successful east `Move` records, with a cross-channel ≥40-turn 5-channel-parity gate. This is the pure-movement acceptance with no Step B trigger.
