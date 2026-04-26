@@ -1176,28 +1176,63 @@ rundir = os.environ["RUNDIR"]
 hard_failures = []
 soft_warnings = []
 
-# ---------- 1. Load + parse all 6 channels ----------
-def parse_line(line):
-    """Strip the '<prefix>[chan] ' header and JSON-parse the payload."""
+# ---------- 1. Load + parse channels ----------
+# [screen] is INTENTIONALLY non-JSON: it emits "[LLMOfQud][screen] BEGIN turn=N w=... h=..."
+# (multi-line LogInfo; the body + END are inside the same LogInfo call so only the BEGIN
+# header carries the "INFO - [LLMOfQud][screen]" prefix). On error, it emits a separate
+# "[LLMOfQud][screen] ERROR turn=N <ExceptionType>: <message>" line. See
+# mod/LLMOfQud/LLMOfQudSystem.cs:475-497. The validator special-cases [screen] as text
+# framing (count BEGIN-occurrences for per-turn parity; count ERROR-occurrences for
+# ERR_SCREEN) and JSON-parses only the 5 structured channels.
+def parse_json_line(line):
+    """Strip the 'INFO - [LLMOfQud][chan] ' header and JSON-parse the payload."""
     parts = line.split("] ", 1)
     if len(parts) != 2:
         return None
     try: return json.loads(parts[1].strip())
     except json.JSONDecodeError: return None
 
+def parse_screen_line(line):
+    """Return ('begin', turn) | ('error', turn) | None for a [screen]-prefixed line."""
+    # Body of the line after the "[LLMOfQud][screen] " prefix.
+    parts = line.split("[LLMOfQud][screen] ", 1)
+    if len(parts) != 2:
+        return None
+    body = parts[1].strip()
+    # Try to extract turn=N from either BEGIN or ERROR shape.
+    import re
+    m = re.match(r"(BEGIN|ERROR)\s+turn=(\d+)", body)
+    if not m:
+        return None
+    return (m.group(1).lower(), int(m.group(2)))
+
 channels = {}
-for ch in ("screen", "state", "caps", "build", "decision", "cmd"):
+# Structured (JSON) channels.
+for ch in ("state", "caps", "build", "decision", "cmd"):
     path = f"{rundir}/{ch}.log"
     raw = open(path).readlines()
-    parsed = [parse_line(l) for l in raw]
+    parsed = [parse_json_line(l) for l in raw]
     n_total = len(raw)
     n_valid = sum(1 for p in parsed if p is not None)
     n_invalid = n_total - n_valid
     channels[ch] = {"raw": raw, "parsed": parsed, "n_total": n_total, "n_valid": n_valid, "n_invalid": n_invalid}
     print(f"  [{ch}] total={n_total} json_valid={n_valid} json_invalid={n_invalid}")
-    # Spec criterion 7: every emitted line MUST be JSON-valid (the catch-path emits a sentinel, NOT a partial line).
+    # Spec criterion 7: every emitted line MUST be JSON-valid for the structured channels
+    # (the catch-path emits a sentinel JSON, NOT a partial line).
     if n_invalid > 0:
         hard_failures.append(f"[{ch}] has {n_invalid} JSON-invalid lines")
+
+# Text-framed channel: [screen].
+screen_raw = open(f"{rundir}/screen.log").readlines()
+screen_parsed = [parse_screen_line(l) for l in screen_raw]
+screen_begin_turns = sorted({t for kind, t in (p for p in screen_parsed if p) if kind == "begin"})
+screen_error_turns = sorted({t for kind, t in (p for p in screen_parsed if p) if kind == "error"})
+screen_unparsed = sum(1 for p in screen_parsed if p is None)
+print(f"  [screen] total={len(screen_raw)} BEGIN={len(screen_begin_turns)} ERROR={len(screen_error_turns)} unparsed={screen_unparsed}")
+if screen_unparsed > 0:
+    # Unparsed [screen] lines are a parser-contract failure (BEGIN/ERROR/END shape changed).
+    hard_failures.append(f"[screen] has {screen_unparsed} unparseable lines (expected BEGIN/ERROR pattern)")
+channels["screen"] = {"n_total": len(screen_begin_turns), "n_invalid": 0, "begin_turns": screen_begin_turns, "error_turns": screen_error_turns}
 
 # ---------- 2. Hard-gate: survival (criterion 1) ----------
 state_parsed = [p for p in channels["state"]["parsed"] if p is not None]
@@ -1211,11 +1246,12 @@ if last_hp is None or last_hp <= 0:
     hard_failures.append(f"survival: last_hp={last_hp!r} (need > 0)")
 
 # ---------- 3. Hard-gate: ERR_SCREEN == 0 (criterion 6 hard gate) ----------
-err_counts = {ch: 0 for ch in channels}
-for ch, data in channels.items():
-    for p in data["parsed"]:
-        if p and p.get("error") is not None:
-            err_counts[ch] += 1
+err_counts = {}
+# Structured channels: error sentinel sets {"error": "<message>"} per Phase 0-D / 0-E / 0-F builders.
+for ch in ("state", "caps", "build", "decision", "cmd"):
+    err_counts[ch] = sum(1 for p in channels[ch]["parsed"] if p and p.get("error") is not None)
+# [screen] error count comes from the BEGIN/ERROR text-frame parser above.
+err_counts["screen"] = len(channels["screen"]["error_turns"])
 print(f"\nERR counts (criterion 6): {err_counts}")
 if err_counts["screen"] > 0:
     hard_failures.append(f"ERR_SCREEN={err_counts['screen']} (hard gate; must be 0)")
