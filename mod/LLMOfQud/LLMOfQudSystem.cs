@@ -6,6 +6,7 @@ using XRL;
 using XRL.Core;
 using XRL.UI;
 using XRL.World;
+using XRL.World.Capabilities;   // NEW: AutoAct.ClearAutoMoveStop
 
 namespace LLMOfQud
 {
@@ -53,6 +54,7 @@ namespace LLMOfQud
                 _afterRenderRegistered = true;
             }
             Registrar.Register(SingletonEvent<BeginTakeActionEvent>.ID);
+            Registrar.Register(SingletonEvent<CommandTakeActionEvent>.ID);
             base.RegisterPlayer(Player, Registrar);
         }
 
@@ -164,6 +166,219 @@ namespace LLMOfQud
                     "[LLMOfQud] begin_take_action count=" + _beginTurnCount);
             }
             return base.HandleEvent(E);
+        }
+
+        // Phase 0-F: act on the player's command point.
+        // Hook chosen per ADR 0006: CommandTakeActionEvent fires inside the inner
+        // action loop in ActionManager (decompiled/XRL.Core/ActionManager.cs:829),
+        // AFTER BeginTakeActionEvent has already enqueued the per-turn observation
+        // snapshot. Acting here keeps EndActionEvent, hostile interrupt, AutoAct,
+        // and the player render fallback (decompiled/XRL.Core/ActionManager.cs:1806-1808) intact.
+        // BeginTakeActionEvent would skip all of those because draining energy
+        // there fails the inner loop's gate at decompiled/XRL.Core/ActionManager.cs:800.
+        // [cmd] is emitted on the game thread directly (NOT through PendingSnapshot)
+        // — see ADR 0006 Consequence #3 and the design spec's Architecture section.
+        public override bool HandleEvent(CommandTakeActionEvent E)
+        {
+            int turn = _beginTurnCount;
+            GameObject player = The.Player;
+
+            if (player == null)
+            {
+                MetricsManager.LogInfo(
+                    "[LLMOfQud][cmd] {\"turn\":" + turn +
+                    ",\"schema\":\"command_issuance.v1\",\"error\":{\"type\":\"NullPlayer\",\"message\":\"The.Player is null\"}}");
+                E.PreventAction = true;
+                return true;
+            }
+
+            int energyBefore = 0;
+            try
+            {
+                energyBefore = player.Energy?.Value ?? 0;
+                Cell cellBefore = player.CurrentCell;
+                int posBeforeX = cellBefore?.X ?? -1;
+                int posBeforeY = cellBefore?.Y ?? -1;
+                string posBeforeZone = cellBefore?.ParentZone?.ZoneID;
+
+                // Step B: adjacent hostile detection.
+                // Direction priority: N -> NE -> E -> SE -> S -> SW -> W -> NW.
+                // First non-null Cell.GetCombatTarget hit wins.
+                // The filter o => o != player && o.IsHostileTowards(player) mirrors
+                // what Combat.AttackCell uses internally (decompiled/XRL.World.Parts/Combat.cs:877-889).
+                string targetDir = null;
+                GameObject targetObj = null;
+                if (cellBefore != null)
+                {
+                    string[] priority = new[] { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
+                    for (int i = 0; i < priority.Length; i++)
+                    {
+                        // Verified signature at decompiled/XRL.World/Cell.cs:7322:
+                        //   public Cell GetCellFromDirection(string Direction, bool BuiltOnly = true)
+                        // BuiltOnly:false matches XRLCore's CmdMoveE wrapper which uses the same
+                        // un-built-aware lookup (Cell-level neighbor, not Zone-level).
+                        Cell adj = cellBefore.GetCellFromDirection(priority[i], BuiltOnly: false);
+                        if (adj == null) continue;
+                        // Verified signature at decompiled/XRL.World/Cell.cs:8511:
+                        //   GetCombatTarget(GameObject Attacker = null,
+                        //     bool IgnoreFlight = false, bool IgnoreAttackable = false,
+                        //     bool IgnorePhase = false, int Phase = 0,
+                        //     GameObject Projectile = null, GameObject Launcher = null,
+                        //     GameObject CheckPhaseAgainst = null,
+                        //     GameObject Skip = null, List<GameObject> SkipList = null,
+                        //     bool AllowInanimate = true, bool InanimateSolidOnly = false,
+                        //     Predicate<GameObject> Filter = null)
+                        // decompiled/XRL.World/GameObject.cs:10887-10894 IsHostileTowards.
+                        GameObject t = adj.GetCombatTarget(
+                            Attacker: player,
+                            IgnoreFlight: false,
+                            IgnoreAttackable: false,
+                            IgnorePhase: false,
+                            Phase: 5,
+                            AllowInanimate: false,
+                            Filter: o => o != player && o.IsHostileTowards(player));
+                        if (t != null)
+                        {
+                            targetDir = priority[i];
+                            targetObj = t;
+                            break;
+                        }
+                    }
+                }
+
+                bool result;
+                string action;
+                string dir;
+                string targetId = null;
+                string targetName = null;
+                bool hasTargetPosBefore = false;
+                int targetPosBeforeX = -1;
+                int targetPosBeforeY = -1;
+                string targetPosBeforeZone = null;
+                int? targetHpBefore = null;
+
+                if (targetObj != null)
+                {
+                    targetId = targetObj.ID;
+                    targetName = targetObj.ShortDisplayNameStripped;
+                    Cell tCell = targetObj.CurrentCell;
+                    if (tCell != null)
+                    {
+                        hasTargetPosBefore = true;
+                        targetPosBeforeX = tCell.X;
+                        targetPosBeforeY = tCell.Y;
+                        targetPosBeforeZone = tCell.ParentZone?.ZoneID;
+                    }
+                    // hitpoints = Statistic.Value (live HP), per spec field semantics.
+                    // decompiled/XRL.World/GameObject.cs:1177-1198: hitpoints / baseHitpoints.
+                    targetHpBefore = targetObj.hitpoints;
+                    result = player.AttackDirection(targetDir);
+                    action = "AttackDirection";
+                    dir = targetDir;
+                }
+                else
+                {
+                    // Step A fallback: Move East.
+                    AutoAct.ClearAutoMoveStop();   // mirror decompiled/XRL.Core/XRLCore.cs:1108
+                    result = player.Move("E", DoConfirmations: false);
+                    action = "Move";
+                    dir = "E";
+                }
+
+                bool energySpent = (player.Energy != null && player.Energy.Value < energyBefore);
+
+                string fallback = null;
+                if (!result && !energySpent)
+                {
+                    player.PassTurn();
+                    energySpent = true;
+                    fallback = "pass_turn";
+                }
+                else if (!result)
+                {
+                    fallback = "pass_turn";
+                }
+
+                int? targetHpAfter = (targetObj != null) ? (int?)targetObj.hitpoints : null;
+                int energyAfter = player.Energy?.Value ?? 0;
+                Cell cellAfter = player.CurrentCell;
+
+                SnapshotState.CmdRecord rec = new SnapshotState.CmdRecord
+                {
+                    Turn = turn,
+                    Action = action,
+                    Dir = dir,
+                    Result = result,
+                    Fallback = fallback,
+                    EnergyBefore = energyBefore,
+                    EnergyAfter = energyAfter,
+                    PosBeforeX = posBeforeX,
+                    PosBeforeY = posBeforeY,
+                    PosBeforeZone = posBeforeZone,
+                    PosAfterX = cellAfter?.X ?? -1,
+                    PosAfterY = cellAfter?.Y ?? -1,
+                    PosAfterZone = cellAfter?.ParentZone?.ZoneID,
+                    TargetId = targetId,
+                    TargetName = targetName,
+                    HasTargetPosBefore = hasTargetPosBefore,
+                    TargetPosBeforeX = targetPosBeforeX,
+                    TargetPosBeforeY = targetPosBeforeY,
+                    TargetPosBeforeZone = targetPosBeforeZone,
+                    TargetHpBefore = targetHpBefore,
+                    TargetHpAfter = targetHpAfter,
+                };
+
+                MetricsManager.LogInfo("[LLMOfQud][cmd] " + SnapshotState.BuildCmdJson(rec));
+            }
+            catch (Exception ex)
+            {
+                MetricsManager.LogInfo(
+                    "[LLMOfQud][cmd] " + SnapshotState.BuildCmdSentinelJson(turn, ex));
+                // Catch-path drain threshold = literal 1000, NOT energyBefore.
+                // See Task 4 commentary: the exception may fire before energyBefore
+                // is captured, in which case the local default of 0 would make a
+                // ">= energyBefore" guard incorrectly skip drain. The autonomy
+                // invariant is "engine does not wait on keyboard input"; that
+                // depends only on Energy.Value < 1000 after our handler returns
+                // (decompiled/XRL.Core/ActionManager.cs:800, :838, :1797-1799).
+                if (player?.Energy != null && player.Energy.Value >= 1000)
+                {
+                    try { player.PassTurn(); } catch { /* swallow */ }
+                    if (player.Energy.Value >= 1000)
+                    {
+                        player.Energy.BaseValue = 0;
+                    }
+                }
+            }
+            finally
+            {
+                // ADR 0007: PreventAction is Layer-4 abnormal-energy defense, not
+                // the primary autonomy mechanism. The autonomy invariant (engine
+                // does not wait on keyboard input) depends on Energy.Value < 1000
+                // from Layers 1/2/3 (Move/AttackDirection success → PassTurn
+                // fallback → BaseValue=0 last-ditch). The `:838` energy guard at
+                // decompiled/XRL.Core/ActionManager.cs:838 already prevents the
+                // keyboard-input branch (PlayerTurn at decompiled/XRL.Core/ActionManager.cs:1797-1799) when
+                // Energy.Value < 1000; the iteration falls through to the
+                // player render fallback at decompiled/XRL.Core/ActionManager.cs:1806-1808
+                // and `[screen]/[state]/[caps]/[build]` flush per turn.
+                //
+                // Setting PreventAction = true would cause CommandTakeActionEvent.Check
+                // (decompiled/XRL.World/CommandTakeActionEvent.cs:37-39) to return
+                // false, the iteration to `continue` at decompiled/XRL.Core/ActionManager.cs:829-832,
+                // and the render fallback to be skipped — destroying the
+                // observation-channel cadence Phase 0-A through 0-E established.
+                //
+                // Reach this defense ONLY when post-recovery energy is still
+                // >= 1000 (i.e., Layers 1/2/3 all failed to drain). One render
+                // cadence is sacrificed to preserve autonomy.
+                if (player?.Energy != null && player.Energy.Value >= 1000)
+                {
+                    E.PreventAction = true;
+                }
+            }
+
+            return true;
         }
 
         // Render a ScreenBuffer as an ASCII grid. Tile-mode cells hold the

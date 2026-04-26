@@ -1,3 +1,4 @@
+using System;                       // NEW: Exception
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
@@ -78,6 +79,36 @@ namespace LLMOfQud
                 }
             }
             sb.Append('"');
+        }
+
+        // Emits JSON `null` when value is null; otherwise delegates to AppendJsonString.
+        // Phase 0-E exit memo rule 5: extract this helper at the 5th nullable-string
+        // call site. Phase 0-F adds target_id/name/pos_before/hp_before/hp_after — 5
+        // new sites — pushing past the threshold. The 4 pre-existing call sites
+        // (genotype_id, subtype_id, hunger, thirst) are migrated to this helper in
+        // the same Phase 0-F change.
+        internal static void AppendJsonStringOrNull(StringBuilder sb, string s)
+        {
+            if (s == null)
+            {
+                sb.Append("null");
+                return;
+            }
+            AppendJsonString(sb, s);
+        }
+
+        // Emits JSON `null` for null int?; otherwise the integer value as digits.
+        // Used by Phase 0-F target_hp_before / target_hp_after / target_pos_before.x
+        // / .y where the absence of a target is represented as JSON null rather than
+        // a magic sentinel like -1.
+        internal static void AppendJsonIntOrNull(StringBuilder sb, int? n)
+        {
+            if (!n.HasValue)
+            {
+                sb.Append("null");
+                return;
+            }
+            sb.Append(n.Value.ToString(CultureInfo.InvariantCulture));
         }
 
         // Small JSON object for the ascii-source counter. Takes raw counts
@@ -661,25 +692,11 @@ namespace LLMOfQud
 
             sb.Append(",\"genotype_id\":");
             string genotypeId = player?.GetGenotype();
-            if (genotypeId == null)
-            {
-                sb.Append("null");
-            }
-            else
-            {
-                AppendJsonString(sb, genotypeId);
-            }
+            AppendJsonStringOrNull(sb, genotypeId);
 
             sb.Append(",\"subtype_id\":");
             string subtypeId = player?.GetSubtype();
-            if (subtypeId == null)
-            {
-                sb.Append("null");
-            }
-            else
-            {
-                AppendJsonString(sb, subtypeId);
-            }
+            AppendJsonStringOrNull(sb, subtypeId);
         }
 
         // The 6 canonical attribute names CoQ stores under (CapsCase per
@@ -796,10 +813,10 @@ namespace LLMOfQud
             string thirst = (stomach != null) ? NormalizeStomachStatus(stomach.WaterStatus()) : null;
 
             sb.Append("\"hunger\":");
-            if (hunger == null) sb.Append("null"); else AppendJsonString(sb, hunger);
+            AppendJsonStringOrNull(sb, hunger);
 
             sb.Append(",\"thirst\":");
-            if (thirst == null) sb.Append("null"); else AppendJsonString(sb, thirst);
+            AppendJsonStringOrNull(sb, thirst);
         }
 
         // Entry point used by HandleEvent to build the build line payload
@@ -819,6 +836,118 @@ namespace LLMOfQud
             AppendBuildResources(sb, player);
             sb.Append('}');
             return sb.ToString();
+        }
+
+        // Phase 0-F command_issuance.v1 record fields. Plain struct — no behavior.
+        // The handler populates it inside HandleEvent(CommandTakeActionEvent),
+        // BuildCmdJson serializes it. Field order in this struct is a hint to
+        // emission order but BuildCmdJson dictates the canonical JSON field order
+        // (the spec schema lock). Do not reorder fields here without also
+        // updating BuildCmdJson — and never both without an ADR (the schema is
+        // locked at v1).
+        internal struct CmdRecord
+        {
+            public int Turn;
+            public string Action;            // "Move" | "AttackDirection"
+            public string Dir;               // "N" | "NE" | ... | "NW"  (never null in v1)
+            public bool Result;
+            public string Fallback;          // null | "pass_turn"
+            public int EnergyBefore;
+            public int EnergyAfter;
+            public int PosBeforeX;
+            public int PosBeforeY;
+            public string PosBeforeZone;
+            public int PosAfterX;
+            public int PosAfterY;
+            public string PosAfterZone;
+            public string TargetId;          // null when no hostile attacked
+            public string TargetName;        // null when no hostile attacked
+            public bool HasTargetPosBefore;  // discriminator for {x,y,zone} | null
+            public int TargetPosBeforeX;
+            public int TargetPosBeforeY;
+            public string TargetPosBeforeZone;
+            public int? TargetHpBefore;
+            public int? TargetHpAfter;
+        }
+
+        // Builds the value of [LLMOfQud][cmd] line for the success / expected-fallback
+        // path. Caller prepends the "[LLMOfQud][cmd] " prefix at the LogInfo call site.
+        // Field order is the schema lock at command_issuance.v1; reordering requires
+        // an ADR.
+        internal static string BuildCmdJson(CmdRecord r)
+        {
+            StringBuilder sb = new StringBuilder(512);
+            sb.Append('{');
+            sb.Append("\"turn\":").Append(r.Turn.ToString(CultureInfo.InvariantCulture));
+            sb.Append(",\"schema\":\"command_issuance.v1\"");
+            sb.Append(",\"hook\":\"CommandTakeActionEvent\"");
+            sb.Append(",\"action\":");
+            AppendJsonString(sb, r.Action);
+            sb.Append(",\"dir\":");
+            AppendJsonString(sb, r.Dir);
+            sb.Append(",\"result\":").Append(r.Result ? "true" : "false");
+            sb.Append(",\"fallback\":");
+            AppendJsonStringOrNull(sb, r.Fallback);
+            sb.Append(",\"energy_before\":").Append(r.EnergyBefore.ToString(CultureInfo.InvariantCulture));
+            sb.Append(",\"energy_after\":").Append(r.EnergyAfter.ToString(CultureInfo.InvariantCulture));
+            sb.Append(",\"pos_before\":");
+            AppendPosObject(sb, r.PosBeforeX, r.PosBeforeY, r.PosBeforeZone);
+            sb.Append(",\"pos_after\":");
+            AppendPosObject(sb, r.PosAfterX, r.PosAfterY, r.PosAfterZone);
+            sb.Append(",\"target_id\":");
+            AppendJsonStringOrNull(sb, r.TargetId);
+            sb.Append(",\"target_name\":");
+            AppendJsonStringOrNull(sb, r.TargetName);
+            sb.Append(",\"target_pos_before\":");
+            if (r.HasTargetPosBefore)
+            {
+                AppendPosObject(sb, r.TargetPosBeforeX, r.TargetPosBeforeY, r.TargetPosBeforeZone);
+            }
+            else
+            {
+                sb.Append("null");
+            }
+            sb.Append(",\"target_hp_before\":");
+            AppendJsonIntOrNull(sb, r.TargetHpBefore);
+            sb.Append(",\"target_hp_after\":");
+            AppendJsonIntOrNull(sb, r.TargetHpAfter);
+            sb.Append(",\"error\":null");
+            sb.Append('}');
+            return sb.ToString();
+        }
+
+        // Reduced sentinel shape consistent with Phase 0-D [caps] / 0-E [build]
+        // sentinels: {turn, schema, error:{type, message}}. Used when HandleEvent
+        // (CommandTakeActionEvent) catches an exception. AppendJsonString is used
+        // for type/message so RFC-8259 control-character escapes (U+0000-U+001F,
+        // U+2028, U+2029) are correct even when ex.Message has tab / newline / etc.
+        internal static string BuildCmdSentinelJson(int turn, Exception ex)
+        {
+            StringBuilder sb = new StringBuilder(256);
+            sb.Append('{');
+            sb.Append("\"turn\":").Append(turn.ToString(CultureInfo.InvariantCulture));
+            sb.Append(",\"schema\":\"command_issuance.v1\"");
+            sb.Append(",\"error\":{\"type\":");
+            AppendJsonString(sb, ex.GetType().Name);
+            sb.Append(",\"message\":");
+            AppendJsonString(sb, ex.Message ?? "");
+            sb.Append("}}");
+            return sb.ToString();
+        }
+
+        // Inline helper: emit a {"x":N,"y":N,"zone":"..."} object. Mirrors the shape
+        // [state] uses (SnapshotState.cs:206-211 — pos-of-player). zone is the
+        // GameObject.CurrentCell.ParentZone.ZoneID string. Emits zone via
+        // AppendJsonStringOrNull so a player whose CurrentCell.ParentZone is somehow
+        // null (defensive — should never happen for a positioned object) emits
+        // "zone":null instead of crashing the line build.
+        private static void AppendPosObject(StringBuilder sb, int x, int y, string zone)
+        {
+            sb.Append("{\"x\":").Append(x.ToString(CultureInfo.InvariantCulture));
+            sb.Append(",\"y\":").Append(y.ToString(CultureInfo.InvariantCulture));
+            sb.Append(",\"zone\":");
+            AppendJsonStringOrNull(sb, zone);
+            sb.Append('}');
         }
     }
 }
