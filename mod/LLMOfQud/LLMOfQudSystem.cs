@@ -168,6 +168,54 @@ namespace LLMOfQud
             return base.HandleEvent(E);
         }
 
+        // Phase 0-G: scan adjacent cells for the nearest hostile in direction-
+        // priority order. Direction priority: N -> NE -> E -> SE -> S -> SW -> W -> NW.
+        // First non-null Cell.GetCombatTarget hit wins. The filter mirrors what
+        // Combat.AttackCell uses internally (decompiled/XRL.World.Parts/Combat.cs:877-889).
+        // Extracted from the Phase 0-F inline block for reuse by BuildDecisionInput.
+        private static void ScanAdjacentHostile(
+            Cell cellBefore, GameObject player,
+            out string targetDir, out GameObject targetObj)
+        {
+            targetDir = null;
+            targetObj = null;
+            if (cellBefore == null) return;
+            string[] priority = new[] { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
+            for (int i = 0; i < priority.Length; i++)
+            {
+                // Verified signature at decompiled/XRL.World/Cell.cs:7322:
+                //   public Cell GetCellFromDirection(string Direction, bool BuiltOnly = true)
+                // BuiltOnly:false matches XRLCore's CmdMoveE wrapper which uses the same
+                // un-built-aware lookup (Cell-level neighbor, not Zone-level).
+                Cell adj = cellBefore.GetCellFromDirection(priority[i], BuiltOnly: false);
+                if (adj == null) continue;
+                // Verified signature at decompiled/XRL.World/Cell.cs:8511:
+                //   GetCombatTarget(GameObject Attacker = null,
+                //     bool IgnoreFlight = false, bool IgnoreAttackable = false,
+                //     bool IgnorePhase = false, int Phase = 0,
+                //     GameObject Projectile = null, GameObject Launcher = null,
+                //     GameObject CheckPhaseAgainst = null,
+                //     GameObject Skip = null, List<GameObject> SkipList = null,
+                //     bool AllowInanimate = true, bool InanimateSolidOnly = false,
+                //     Predicate<GameObject> Filter = null)
+                // decompiled/XRL.World/GameObject.cs:10887-10894 IsHostileTowards.
+                GameObject t = adj.GetCombatTarget(
+                    Attacker: player,
+                    IgnoreFlight: false,
+                    IgnoreAttackable: false,
+                    IgnorePhase: false,
+                    Phase: 5,
+                    AllowInanimate: false,
+                    Filter: o => o != player && o.IsHostileTowards(player));
+                if (t != null)
+                {
+                    targetDir = priority[i];
+                    targetObj = t;
+                    return;
+                }
+            }
+        }
+
         // Phase 0-F: act on the player's command point.
         // Hook chosen per ADR 0006: CommandTakeActionEvent fires inside the inner
         // action loop in ActionManager (decompiled/XRL.Core/ActionManager.cs:829),
@@ -201,50 +249,10 @@ namespace LLMOfQud
                 int posBeforeY = cellBefore?.Y ?? -1;
                 string posBeforeZone = cellBefore?.ParentZone?.ZoneID;
 
-                // Step B: adjacent hostile detection.
-                // Direction priority: N -> NE -> E -> SE -> S -> SW -> W -> NW.
-                // First non-null Cell.GetCombatTarget hit wins.
-                // The filter o => o != player && o.IsHostileTowards(player) mirrors
-                // what Combat.AttackCell uses internally (decompiled/XRL.World.Parts/Combat.cs:877-889).
+                // Step B: adjacent hostile detection — now via extracted helper.
                 string targetDir = null;
                 GameObject targetObj = null;
-                if (cellBefore != null)
-                {
-                    string[] priority = new[] { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
-                    for (int i = 0; i < priority.Length; i++)
-                    {
-                        // Verified signature at decompiled/XRL.World/Cell.cs:7322:
-                        //   public Cell GetCellFromDirection(string Direction, bool BuiltOnly = true)
-                        // BuiltOnly:false matches XRLCore's CmdMoveE wrapper which uses the same
-                        // un-built-aware lookup (Cell-level neighbor, not Zone-level).
-                        Cell adj = cellBefore.GetCellFromDirection(priority[i], BuiltOnly: false);
-                        if (adj == null) continue;
-                        // Verified signature at decompiled/XRL.World/Cell.cs:8511:
-                        //   GetCombatTarget(GameObject Attacker = null,
-                        //     bool IgnoreFlight = false, bool IgnoreAttackable = false,
-                        //     bool IgnorePhase = false, int Phase = 0,
-                        //     GameObject Projectile = null, GameObject Launcher = null,
-                        //     GameObject CheckPhaseAgainst = null,
-                        //     GameObject Skip = null, List<GameObject> SkipList = null,
-                        //     bool AllowInanimate = true, bool InanimateSolidOnly = false,
-                        //     Predicate<GameObject> Filter = null)
-                        // decompiled/XRL.World/GameObject.cs:10887-10894 IsHostileTowards.
-                        GameObject t = adj.GetCombatTarget(
-                            Attacker: player,
-                            IgnoreFlight: false,
-                            IgnoreAttackable: false,
-                            IgnorePhase: false,
-                            Phase: 5,
-                            AllowInanimate: false,
-                            Filter: o => o != player && o.IsHostileTowards(player));
-                        if (t != null)
-                        {
-                            targetDir = priority[i];
-                            targetObj = t;
-                            break;
-                        }
-                    }
-                }
+                ScanAdjacentHostile(cellBefore, player, out targetDir, out targetObj);
 
                 bool result;
                 string action;
