@@ -228,6 +228,12 @@ namespace LLMOfQud
 
     public sealed class Decision
     {
+        // Intent enum: "attack" | "escape" | "explore"
+        // Action enum: "Move" | "AttackDirection"
+        // Locked together with command_issuance.v1's action enum;
+        // PassTurn is engine bookkeeping (3-layer drain fallback),
+        // never a Decision.Action. Adding wait/PassTurn requires a
+        // joint decision.v2 + command_issuance.v2 bump per spec.
         public string Intent;
         public string Action;
         public string Dir;
@@ -327,7 +333,13 @@ internal static string BuildDecisionJson(int turn, Decision decision, DecisionIn
     sb.Append("\"reason_code\":");
     AppendJsonStringOrNull(sb, decision.ReasonCode);
     sb.Append(',');
-    sb.Append("\"error\":null");
+    // Serialize policy-returned Decision.Error (distinct from the
+    // Decide-throws path, which uses BuildDecisionSentinelJson). A
+    // policy may return a non-throwing error Decision (e.g.,
+    // ReasonCode="policy_error" with a structured Error message);
+    // dropping it here would hide failure from the acceptance gate.
+    sb.Append("\"error\":");
+    AppendJsonStringOrNull(sb, decision.Error);
     sb.Append("}");
     return sb.ToString();
 }
@@ -453,11 +465,18 @@ namespace LLMOfQud
                 }
             }
 
+            // All 8 explore directions are in BlockedDirs. Don't
+            // return a wait/PassTurn Decision — that would violate
+            // the locked decision.v1 enum (intent ∈ {attack, escape,
+            // explore}, action ∈ {Move, AttackDirection}, both lock
+            // command_issuance.v1's action set). Instead, return
+            // explore: Move ExploreOrder[0] and let the 3-layer drain
+            // emit fallback="pass_turn" on the [cmd] line.
             return new Decision
             {
-                Intent = "wait",
-                Action = "PassTurn",
-                Dir = null,
+                Intent = "explore",
+                Action = "Move",
+                Dir = ExploreOrder[0],
                 ReasonCode = "blocked_dir",
                 Error = null,
             };
@@ -525,7 +544,16 @@ deliverable.
 
 - [ ] **Step 1: Add the policy field + builder helpers.**
 
-Add at the top of `LLMOfQudSystem`:
+First, add `using System.Collections.Generic;` to the using
+declarations at the top of `LLMOfQudSystem.cs` if it is not already
+present (Phase 0-F's file currently imports only `System`,
+`System.Text`, `System.Threading`, `ConsoleLib.Console`, `XRL`,
+`XRL.Core`, `XRL.UI`, `XRL.World`, `XRL.World.Capabilities`). The
+new fields and `BuildDecisionInput` use `HashSet<string>` and
+`List<string>`; without the using, Roslyn will fail with
+"The type or namespace name 'HashSet&lt;&gt;' could not be found".
+
+Then add at the top of `LLMOfQudSystem`:
 
 ```csharp
 private readonly IDecisionPolicy _policy = new HeuristicPolicy();
@@ -650,6 +678,10 @@ HandleEvent(CommandTakeActionEvent E):
     string actualAction = decision.Action
     string actualDir = decision.Dir
 
+    # decision.v1 locks Action ∈ {"Move", "AttackDirection"}.
+    # PassTurn is engine bookkeeping, not a Decision.Action; it
+    # is reachable only via Layer 2 fallback below or the catch-path
+    # recovery. See spec §"Decision wire schema".
     if decision.Action == "AttackDirection":
       result = player.AttackDirection(decision.Dir)
     elif decision.Action == "Move":
@@ -658,9 +690,6 @@ HandleEvent(CommandTakeActionEvent E):
         # Layer 2 drain — Phase 0-F invariant
         player.PassTurn()
         fallback = "pass_turn"
-    elif decision.Action == "PassTurn":
-      player.PassTurn()
-      result = true
 
     UpdateBlockedDirsMemory(decision.Action, decision.Dir, result, fallback)
     UpdateRecentHistory(decision.Action, decision.Dir, result, turn)
@@ -715,7 +744,7 @@ Same procedure as Task 2 Step 2. Expected:
 - `build_log.txt` shows `Success :)` for the LLMOfQud build.
 - Player.log shows ONE `[decision]` line and ONE `[cmd]` line per
   turn during the first few turns of a fresh chargen.
-- `[decision]` lines parse as JSON; `intent ∈ {attack, escape, explore, wait}`.
+- `[decision]` lines parse as JSON; `intent ∈ {attack, escape, explore}` (locked enum, see spec).
 - `[cmd]` lines retain the Phase 0-F `command_issuance.v1` shape.
 
 ```bash
@@ -768,9 +797,10 @@ cat /tmp/phase-0-g-probes/probe-3-prime/3a/decision-line.txt | sed 's/^.*\[decis
 ```
 
 PASS criteria:
-- `intent ∈ {"attack", "escape"}` (NOT `explore`, NOT `wait`)
-- `action != "PassTurn"` (the policy should not idle when a hostile
-  is adjacent)
+- `intent ∈ {"attack", "escape"}` (NOT `explore`).
+- `action ∈ {"AttackDirection", "Move"}` (locked decision.v1 enum).
+  The policy must not return a Move into the hostile cell or away
+  in a clearly-blocked direction.
 
 Document outcome in `/tmp/phase-0-g-probes/probe-3-prime/3a/result.md`.
 
@@ -812,9 +842,10 @@ cat /tmp/phase-0-g-probes/probe-3-prime/3c/decisions.log \
 ```
 
 PASS criteria:
-- The 4th decision shows either:
-  - `action == "Move" && dir != <blocked direction>`, OR
-  - `action != "Move"` (e.g., `PassTurn`).
+- The 4th decision shows `action == "Move"` with `dir != <blocked
+  direction>`. (decision.v1 locks Action ∈ {Move, AttackDirection};
+  PassTurn is engine bookkeeping and never appears as a Decision
+  action.)
 - NOT another `Move` in the previously-blocked direction.
 
 Document outcome in `/tmp/phase-0-g-probes/probe-3-prime/3c/result.md`.
@@ -966,11 +997,15 @@ if cmd_parsed:
 cmd_by_turn = {p["turn"]: p for p in cmd_parsed if "turn" in p}
 dec_by_turn = {p["turn"]: p for p in (channels["decision"]["parsed"] or []) if p and "turn" in p}
 mismatches = 0
+# decision.v1 locks Action ∈ {Move, AttackDirection}; PassTurn is
+# engine bookkeeping (recorded as fallback="pass_turn" on the [cmd]
+# line when a Move fails without draining energy). The validator
+# therefore checks Decision-level intent → command_issuance.v1 action
+# mapping only.
 permitted = {
     "attack":  {"AttackDirection"},
-    "escape":  {"Move", "AttackDirection", "PassTurn"},
-    "explore": {"Move", "PassTurn"},
-    "wait":    {"PassTurn"},
+    "escape":  {"Move", "AttackDirection"},
+    "explore": {"Move"},
 }
 for t, dec in dec_by_turn.items():
     cmd = cmd_by_turn.get(t)
@@ -1009,9 +1044,15 @@ echo "Passing: $PASSING/5"
 
 ALL_INTENTS=$(for RUN in 1 2 3 4 5; do
   cat /tmp/phase-0-g-acceptance/run-$RUN/decision.log
-done | sed 's/^.*\[decision\] //' | jq -r '.intent' 2>/dev/null | sort -u)
+done | sed 's/^.*\[decision\] //' \
+  | jq -r 'select(.intent != null and .intent != "") | .intent' 2>/dev/null \
+  | sort -u)
 echo "Distinct intents observed: $ALL_INTENTS"
-DISTINCT=$(echo "$ALL_INTENTS" | grep -c .)
+# Count only non-empty lines so missing-intent (sentinel) decisions
+# do not falsely satisfy the >=2 gate. `grep -c .` already filters
+# empty lines, but we also drop nulls explicitly above to belt-and-
+# suspenders against jq's "null" stringification.
+DISTINCT=$(echo "$ALL_INTENTS" | grep -cE '.+')
 [ "$DISTINCT" -ge 2 ] && echo "Intent-diversity: PASS ($DISTINCT)" || echo "Intent-diversity: FAIL ($DISTINCT < 2)"
 ```
 

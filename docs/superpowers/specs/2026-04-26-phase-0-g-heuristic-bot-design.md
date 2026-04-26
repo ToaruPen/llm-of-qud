@@ -41,8 +41,11 @@ phases with a single boundary contract:
    function over the DTO. Reads no CoQ APIs. Returns a `Decision`
    value.
 3. **`Execute(Decision)`** (game thread): dispatches the chosen
-   terminal CoQ call (`Move` / `AttackDirection` / `PassTurn`) and
-   the 3-layer drain pattern.
+   terminal CoQ call (`Move` or `AttackDirection` — the locked
+   `decision.v1` action enum) and runs the 3-layer drain pattern
+   (`PassTurn()` is the Layer-2 fallback when a Move fails without
+   draining energy; it is engine bookkeeping, never a Decision-level
+   action).
 
 `Decide` is implemented behind the `IDecisionPolicy` interface
 (Decision #4 below). The Phase 0-G in-process implementation is
@@ -117,9 +120,13 @@ DecisionInput {
   }
   History  recent {             // single-turn snapshot of last action
     int    last_action_turn
-    string last_action           // "Move" | "AttackDirection" | "PassTurn"
+    string last_action           // "Move" | "AttackDirection"
+                                 // (matches the locked Decision.action enum)
     string last_dir              // null | direction
-    bool   last_result
+    bool   last_result            // direct return value of the
+                                  // terminal API call; false also
+                                  // covers the engine-PassTurn
+                                  // fallback case
   }
 }
 ```
@@ -131,21 +138,39 @@ The DTO is not emitted verbatim on the wire (too large). A small
 
 ```
 Decision {
-  string intent          // "attack" | "escape" | "explore" | "wait"
-  string action          // "Move" | "AttackDirection" | "PassTurn"
-  string dir             // null | "N"|"NE"|...|"NW"
+  string intent          // "attack" | "escape" | "explore"
+  string action          // "Move" | "AttackDirection"
+  string dir             // never null when action != null
   string reason_code     // small enum, see below
-  string error           // null on the success path
+  string error           // null on the success path; non-null
+                         // serializes the policy-returned error
+                         // string (distinct from Decide-throws,
+                         // which emits the sentinel form below)
 }
 ```
 
-`intent` enum is wire-locked: `attack` / `escape` / `explore` / `wait`.
+`intent` enum is wire-locked: `attack` / `escape` / `explore`.
+`action` enum is wire-locked to the same set as `command_issuance.v1`:
+`Move` / `AttackDirection`. `PassTurn` is NOT a Decision.Action — it
+is engine bookkeeping that the 3-layer drain pattern emits as
+`fallback="pass_turn"` on the `[cmd]` line when a Move fails without
+draining energy (Phase 0-F invariant). When all 8 directions are
+blocked, the policy still returns `explore: Move <some-dir>`; the
+Move fails, the layered drain calls `PassTurn()`, and `[cmd]`
+records `action="Move", result=false, fallback="pass_turn"`. This
+preserves `command_issuance.v1` unchanged (Phase 0-F spec lines 150,
+175, 218: action ∈ {Move, AttackDirection}, dir non-null, hard
+failure otherwise).
+
 The policy is free to pick which intent to return for any situation;
 acceptance criterion 5.3 only constrains the mapping for three
-specific probe scenarios. Adding a new intent value (e.g., `"hunt"`)
-is a wire-schema change and requires `decision.v2` + a new ADR — the
-locked enum is what Phase 1's WebSocket bridge and any downstream
-parser will dispatch on.
+specific probe scenarios. Adding a new intent value (e.g., `"hunt"`,
+`"wait"`) or action value (e.g., `"PassTurn"` for resting) is a
+wire-schema change and requires BOTH `decision.v2` AND
+`command_issuance.v2` (joint bump) plus a new ADR — the locked enums
+are what Phase 1's WebSocket bridge and any downstream parser will
+dispatch on, and the two schemas are coupled by the action-set
+shared lock.
 
 `reason_code` enum is wire-locked: `adj_hostile` (a hostile is adjacent),
 `low_hp_adj_hostile` (hurt classification triggered), `blocked_dir`
@@ -166,8 +191,8 @@ and requires `decision.v2` + a new ADR.
     "adjacent_hostile_dir": "<dir>" | null,
     "blocked_dirs_count": <int>
   },
-  "intent": "attack" | "escape" | "explore" | "wait",
-  "action": "Move" | "AttackDirection" | "PassTurn",
+  "intent": "attack" | "escape" | "explore",
+  "action": "Move" | "AttackDirection",
   "dir": "<dir>" | null,
   "reason_code": "<enum>",
   "error": null | "<message>"
@@ -211,7 +236,9 @@ memo §"locked invariants").
      Setup: full-HP Warden, spawn an adjacent hostile via
      `wish testhero:Snapjaw scavenger`. Observe the next `[decision]`.
      PASS: `intent ∈ {"attack", "escape"}`. The executed `action`
-     is NOT `Move` toward a wall and NOT `PassTurn`.
+     is `AttackDirection` toward the hostile (attack) OR `Move` away
+     from the hostile (escape) — NOT `Move` into the hostile cell
+     and NOT a `Move` toward an obvious wall.
 
    - **3b — Low HP elicits non-attack intent.**
      Setup: Warden with HP ≤ 30% of max (`wish damage:N`), adjacent
