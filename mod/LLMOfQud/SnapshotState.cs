@@ -80,6 +80,36 @@ namespace LLMOfQud
             sb.Append('"');
         }
 
+        // Emits JSON `null` when value is null; otherwise delegates to AppendJsonString.
+        // Phase 0-E exit memo rule 5: extract this helper at the 5th nullable-string
+        // call site. Phase 0-F adds target_id/name/pos_before/hp_before/hp_after — 5
+        // new sites — pushing past the threshold. The 4 pre-existing call sites
+        // (genotype_id, subtype_id, hunger, thirst) are migrated to this helper in
+        // the same Phase 0-F change.
+        internal static void AppendJsonStringOrNull(StringBuilder sb, string s)
+        {
+            if (s == null)
+            {
+                sb.Append("null");
+                return;
+            }
+            AppendJsonString(sb, s);
+        }
+
+        // Emits JSON `null` for null int?; otherwise the integer value as digits.
+        // Used by Phase 0-F target_hp_before / target_hp_after / target_pos_before.x
+        // / .y where the absence of a target is represented as JSON null rather than
+        // a magic sentinel like -1.
+        internal static void AppendJsonIntOrNull(StringBuilder sb, int? n)
+        {
+            if (!n.HasValue)
+            {
+                sb.Append("null");
+                return;
+            }
+            sb.Append(n.Value);
+        }
+
         // Small JSON object for the ascii-source counter. Takes raw counts
         // (not a struct) so the caller can wire it into either the [screen]
         // line metadata or a future structured framing without SnapshotState
@@ -661,25 +691,11 @@ namespace LLMOfQud
 
             sb.Append(",\"genotype_id\":");
             string genotypeId = player?.GetGenotype();
-            if (genotypeId == null)
-            {
-                sb.Append("null");
-            }
-            else
-            {
-                AppendJsonString(sb, genotypeId);
-            }
+            AppendJsonStringOrNull(sb, genotypeId);
 
             sb.Append(",\"subtype_id\":");
             string subtypeId = player?.GetSubtype();
-            if (subtypeId == null)
-            {
-                sb.Append("null");
-            }
-            else
-            {
-                AppendJsonString(sb, subtypeId);
-            }
+            AppendJsonStringOrNull(sb, subtypeId);
         }
 
         // The 6 canonical attribute names CoQ stores under (CapsCase per
@@ -796,10 +812,10 @@ namespace LLMOfQud
             string thirst = (stomach != null) ? NormalizeStomachStatus(stomach.WaterStatus()) : null;
 
             sb.Append("\"hunger\":");
-            if (hunger == null) sb.Append("null"); else AppendJsonString(sb, hunger);
+            AppendJsonStringOrNull(sb, hunger);
 
             sb.Append(",\"thirst\":");
-            if (thirst == null) sb.Append("null"); else AppendJsonString(sb, thirst);
+            AppendJsonStringOrNull(sb, thirst);
         }
 
         // Entry point used by HandleEvent to build the build line payload
