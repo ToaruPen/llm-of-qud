@@ -307,7 +307,8 @@ namespace LLMOfQud
             }
         }
 
-        // Phase 0-F: act on the player's command point.
+        // Phase 0-G: act on the player's command point with the explicit
+        // BuildDecisionInput → Decide → Execute boundary (ADR 0009).
         // Hook chosen per ADR 0006: CommandTakeActionEvent fires inside the inner
         // action loop in ActionManager (decompiled/XRL.Core/ActionManager.cs:829),
         // AFTER BeginTakeActionEvent has already enqueued the per-turn observation
@@ -315,15 +316,23 @@ namespace LLMOfQud
         // and the player render fallback (decompiled/XRL.Core/ActionManager.cs:1806-1808) intact.
         // BeginTakeActionEvent would skip all of those because draining energy
         // there fails the inner loop's gate at decompiled/XRL.Core/ActionManager.cs:800.
-        // [cmd] is emitted on the game thread directly (NOT through PendingSnapshot)
-        // — see ADR 0006 Consequence #3 and the design spec's Architecture section.
+        // [decision] and [cmd] are emitted on the game thread directly (NOT through
+        // PendingSnapshot) — see ADR 0006 Consequence #3.
         public override bool HandleEvent(CommandTakeActionEvent E)
         {
             int turn = _beginTurnCount;
             GameObject player = The.Player;
 
+            // Addendum A3: null-player sentinel path. Emit [decision] sentinel
+            // BEFORE [cmd] sentinel (spec: [decision] precedes [cmd] on every
+            // code path for parser parity). Then set PreventAction and return.
+            // BuildDecisionInput is NOT called when player is null.
             if (player == null)
             {
+                MetricsManager.LogInfo(
+                    "[LLMOfQud][decision] {\"turn\":" + turn +
+                    ",\"schema\":\"decision.v1\",\"error\":{\"type\":\"NullPlayer\"" +
+                    ",\"message\":\"The.Player is null\"}}");
                 MetricsManager.LogInfo(
                     "[LLMOfQud][cmd] {\"turn\":" + turn +
                     ",\"schema\":\"command_issuance.v1\",\"error\":{\"type\":\"NullPlayer\",\"message\":\"The.Player is null\"}}");
@@ -331,6 +340,10 @@ namespace LLMOfQud
                 return true;
             }
 
+            // decisionEmitted tracks whether a [decision] line has been logged so
+            // the outer catch can decide whether to emit a [decision] sentinel itself
+            // (needed when BuildDecisionInput or Execute throws before Decide runs).
+            bool decisionEmitted = false;
             int energyBefore = 0;
             try
             {
@@ -340,14 +353,42 @@ namespace LLMOfQud
                 int posBeforeY = cellBefore?.Y ?? -1;
                 string posBeforeZone = cellBefore?.ParentZone?.ZoneID;
 
-                // Step B: adjacent hostile detection — now via extracted helper.
-                string targetDir = null;
-                GameObject targetObj = null;
-                ScanAdjacentHostile(cellBefore, player, out targetDir, out targetObj);
+                // ---- BuildDecisionInput ----
+                // hostileObj is captured here (addendum A2: out param, not instance
+                // field) so target_* capture below uses the same reference that
+                // informed the decision, without stale-state leakage.
+                GameObject hostileObj;
+                DecisionInput input = BuildDecisionInput(player, turn, out hostileObj);
 
-                bool result;
-                string action;
-                string dir;
+                // ---- Decide ----
+                Decision decision;
+                try
+                {
+                    decision = _policy.Decide(input);
+                }
+                catch (Exception policyEx)
+                {
+                    MetricsManager.LogInfo(
+                        "[LLMOfQud][decision] " +
+                        SnapshotState.BuildDecisionSentinelJson(turn, policyEx));
+                    decisionEmitted = true;
+                    throw;  // propagates to outer catch for [cmd] sentinel + drain
+                }
+
+                // [decision] MUST be emitted BEFORE [cmd] on the same handler invocation.
+                MetricsManager.LogInfo(
+                    "[LLMOfQud][decision] " +
+                    SnapshotState.BuildDecisionJson(turn, decision, input));
+                decisionEmitted = true;
+
+                // ---- Execute ----
+                // target_* capture: snap hostileObj state BEFORE the action dispatch
+                // so target_hp_before reflects pre-attack HP (Phase 0-F invariant).
+                // For escape/explore Move decisions, hostileObj may be non-null
+                // (adjacent hostile was detected but policy chose to move away);
+                // target_* is populated from the scan regardless of action intent —
+                // matching Phase 0-F semantics ("what hostile was adjacent at scan
+                // time", not "what was attacked").
                 string targetId = null;
                 string targetName = null;
                 bool hasTargetPosBefore = false;
@@ -356,11 +397,11 @@ namespace LLMOfQud
                 string targetPosBeforeZone = null;
                 int? targetHpBefore = null;
 
-                if (targetObj != null)
+                if (hostileObj != null)
                 {
-                    targetId = targetObj.ID;
-                    targetName = targetObj.ShortDisplayNameStripped;
-                    Cell tCell = targetObj.CurrentCell;
+                    targetId = hostileObj.ID;
+                    targetName = hostileObj.ShortDisplayNameStripped;
+                    Cell tCell = hostileObj.CurrentCell;
                     if (tCell != null)
                     {
                         hasTargetPosBefore = true;
@@ -370,23 +411,35 @@ namespace LLMOfQud
                     }
                     // hitpoints = Statistic.Value (live HP), per spec field semantics.
                     // decompiled/XRL.World/GameObject.cs:1177-1198: hitpoints / baseHitpoints.
-                    targetHpBefore = targetObj.hitpoints;
-                    result = player.AttackDirection(targetDir);
-                    action = "AttackDirection";
-                    dir = targetDir;
-                }
-                else
-                {
-                    // Step A fallback: Move East.
-                    AutoAct.ClearAutoMoveStop();   // mirror decompiled/XRL.Core/XRLCore.cs:1108
-                    result = player.Move("E", DoConfirmations: false);
-                    action = "Move";
-                    dir = "E";
+                    targetHpBefore = hostileObj.hitpoints;
                 }
 
-                bool energySpent = (player.Energy != null && player.Energy.Value < energyBefore);
-
+                bool result = false;
                 string fallback = null;
+
+                // decision.v1 locks Action ∈ {"Move", "AttackDirection"}.
+                // PassTurn is engine bookkeeping (3-layer drain Layer-2 fallback),
+                // never a Decision.Action. Adding PassTurn requires decision.v2 +
+                // command_issuance.v2 bump per spec.
+                if (decision.Action == "AttackDirection")
+                {
+                    result = player.AttackDirection(decision.Dir);
+                }
+                else if (decision.Action == "Move")
+                {
+                    // Addendum A4: ClearAutoMoveStop BEFORE every Move dispatch,
+                    // regardless of intent (escape or explore).
+                    // Mirrors decompiled/XRL.Core/XRLCore.cs:1108.
+                    AutoAct.ClearAutoMoveStop();
+                    result = player.Move(decision.Dir, DoConfirmations: false);
+                }
+
+                // 3-layer drain — applies UNIFORMLY to BOTH terminal actions
+                // (Phase 0-F invariant). Either action can return false without
+                // spending energy (Move bumps wall; AttackDirection misses moved
+                // target). The fallback check is outside the action-dispatch
+                // branch, not inside Move's branch only.
+                bool energySpent = (player.Energy != null && player.Energy.Value < energyBefore);
                 if (!result && !energySpent)
                 {
                     player.PassTurn();
@@ -395,18 +448,24 @@ namespace LLMOfQud
                 }
                 else if (!result)
                 {
+                    // Action drained energy on its own fail path; record for log
+                    // honesty (Phase 0-F spec invariant).
                     fallback = "pass_turn";
                 }
 
-                int? targetHpAfter = (targetObj != null) ? (int?)targetObj.hitpoints : null;
+                // Update memory AFTER drain, BEFORE emitting [cmd].
+                UpdateBlockedDirsMemory(decision.Action, decision.Dir, result, fallback);
+                UpdateRecentHistory(decision.Action, decision.Dir, result, turn);
+
+                int? targetHpAfter = (hostileObj != null) ? (int?)hostileObj.hitpoints : null;
                 int energyAfter = player.Energy?.Value ?? 0;
                 Cell cellAfter = player.CurrentCell;
 
                 SnapshotState.CmdRecord rec = new SnapshotState.CmdRecord
                 {
                     Turn = turn,
-                    Action = action,
-                    Dir = dir,
+                    Action = decision.Action,
+                    Dir = decision.Dir,
                     Result = result,
                     Fallback = fallback,
                     EnergyBefore = energyBefore,
@@ -431,15 +490,24 @@ namespace LLMOfQud
             }
             catch (Exception ex)
             {
+                // If [decision] was not yet emitted (BuildDecisionInput or pre-Decide
+                // code threw), emit a [decision] sentinel first so [decision] always
+                // precedes [cmd] on every code path.
+                if (!decisionEmitted)
+                {
+                    MetricsManager.LogInfo(
+                        "[LLMOfQud][decision] " +
+                        SnapshotState.BuildDecisionSentinelJson(turn, ex));
+                }
                 MetricsManager.LogInfo(
                     "[LLMOfQud][cmd] " + SnapshotState.BuildCmdSentinelJson(turn, ex));
+
                 // Catch-path drain threshold = literal 1000, NOT energyBefore.
-                // See Task 4 commentary: the exception may fire before energyBefore
-                // is captured, in which case the local default of 0 would make a
-                // ">= energyBefore" guard incorrectly skip drain. The autonomy
-                // invariant is "engine does not wait on keyboard input"; that
-                // depends only on Energy.Value < 1000 after our handler returns
-                // (decompiled/XRL.Core/ActionManager.cs:800, :838, :1797-1799).
+                // ADR 0007: the exception may fire before energyBefore is captured,
+                // in which case the local default of 0 would make a ">= energyBefore"
+                // guard incorrectly skip drain. The autonomy invariant depends on
+                // Energy.Value < 1000 after this handler returns.
+                // decompiled/XRL.Core/ActionManager.cs:800, :838, :1797-1799.
                 if (player?.Energy != null && player.Energy.Value >= 1000)
                 {
                     try { player.PassTurn(); } catch { /* swallow */ }
@@ -466,7 +534,7 @@ namespace LLMOfQud
                 // (decompiled/XRL.World/CommandTakeActionEvent.cs:37-39) to return
                 // false, the iteration to `continue` at decompiled/XRL.Core/ActionManager.cs:829-832,
                 // and the render fallback to be skipped — destroying the
-                // observation-channel cadence Phase 0-A through 0-E established.
+                // observation-channel cadence Phase 0-A through 0-G established.
                 //
                 // Reach this defense ONLY when post-recovery energy is still
                 // >= 1000 (i.e., Layers 1/2/3 all failed to drain). One render
