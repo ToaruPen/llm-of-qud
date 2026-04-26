@@ -250,6 +250,15 @@ Phase 0-G locks the following decisions:
    bump + ADR, mirroring the `command_issuance.v1` rule from Phase
    0-F.
 
+## Supersedes
+
+None. ADR 0008 narrows the interpretation of
+`docs/architecture-v5.md:2817` under the freeze rule (ADR 0001) and
+adds a sixth observation channel without superseding any prior ADR.
+ADR 0006's `command_issuance.v1` schema lock and ADR 0007's
+`PreventAction` scope are both inherited verbatim and remain in
+force.
+
 ## Related Artifacts
 
 - `docs/superpowers/specs/2026-04-26-phase-0-g-heuristic-bot-design.md`
@@ -294,12 +303,3 @@ Future artifact (not yet produced; will be linked here once written):
 the Phase 0-G exit memo, created at the implementation plan's last
 task under `docs/memo/` with filename `phase-0-g-exit-YYYY-MM-DD.md`
 (date stamp fixed at memo-write time via `date -u +%Y-%m-%d`).
-
-## Supersedes
-
-None. ADR 0008 narrows the interpretation of
-`docs/architecture-v5.md:2817` under the freeze rule (ADR 0001) and
-adds a sixth observation channel without superseding any prior ADR.
-ADR 0006's `command_issuance.v1` schema lock and ADR 0007's
-`PreventAction` scope are both inherited verbatim and remain in
-force.
