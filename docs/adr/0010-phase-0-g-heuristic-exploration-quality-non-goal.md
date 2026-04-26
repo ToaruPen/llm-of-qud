@@ -17,7 +17,7 @@ degeneracy:
   (`pass_turn_fallback_rate ≤ 20%`,
   `successful_terminal_action_rate ≥ 70%`). Fixed by switching to
   per-cell `Dictionary<cellKey, HashSet<string>>` blocked-direction
-  memory (`mod/LLMOfQud/LLMOfQudSystem.cs:42-46, 259+`,
+  memory (`mod/LLMOfQud/LLMOfQudSystem.cs:42-55, 259-299`,
   commit `b726814`).
 
 - **Run 5** — policy algorithm oscillation. The deterministic
@@ -253,7 +253,7 @@ should read both together.
   that inherits the boundary and absorbs exploration quality.
 - `mod/LLMOfQud/HeuristicPolicy.cs` — final Phase 0-G policy
   (no further changes per Decision #4).
-- `mod/LLMOfQud/LLMOfQudSystem.cs:42-46, 259+` — per-cell
+- `mod/LLMOfQud/LLMOfQudSystem.cs:42-55, 259-299` — per-cell
   blocked-direction memory introduced for the Run 2 fix
   (commit `b726814`); kept as the boundary-correct form of
   feedback memory.

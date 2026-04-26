@@ -18,7 +18,7 @@
   `Move` discarded wall knowledge — a feedback-memory bug that
   drove `pass_turn_fallback_rate` to 0.490. Fixed by switching to
   `Dictionary<cellKey, HashSet<string>>` per-cell blocked-direction
-  memory (`mod/LLMOfQud/LLMOfQudSystem.cs:42-46, 259+`,
+  memory (`mod/LLMOfQud/LLMOfQudSystem.cs:42-55, 259-299`,
   commit `b726814`); Runs 3-5 ran on the post-fix build and all
   passed. The architecture-v5.md `:2812` "≥50 turns survival in
   3/5 runs" gate is satisfied (4 of 5).
@@ -180,7 +180,7 @@ ERROR-sentinel handling).
    enum change requires `decision.v2` + ADR.
 
 4. **Per-cell blocked-direction memory** (`Dictionary<cellKey,
-   HashSet<string>>`, `mod/LLMOfQud/LLMOfQudSystem.cs:42-46`).
+   HashSet<string>>`, `mod/LLMOfQud/LLMOfQudSystem.cs:42-55`).
    `cellKey = "{x}:{y}:{zone}"`. Updated via `UpdateBlockedDirsMemory`
    only on `Move` failures with `fallback == "pass_turn"`.
    Successful moves do NOT clear the memory (the Run 2 lesson). Past
@@ -219,7 +219,7 @@ ERROR-sentinel handling).
    correctness checks separate from acceptance-run survival.
 
 8. **CoQ pathfinder
-   (`decompiled/XRL.World.AI.Pathfinding/FindPath.cs`) is a Phase 1+
+   (`decompiled/XRL.World.AI.Pathfinding/FindPath.cs:10`) is a Phase 1+
    System-layer safety-net candidate, NOT a Phase 0-G dependency
    (ADR 0010 §Decision #5).** Used by mouse-click move and AI
    traversal in CoQ. A future System-layer integration could call
@@ -422,7 +422,7 @@ Phase 0-G+.
   - `decompiled/XRL.World/Cell.cs:8511-8557` — `GetCombatTarget`
     (inherited from Phase 0-F via `ScanAdjacentHostile` helper
     refactor).
-  - `decompiled/XRL.World.AI.Pathfinding/FindPath.cs` — CoQ engine
+  - `decompiled/XRL.World.AI.Pathfinding/FindPath.cs:10` — CoQ engine
     pathfinder (mouse-click + AI traversal). Documented in ADR 0010
     §Decision #5 as Phase 1+ System-layer safety-net candidate; not
     adopted in Phase 0-G.
