@@ -10,7 +10,7 @@
 - **3-layer drain (defense in depth):** Layer 1 = action API spends energy on success. Layer 2 = `PassTurn()` on action-returned-false-without-drain. Layer 3 = `Energy.BaseValue = 0` last-ditch only when `PassTurn()` itself throws.
 - **Game-thread direct emit for `[cmd]`, NOT through `PendingSnapshot`.** `PendingSnapshot` keeps its single observation slot (`StateJson, DisplayMode, CapsJson, BuildJson`) — no extension for `[cmd]`. `[cmd]` is decoupled from render cadence.
 - **Per-turn output: 6 lines** = 2 (`[screen]` BEGIN/END) + 1 `[state]` + 1 `[caps]` + 1 `[build]` + 1 `[cmd]`. **Parser correlation contract: correlate by the `turn` field, never adjacency or count parity.**
-- **Hook is `CommandTakeActionEvent`, NOT `BeginTakeActionEvent`.** A `BeginTakeActionEvent` handler that drains energy would skip the entire inner action loop in `ActionManager.cs:786-800`. `CommandTakeActionEvent` fires inside the loop (`:829-832`), keeping `EndActionEvent`, hostile interrupt, and ActionManager's player render fallback (`:1806-1808`) intact.
+- **Hook is `CommandTakeActionEvent`, NOT `BeginTakeActionEvent`.** A `BeginTakeActionEvent` handler that drains energy would skip the entire inner action loop in `decompiled/XRL.Core/ActionManager.cs:786-800`. `CommandTakeActionEvent` fires inside the loop (`decompiled/XRL.Core/ActionManager.cs:829-832`), keeping `EndActionEvent`, hostile interrupt, and ActionManager's player render fallback (`decompiled/XRL.Core/ActionManager.cs:1806-1808`) intact.
 - **API is direct `Move`/`AttackDirection`, NOT `CommandEvent.Send`.** `XRLCore.PlayerTurn()` switch handles `CmdMoveE`/`CmdAttackE` strings by directly calling `The.Player.Move("E")` (`decompiled/XRL.Core/XRLCore.cs:1107-1109`) and `The.Player.AttackDirection("E")` (`:1270-1271`); `CommandEvent.Send("CmdMoveE")` has no registered handler and would silent-no-op without draining energy. ADR 0006 records this pivot.
 
 **Schema lock: `command_issuance.v1`** — full record fields (no missing, no extra): `{turn, schema, hook, action, dir, result, fallback, energy_before, energy_after, pos_before, pos_after, target_id, target_name, target_pos_before, target_hp_before, target_hp_after, error}`. Sentinel reduced shape: `{turn, schema, error}`. Field semantics, error posture, normalization rules, and out-of-scope deferrals are locked in the design spec; this plan implements that contract verbatim and references back to the spec rather than restating it.
@@ -43,16 +43,16 @@
 - `docs/memo/phase-0-e-exit-2026-04-26.md` — Phase 0-E outcomes; rule 5 (JSON null discipline + 5th-occurrence helper extraction trigger) drives Task 2 of this plan.
 - `docs/superpowers/plans/2026-04-25-phase-0-e-current-build-state.md` — precedent plan structure modeled here.
 - CoQ APIs (verified 2026-04-26):
-  - **Event**: `CommandTakeActionEvent` (`decompiled/XRL.World/CommandTakeActionEvent.cs:1-42`), `Check` returns `Object.HandleEvent(...) && !PreventAction` (`:37-38`).
-  - **ActionManager flow**: per-segment `Energy += Speed` add (`decompiled/XRL.Core/ActionManager.cs:785`), inner action loop (`:800-830`), `BeforeTakeActionEvent.Check` (`:819-826`), `CommandTakeActionEvent.Check` (`:829-832`), hostile interrupt (`:834-837`), Brain goals (`:1763-1767`), `PlayerTurn()` call (`:1797-1799`), player render fallback (`:1806-1808`), `EndActionEvent.Send` (`:1828`).
-  - **PlayerTurn switch**: `CmdMoveE` → `Move("E")` (`decompiled/XRL.Core/XRLCore.cs:1107-1109`), `CmdAttackE` → `AttackDirection("E")` (`:1270-1271`).
-  - **Movement API**: `Move` overloads (`decompiled/XRL.World/GameObject.cs:15274, 15719-15722`), tutorial intercept (`:15336-15338`), zone-cross (`:15384, 15404-15409`), success energy spend (`:15397-15400`), fail path (`:15378-15382`), confirmation gate (`:15630-15699`).
-  - **Attack API**: `AttackDirection` (`decompiled/XRL.World/GameObject.cs:17882-17902`), `Combat.AttackDirection` (`decompiled/XRL.World.Parts/Combat.cs:844-860`), `Combat.AttackCell` (`:877-889`), melee energy spend (`:794-799`).
-  - **Hostile detection**: `Cell.GetCellFromDirection` (`decompiled/XRL.World/Cell.cs:7322-7324`), `Cell.GetCombatTarget` (`:8511-8557`), `GameObject.IsHostileTowards` (`decompiled/XRL.World/GameObject.cs:10887-10894`).
-  - **Turn-end fallback**: `PassTurn` (`decompiled/XRL.World/GameObject.cs:17543-17545`), `UseEnergy` + `UseEnergyEvent` emit (`:2925-2930`).
-  - **Energy / statistics**: `GameObject.Energy` field (`decompiled/XRL.World/GameObject.cs:145`), `Statistic.Value` (`decompiled/XRL.World/Statistic.cs:238-252`), `Statistic.BaseValue` setter (`:218-232`), `StatChange_*` listeners (`:646-673`), `hitpoints` / `baseHitpoints` (`GameObject.cs:1177-1198`).
+  - **Event**: `CommandTakeActionEvent` (`decompiled/XRL.World/CommandTakeActionEvent.cs:1-42`), `Check` returns `Object.HandleEvent(...) && !PreventAction` (`decompiled/XRL.World/CommandTakeActionEvent.cs:37-38`).
+  - **ActionManager flow**: per-segment `Energy += Speed` add (`decompiled/XRL.Core/ActionManager.cs:785`), inner action loop (`decompiled/XRL.Core/ActionManager.cs:800-830`), `BeforeTakeActionEvent.Check` (`decompiled/XRL.Core/ActionManager.cs:819-826`), `CommandTakeActionEvent.Check` (`decompiled/XRL.Core/ActionManager.cs:829-832`), hostile interrupt (`decompiled/XRL.Core/ActionManager.cs:834-837`), Brain goals (`decompiled/XRL.Core/ActionManager.cs:1763-1767`), `PlayerTurn()` call (`decompiled/XRL.Core/ActionManager.cs:1797-1799`), player render fallback (`decompiled/XRL.Core/ActionManager.cs:1806-1808`), `EndActionEvent.Send` (`decompiled/XRL.Core/ActionManager.cs:1828`).
+  - **PlayerTurn switch**: `CmdMoveE` → `Move("E")` (`decompiled/XRL.Core/XRLCore.cs:1107-1109`), `CmdAttackE` → `AttackDirection("E")` (`decompiled/XRL.Core/XRLCore.cs:1270-1271`).
+  - **Movement API**: `Move` overloads (`decompiled/XRL.World/GameObject.cs:15274`, `decompiled/XRL.World/GameObject.cs:15719-15722`), tutorial intercept (`decompiled/XRL.World/GameObject.cs:15336-15338`), zone-cross (`decompiled/XRL.World/GameObject.cs:15384`, `decompiled/XRL.World/GameObject.cs:15404-15409`), success energy spend (`decompiled/XRL.World/GameObject.cs:15397-15400`), fail path (`decompiled/XRL.World/GameObject.cs:15378-15382`), confirmation gate (`decompiled/XRL.World/GameObject.cs:15630-15699`).
+  - **Attack API**: `AttackDirection` (`decompiled/XRL.World/GameObject.cs:17882-17902`), `Combat.AttackDirection` (`decompiled/XRL.World.Parts/Combat.cs:844-860`), `Combat.AttackCell` (`decompiled/XRL.World.Parts/Combat.cs:877-889`), melee energy spend (`decompiled/XRL.World.Parts/Combat.cs:794-799`).
+  - **Hostile detection**: `Cell.GetCellFromDirection` (`decompiled/XRL.World/Cell.cs:7322-7324`), `Cell.GetCombatTarget` (`decompiled/XRL.World/Cell.cs:8511-8558`), `GameObject.IsHostileTowards` (`decompiled/XRL.World/GameObject.cs:10887-10894`).
+  - **Turn-end fallback**: `PassTurn` (`decompiled/XRL.World/GameObject.cs:17543-17545`), `UseEnergy` + `UseEnergyEvent` emit (`decompiled/XRL.World/GameObject.cs:2925-2930`).
+  - **Energy / statistics**: `GameObject.Energy` field (`decompiled/XRL.World/GameObject.cs:145`), `Statistic.Value` (`decompiled/XRL.World/Statistic.cs:238-252`), `Statistic.BaseValue` setter (`decompiled/XRL.World/Statistic.cs:218-232`), `StatChange_*` listeners (`decompiled/XRL.World/Statistic.cs:646-673`), `hitpoints` / `baseHitpoints` (`decompiled/XRL.World/GameObject.cs:1177-1198`).
   - **Position / zone**: `GameObject.CurrentZone == CurrentCell?.ParentZone` (`decompiled/XRL.World/GameObject.cs:473`), `Zone.ZoneID` (`decompiled/XRL.World/Zone.cs:389`).
-  - **Target identity**: `GameObject.ID` (`decompiled/XRL.World/GameObject.cs:340-350, 389-399`), `ShortDisplayNameStripped` (`:763-766`).
+  - **Target identity**: `GameObject.ID` (`decompiled/XRL.World/GameObject.cs:340-350`, `decompiled/XRL.World/GameObject.cs:389-399`), `ShortDisplayNameStripped` (`decompiled/XRL.World/GameObject.cs:763-766`).
   - **AutoAct mirror**: `AutoAct.ClearAutoMoveStop` (`decompiled/XRL.World.Capabilities/AutoAct.cs:386-389`).
   - **Event dispatch contract**: `EventRegistry` chain abort on false (`decompiled/XRL.Collections/EventRegistry.cs:260-272`), `GameObject` parts/effects chain abort on false (`decompiled/XRL.World/GameObject.cs:14024-14030, 14053-14059`).
   - **MetricsManager.LogInfo**: `decompiled/MetricsManager.cs:407-409`.
@@ -136,7 +136,7 @@ cat docs/adr/0000-adr-template.md
 cat docs/adr/0005-phase-0-e-current-build-state-pivot.md
 ```
 
-ADR 0006 mirrors ADR 0005's shape: front-matter (Status, Date), Context, Decision, Consequences (numbered), Alternatives Considered (numbered), References, Related Artifacts, Supersedes. Length ~120–180 lines.
+ADR 0006 mirrors ADR 0005's shape per the canonical template (`docs/adr/0000-adr-template.md`): front-matter (Status, Date), Context, Decision, Alternatives Considered (numbered), Consequences (numbered), Related Artifacts, Supersedes. There is NO standalone `## References` section — references fold into `## Related Artifacts`. Length ~120–180 lines.
 
 - [ ] **Step 3: Write `docs/adr/0006-phase-0-f-command-issuance-api-pivot.md`.**
 
@@ -173,9 +173,11 @@ in `ActionManager` (`decompiled/XRL.Core/ActionManager.cs:786-800`); a
 handler that drains energy there causes the entire inner action loop
 (`BeforeTakeActionEvent`, `CommandTakeActionEvent`, hostile interrupt,
 AutoAct, brain goals, `EndActionEvent`) to be skipped because the loop
-gate at `:800` requires `Energy.Value >= 1000`. `CommandTakeActionEvent`
-fires inside the inner loop (`:829-832`), preserving `EndActionEvent`
-emission and the player render fallback at `:1806-1808`.
+gate at `decompiled/XRL.Core/ActionManager.cs:800` requires
+`Energy.Value >= 1000`. `CommandTakeActionEvent` fires inside the
+inner loop (`decompiled/XRL.Core/ActionManager.cs:829-832`),
+preserving `EndActionEvent` emission and the player render fallback
+at `decompiled/XRL.Core/ActionManager.cs:1806-1808`.
 
 The codex 2026-04-26 design consultation rounds (recorded in
 `docs/superpowers/specs/2026-04-26-phase-0-f-command-issuance-design.md`)
@@ -189,17 +191,9 @@ Phase 0-F implements movement and attack command issuance via:
 
 1. **API**: direct calls to `GameObject.Move(string Direction, bool DoConfirmations = true, ...)` and `GameObject.AttackDirection(string dir)`. NOT `CommandEvent.Send`.
 2. **Hook**: `IPlayerSystem.HandleEvent(CommandTakeActionEvent E)`. NOT `BeginTakeActionEvent`.
-3. **Mirror**: `AutoAct.ClearAutoMoveStop()` is called explicitly before each `Move("E")` to mirror the `XRLCore.cs:1108` wrapper. The attack path does not need this call.
+3. **Mirror**: `AutoAct.ClearAutoMoveStop()` is called explicitly before each `Move("E")` to mirror the `decompiled/XRL.Core/XRLCore.cs:1108` wrapper. The attack path does not need this call.
 4. **Threading**: the new `[cmd]` LogInfo line is emitted on the game thread directly via `MetricsManager.LogInfo` inside `HandleEvent(CommandTakeActionEvent)`. NOT through `PendingSnapshot` and NOT from `AfterRenderCallback`. The four existing observation channels remain on their render-thread emission path.
 5. **Last-ditch drain non-equivalence**: when the catch-path fallback `player.PassTurn()` itself throws, the handler falls back to `player.Energy.BaseValue = 0`. This is intentionally non-equivalent to `PassTurn`: it bypasses `UseEnergyEvent` emission. Any system that depends on `UseEnergyEvent` from a player turn-end MUST NOT depend on the catch-path Layer-3 drain emitting it.
-
-## Consequences
-
-1. The `:2803` spec line is reinterpreted: "via `CommandEvent.Send()`" naming in the v5.9 freeze remains historically accurate but is overridden for Phase 0-F semantics by this ADR. Future phase enumeration MUST reference both `:2803` (frozen text) and ADR 0006 (override) when citing Phase 0-F scope.
-2. **AutoAct mirror semantics**: direct `Move("E")` bypasses the `XRLCore.cs:1108` `AutoAct.ClearAutoMoveStop()` call unless we mirror it. Phase 0-F mirrors it. Phase 0-G+ NPC-AutoMove or follower scenarios re-evaluate whether explicitly clearing `AutomoveInterruptTurn` is still desired.
-3. **Thread-decoupled `[cmd]` cadence**: parser correlation contract for the five LogInfo channels (`[screen] BEGIN/END`, `[state]`, `[caps]`, `[build]`, `[cmd]`) is "correlate by `turn` field, never adjacency or count parity". `[cmd]` runs on the game thread synchronously; the four observation channels run on the render thread via `AfterRenderCallback`. Other CoQ subsystems' `LogInfo` lines may interleave between any two of the six per-turn lines.
-4. **Phase 0-G+ inherits this API path**: any future autonomous dispatch (heuristic bot, LLM-driven action) uses direct `Move/AttackDirection/PassTurn/AttackCell/...` calls. Future phases that need to issue commands via `CommandEvent.Send` for the side effects (e.g., a mutation that listens for `CommandFooEvent`) re-open this ADR.
-5. **`Energy.BaseValue = 0` non-equivalence is permanent**: the catch-path Layer-3 drain skips `UseEnergyEvent` (`decompiled/XRL.World/GameObject.cs:2925-2930`). The implementation comment at the call site documents this in code; the spec section "Error posture (3-layer drain, defense in depth)" documents it in design.
 
 ## Alternatives Considered
 
@@ -208,24 +202,41 @@ Phase 0-F implements movement and attack command issuance via:
 3. **Harmony-patch `XRLCore.PlayerTurn()` to inject our action.** Rejected because (a) Harmony patching is reserved for paths that have no event hook (per `docs/architecture-v5.md` Phase 0-A guidance), (b) `CommandTakeActionEvent` is precisely the event hook this would otherwise need, (c) Harmony patches add cross-mod compatibility risk and increase the surface area of "things that can break on a CoQ update".
 4. **Stage `[cmd]` through `PendingSnapshot` and emit from `AfterRenderCallback`.** Rejected because (a) the action and its `[cmd]` log line happen on the game thread; coupling the log emission to the next render is unnecessary and introduces a window where the game state may have already changed, (b) Phase 0-F's central change is energy-drain timing, which directly affects render cadence — keeping `[cmd]` decoupled from render is defense-in-depth against the Codex-flagged hazard "render cadence shifts because PlayerTurn() is no longer reached".
 
-## References
+## Consequences
 
-- `docs/architecture-v5.md:2803` (Phase 0-F line being reinterpreted).
-- `docs/architecture-v5.md:2804` (Phase 0-G boundary preserved).
-- `docs/architecture-v5.md:1787-1790` (game-queue routing rule).
-- `docs/adr/0001-architecture-v5-9-freeze.md` — freeze rule that required this ADR.
-- `docs/adr/0005-phase-0-e-current-build-state-pivot.md` — precedent ADR for spec-line pivoting.
-- `docs/superpowers/specs/2026-04-26-phase-0-f-command-issuance-design.md` — design spec.
-- `docs/superpowers/plans/2026-04-26-phase-0-f-command-issuance.md` — this implementation plan.
-- `docs/memo/phase-0-e-exit-2026-04-26.md` — Phase 0-E exit memo whose carry-forward rule 5 (JSON null discipline + 5th-occurrence helper extraction trigger) is acted on by this plan's Task 2.
-- Decompiled citations: per the spec's References section.
+1. The `:2803` spec line is reinterpreted: "via `CommandEvent.Send()`" naming in the v5.9 freeze remains historically accurate but is overridden for Phase 0-F semantics by this ADR. Future phase enumeration MUST reference both `:2803` (frozen text) and ADR 0006 (override) when citing Phase 0-F scope.
+2. **AutoAct mirror semantics**: direct `Move("E")` bypasses the `decompiled/XRL.Core/XRLCore.cs:1108` `AutoAct.ClearAutoMoveStop()` call unless we mirror it. Phase 0-F mirrors it. Phase 0-G+ NPC-AutoMove or follower scenarios re-evaluate whether explicitly clearing `AutomoveInterruptTurn` is still desired.
+3. **Thread-decoupled `[cmd]` cadence**: parser correlation contract for the five LogInfo channels (`[screen] BEGIN/END`, `[state]`, `[caps]`, `[build]`, `[cmd]`) is "correlate by `turn` field, never adjacency or count parity". `[cmd]` runs on the game thread synchronously; the four observation channels run on the render thread via `AfterRenderCallback`. Other CoQ subsystems' `LogInfo` lines may interleave between any two of the six per-turn lines.
+4. **Phase 0-G+ inherits this API path**: any future autonomous dispatch (heuristic bot, LLM-driven action) uses direct `Move/AttackDirection/PassTurn/AttackCell/...` calls. Future phases that need to issue commands via `CommandEvent.Send` for the side effects (e.g., a mutation that listens for `CommandFooEvent`) re-open this ADR.
+5. **`Energy.BaseValue = 0` non-equivalence is permanent**: the catch-path Layer-3 drain skips `UseEnergyEvent` (`decompiled/XRL.World/GameObject.cs:2925-2930`). The implementation comment at the call site documents this in code; the spec section "Error posture (3-layer drain, defense in depth)" documents it in design.
 
 ## Related Artifacts
 
-- Spec: `docs/superpowers/specs/2026-04-26-phase-0-f-command-issuance-design.md`
-- Plan: `docs/superpowers/plans/2026-04-26-phase-0-f-command-issuance.md` (this file)
-- Implementation: `mod/LLMOfQud/LLMOfQudSystem.cs` (`HandleEvent(CommandTakeActionEvent)`), `mod/LLMOfQud/SnapshotState.cs` (command JSON builders + helper extraction).
-- Exit memo: `docs/memo/phase-0-f-exit-<YYYY-MM-DD>.md` (created at Task 8).
+- `docs/superpowers/specs/2026-04-26-phase-0-f-command-issuance-design.md`
+  — design spec (3 rounds of Codex review, APPROVED); defines the
+  `command_issuance.v1` schema, hostile-scan priority, 3-layer
+  energy-drain posture, and acceptance criteria this ADR formalizes.
+- `docs/superpowers/plans/2026-04-26-phase-0-f-command-issuance.md`
+  — implementation plan (lands in the same docs-only PR as this ADR).
+- `docs/adr/decisions/2026-04-26-phase-0-f-command-issuance-api-pivot-from-commandevent-send-to-direct-move-attackdirection.md`
+  — machine-readable decision record produced by
+  `scripts/create_adr_decision.py` for the pre-commit ADR gate.
+- `docs/architecture-v5.md:2803` — Phase 0-F line being reinterpreted.
+- `docs/architecture-v5.md:2804` — Phase 0-G boundary preserved.
+- `docs/architecture-v5.md:1787-1790` — game-queue routing rule.
+- `docs/adr/0001-architecture-v5-9-freeze.md` — freeze rule that
+  required this ADR.
+- `docs/adr/0005-phase-0-e-current-build-state-pivot.md` — precedent
+  ADR for spec-line pivoting.
+- `docs/memo/phase-0-e-exit-2026-04-26.md` — Phase 0-E exit memo whose
+  carry-forward rule 5 (JSON null discipline + 5th-occurrence helper
+  extraction trigger) is acted on by the implementation plan's Task 2.
+- Implementation: `mod/LLMOfQud/LLMOfQudSystem.cs`
+  (`HandleEvent(CommandTakeActionEvent)`),
+  `mod/LLMOfQud/SnapshotState.cs`
+  (command JSON builders + helper extraction).
+- Exit memo: `docs/memo/phase-0-f-exit-<YYYY-MM-DD>.md` (created at
+  the implementation plan's Task 8).
 
 ## Supersedes
 
@@ -280,7 +291,7 @@ under the freeze rule of ADR 0001. The pivot is driven by:
   ActionManager's inner action loop bookkeeping (EndActionEvent,
   hostile interrupt, AutoAct, render fallback) stays intact.
 - AutoAct.ClearAutoMoveStop() is mirrored explicitly to match the
-  XRLCore.cs:1108 keypress wrapper.
+  decompiled/XRL.Core/XRLCore.cs:1108 keypress wrapper.
 - [cmd] LogInfo emits on the game thread directly, decoupled from
   AfterRenderCallback render cadence.
 - Last-ditch Energy.BaseValue=0 in the catch path is intentionally
@@ -965,7 +976,7 @@ Architecture per ADR 0006:
   loop, NOT BeginTakeActionEvent which fires before the loop).
 - API = direct GameObject.Move (NOT CommandEvent.Send).
 - AutoAct.ClearAutoMoveStop() called explicitly to mirror the
-  XRLCore.cs:1108 keypress wrapper.
+  decompiled/XRL.Core/XRLCore.cs:1108 keypress wrapper.
 - 3-layer drain: API success drains via UseEnergy; PassTurn() on
   result==false; Energy.BaseValue=0 as last-ditch only when PassTurn
   itself throws (intentionally NOT equivalent — no UseEnergyEvent).
@@ -977,7 +988,7 @@ Architecture per ADR 0006:
 Step B (adjacent-hostile detection -> AttackDirection) lands in the
 next commit. Step A alone is testable in isolation: player walks east
 one cell per turn; if a hostile is adjacent east, Move resolves it as
-combat (per Move's combat-object path at GameObject.cs:15344-15346)
+combat (per Move's combat-object path at decompiled/XRL.World/GameObject.cs:15344-15346)
 which we accept as a known v1 limitation until Task 5 makes the
 hostile detection + Attack* explicit.
 
@@ -1191,7 +1202,7 @@ Compiling 3 files... Success :)
 [LLMOfQud] loaded v0.0.1 at <timestamp>
 ```
 
-No `COMPILER ERRORS`. If `Predicate<GameObject>` doesn't resolve, ensure the `using System;` directive is in scope (it is — already at the top of the file from Task 4). If `targetObj.hitpoints` doesn't compile, double-check the property name (it is lowercase `hitpoints` per `GameObject.cs:1177-1198`).
+No `COMPILER ERRORS`. If `Predicate<GameObject>` doesn't resolve, ensure the `using System;` directive is in scope (it is — already at the top of the file from Task 4). If `targetObj.hitpoints` doesn't compile, double-check the property name (it is lowercase `hitpoints` per `decompiled/XRL.World/GameObject.cs:1177-1198`).
 
 - [ ] **Step 3: Quick runtime probe — east-walk run on a Phase 0-E save.**
 
