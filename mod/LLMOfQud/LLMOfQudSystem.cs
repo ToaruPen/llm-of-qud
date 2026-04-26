@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using System.Threading;
 using ConsoleLib.Console;
@@ -37,11 +38,37 @@ namespace LLMOfQud
         // Updated after each action dispatch, read by BuildDecisionInput on the
         // next CTA invocation. These are legitimate per-game instance state;
         // the [Serializable] attribute covers them as part of save/load.
-        private readonly HashSet<string> _blockedDirs = new HashSet<string>();
+        //
+        // Per-cell blocked-dir memory: keyed by cell coordinate (x:y:zone).
+        // BuildDecisionInput passes only the CURRENT cell's blocked-dir set as
+        // DecisionInput.Adjacent.BlockedDirs, so the policy sees "directions
+        // that failed FROM this cell" rather than "directions that failed
+        // anywhere". Earlier Phase 0-G drafts used a flat HashSet plus a
+        // clear-on-success rule; that lost wall knowledge whenever the player
+        // stepped one cell, causing 2-cell pockets between walls to oscillate
+        // forever (observed in Run 2: 49% pass_turn fallback rate over 1777
+        // turns). Per-cell memory eliminates that re-learning loop without
+        // changing the decision_input.v1 wire schema (BlockedDirs : List<string>
+        // is unchanged; only the source of its contents shifts from global to
+        // per-cell). HeuristicPolicy is unmodified.
+        private readonly Dictionary<string, HashSet<string>> _blockedDirsByCell =
+            new Dictionary<string, HashSet<string>>();
         private int _lastActionTurn = -1;
         private string _lastAction;
         private string _lastDir;
         private bool _lastResult;
+
+        // Cell key for _blockedDirsByCell. Stable string form so the dictionary
+        // does not depend on Cell object identity (Cell instances are
+        // re-created when zones unload / reload). Format mirrors the [cmd]
+        // pos_before / pos_after JSON shape so debugging across channels is
+        // trivial: "x:y:zone".
+        private static string CellKey(int x, int y, string zone)
+        {
+            return x.ToString(CultureInfo.InvariantCulture) + ":" +
+                   y.ToString(CultureInfo.InvariantCulture) + ":" +
+                   (zone ?? "<null-zone>");
+        }
 
         public override void RegisterPlayer(GameObject Player, IEventRegistrar Registrar)
         {
@@ -214,7 +241,10 @@ namespace LLMOfQud
                 {
                     HostileDir = hostileDir,
                     HostileId = (hostileObj != null) ? hostileObj.ID : null,
-                    BlockedDirs = new List<string>(_blockedDirs),
+                    // Per-cell lookup: pass only THIS cell's blocked-dir
+                    // history. Empty list when the cell has never had a
+                    // failed Move from it. See _blockedDirsByCell docstring.
+                    BlockedDirs = LookupBlockedDirsForCell(posX, posY, posZone),
                 },
                 Recent = new RecentHistory
                 {
@@ -228,26 +258,44 @@ namespace LLMOfQud
 
         // Phase 0-G: update blocked-direction memory after each action.
         // A Move that needed a PassTurn fallback means the direction was
-        // blocked; a successful Move clears stale blockages (player moved).
+        // blocked AT pos_before; record it on that cell's entry only.
+        // Successful Moves do NOT clear memory — wall geometry is persistent
+        // in Joppa, and earlier Phase 0-G drafts that cleared on success
+        // re-learned the same walls every time the player re-entered a cell
+        // (oscillation observed in Run 2).
         private void UpdateBlockedDirsMemory(
-            string action, string dir, bool result, string fallback)
+            string action, string dir, bool result, string fallback,
+            int posBeforeX, int posBeforeY, string posBeforeZone)
         {
-            if (action == "Move" && fallback == "pass_turn" && dir != null)
+            if (action != "Move" || dir == null) return;
+            if (result || fallback != "pass_turn") return;
+
+            string key = CellKey(posBeforeX, posBeforeY, posBeforeZone);
+            HashSet<string> set;
+            if (!_blockedDirsByCell.TryGetValue(key, out set))
             {
-                _blockedDirs.Add(dir);
-                // Cap at 8 (one per cardinal / ordinal direction). Coarse
-                // clear-and-re-add is acceptable for Phase 0-G.
-                if (_blockedDirs.Count > 8)
-                {
-                    _blockedDirs.Clear();
-                    _blockedDirs.Add(dir);
-                }
+                set = new HashSet<string>();
+                _blockedDirsByCell[key] = set;
             }
-            else if (action == "Move" && result)
+            set.Add(dir);
+            // Per-cell cap at 8 (one per cardinal / ordinal direction). At
+            // 8 the cell is fully blocked; any further failed dir is a
+            // duplicate of an existing entry.
+        }
+
+        // Phase 0-G: read the current cell's blocked-dir history into a fresh
+        // list for DecisionInput.Adjacent.BlockedDirs. Returns an empty list
+        // (NOT null) when no entry exists, matching the schema invariant that
+        // BlockedDirs is always a list (possibly empty).
+        private List<string> LookupBlockedDirsForCell(int x, int y, string zone)
+        {
+            string key = CellKey(x, y, zone);
+            HashSet<string> set;
+            if (_blockedDirsByCell.TryGetValue(key, out set) && set.Count > 0)
             {
-                // Player moved successfully; old blockages may no longer apply.
-                _blockedDirs.Clear();
+                return new List<string>(set);
             }
+            return new List<string>();
         }
 
         // Phase 0-G: persist the most-recent action for DecisionInput.Recent.
@@ -455,8 +503,12 @@ namespace LLMOfQud
                     fallback = "pass_turn";
                 }
 
-                // Update memory AFTER drain, BEFORE emitting [cmd].
-                UpdateBlockedDirsMemory(decision.Action, decision.Dir, result, fallback);
+                // Update memory AFTER drain, BEFORE emitting [cmd]. Per-cell
+                // blocked-dir memory uses pos_before (the cell where the failed
+                // Move was attempted FROM) as the dictionary key.
+                UpdateBlockedDirsMemory(
+                    decision.Action, decision.Dir, result, fallback,
+                    posBeforeX, posBeforeY, posBeforeZone);
                 UpdateRecentHistory(decision.Action, decision.Dir, result, turn);
 
                 // target_hp_after gated on the same AttackDirection-only condition as
