@@ -399,13 +399,14 @@ Operator workflow (three sub-cases):
 1. Walk to a cell adjacent to a 1-tile wall segment (a building corner in Joppa works). Take one turn. Verify the `[probe3]` line shows `empty=0` for the direction(s) blocked by the wall.
 
 **3c. Boxed-in sub-test (the spec's flee → boxed_in_attack escalation).** Per spec line 148, "boxed in" means NO safe cell exists in any of the 8 directions. The 7-of-8-hostiles framing leaves one safe cell and CANNOT exercise this branch. Use the wall-corner approach instead:
-1. Move the player into a 2-wall inside corner (e.g., the inside corner of a building — 3 of 8 cells are walls, 5 are open).
-2. Spawn hostiles via `wish testhero:Snapjaw scavenger` into the 5 open cells (one per turn; the wish-spawn places adjacent to the player). After all 5 spawns, the `[probe3]` line should show `1111` for ZERO directions (every direction is either wall or hostile).
-3. Verify: the "all-zero-safe" case correctly produces `1111` count = 0 across the 8 emitted direction codes. This is the runtime condition that the implementation's `ChooseFleeDir` branch detects to trigger `fallback="boxed_in_attack"`.
 
-(If a liquid pool is reachable in Joppa starting zone, also verify `noLiquid=0` for one cell over a dangerous liquid as a 3d sub-test. Optional — Joppa surface has limited dangerous open liquids.)
+- Move the player into a 2-wall inside corner (e.g., the inside corner of a building — 3 of 8 cells are walls, 5 are open).
+- Spawn hostiles via `wish testhero:Snapjaw scavenger` into the 5 open cells (one per turn; the wish-spawn places adjacent to the player). After all 5 spawns, the `[probe3]` line should show `1111` for ZERO directions (every direction is either wall or hostile).
+- Verify: the "all-zero-safe" case correctly produces `1111` count = 0 across the 8 emitted direction codes. This is the runtime condition that the implementation's `ChooseFleeDir` branch detects to trigger `fallback="boxed_in_attack"`.
 
-4. Capture:
+**3d. Liquid sub-test (optional).** If a liquid pool is reachable in Joppa starting zone, verify `noLiquid=0` for one cell over a dangerous liquid. Joppa surface has limited dangerous open liquids; skip if none reachable.
+
+**Capture (after all sub-tests):**
 
 ```bash
 cp "$PLAYER_LOG" /tmp/phase-0-g-probes/probe-3/raw-player.log

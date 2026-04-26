@@ -172,7 +172,7 @@ Phase 0-G locks the following decisions:
    (`[caps]` is independent of `[state]`; `[build]` is independent of
    both). Option (c) is the consistent extension.
 
-4. **Heuristic with multi-step pathfinding (A*).** A* exists at
+4. **Heuristic with multi-step pathfinding (`A*`).** `A*` exists at
    `decompiled/XRL.World.AI.Pathfinding/FindPath.cs:84-135`. Rejected
    for Phase 0-G as over-scope: the 50-turn Warden gate on Joppa
    does not require multi-step planning (Phase 0-F's 79-record
