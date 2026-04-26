@@ -348,7 +348,30 @@ namespace LLMOfQud
             }
             finally
             {
-                E.PreventAction = true;
+                // ADR 0007: PreventAction is Layer-4 abnormal-energy defense, not
+                // the primary autonomy mechanism. The autonomy invariant (engine
+                // does not wait on keyboard input) depends on Energy.Value < 1000
+                // from Layers 1/2/3 (Move/AttackDirection success → PassTurn
+                // fallback → BaseValue=0 last-ditch). The `:838` energy guard at
+                // decompiled/XRL.Core/ActionManager.cs:838 already prevents the
+                // keyboard-input branch (PlayerTurn at :1797-1799) when
+                // Energy.Value < 1000; the iteration falls through to the
+                // player render fallback at decompiled/XRL.Core/ActionManager.cs:1806-1808
+                // and `[screen]/[state]/[caps]/[build]` flush per turn.
+                //
+                // Setting PreventAction = true would cause CommandTakeActionEvent.Check
+                // (decompiled/XRL.World/CommandTakeActionEvent.cs:37-39) to return
+                // false, the iteration to `continue` at decompiled/XRL.Core/ActionManager.cs:829-832,
+                // and the render fallback to be skipped — destroying the
+                // observation-channel cadence Phase 0-A through 0-E established.
+                //
+                // Reach this defense ONLY when post-recovery energy is still
+                // >= 1000 (i.e., Layers 1/2/3 all failed to drain). One render
+                // cadence is sacrificed to preserve autonomy.
+                if (player?.Energy != null && player.Energy.Value >= 1000)
+                {
+                    E.PreventAction = true;
+                }
             }
 
             return true;
