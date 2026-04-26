@@ -107,9 +107,15 @@ DecisionInput {
   Adj      adjacent {           // 8-direction snapshot
     string hostile_dir          // null | "N"|"NE"|...|"NW", first hostile wins
     string hostile_id           // null if hostile_dir is null
-    string blocked_dirs[]       // directions where last attempted Move failed
+    string blocked_dirs[]       // accumulated directions where prior
+                                // Move attempts hit the pass_turn
+                                // fallback (i.e., bumped a wall /
+                                // blocker). Maintained by
+                                // BuildDecisionInput across turns.
+                                // This is the ONLY safe-cell signal
+                                // in the locked DTO.
   }
-  History  recent {             // bounded; last K turns (impl picks K, ≥3)
+  History  recent {             // single-turn snapshot of last action
     int    last_action_turn
     string last_action           // "Move" | "AttackDirection" | "PassTurn"
     string last_dir              // null | direction
@@ -133,17 +139,20 @@ Decision {
 }
 ```
 
-`intent` enum is locked: `attack` / `escape` / `explore` / `wait`.
+`intent` enum is wire-locked: `attack` / `escape` / `explore` / `wait`.
 The policy is free to pick which intent to return for any situation;
 acceptance criterion 5.3 only constrains the mapping for three
-specific probe scenarios.
+specific probe scenarios. Adding a new intent value (e.g., `"hunt"`)
+is a wire-schema change and requires `decision.v2` + a new ADR — the
+locked enum is what Phase 1's WebSocket bridge and any downstream
+parser will dispatch on.
 
-`reason_code` enum is locked: `adj_hostile` (a hostile is adjacent),
+`reason_code` enum is wire-locked: `adj_hostile` (a hostile is adjacent),
 `low_hp_adj_hostile` (hurt classification triggered), `blocked_dir`
 (blocked-direction memory triggered an alternative), `default_explore`
 (no special signal, default action), `policy_error` (Decide threw or
-returned invalid). Implementations may extend this enum but must use
-one of the locked values when applicable.
+returned invalid). Adding new reason codes is a wire-schema change
+and requires `decision.v2` + a new ADR.
 
 ### `decision.v1` (wire schema for `[LLMOfQud][decision]`)
 
@@ -253,27 +262,44 @@ memo §"locked invariants").
 
 The policy implementation (`HeuristicPolicy.Decide`) is free to
 choose any of the following, as long as Decision #5's acceptance
-criteria pass:
+criteria pass and the boundary contract (criterion 1: input-only
+`Decide`) is preserved:
 
 - HP threshold for the "hurt" classification. Probe 3b uses 30% as
   the *probe threshold*; the policy may use any threshold that
   satisfies the probe.
 - Direction priority for explore. Any deterministic order.
-- Safe-cell predicate detail. Any subset of `Cell.GetCellFromDirection != null`,
-  `IsEmptyOfSolidFor`, `GetCombatTarget(hostile filter) == null`,
-  `GetDangerousOpenLiquidVolume == null`. The policy may add
-  additional conditions or relax existing ones.
 - Escape tactic when surrounded ("boxed-in"). No spec-locked tactic
   name; just satisfy 3a/3b.
-- Whether to maintain blocked-direction memory inside `Decide` or
-  compute it in `BuildDecisionInput`. The DTO field
-  `adjacent.blocked_dirs[]` is provided; using it is implementation
-  discretion.
-- Recent-action history depth (`K` in the DTO). Spec requires `K ≥ 3`
-  to support probe 3c; the policy may use any larger value.
-- `intent` enum extensions (e.g., `"hunt"` for an active-pursuit
-  branch) as long as `attack` / `escape` / `explore` / `wait` remain
-  the primary values used in probe scenarios.
+- How to interpret `adjacent.blocked_dirs[]` (treat as hard-block,
+  soft-deprioritize, or ignore). The DTO field is provided; the
+  policy chooses how to use it.
+
+### What `Decide` MUST NOT do (boundary contract)
+
+`Decide` reads only `DecisionInput`. It MUST NOT call any CoQ API:
+no `The.*`, no `MetricsManager`, no `Cell.GetCellFromDirection`, no
+`IsEmptyOfSolidFor`, no `GetCombatTarget`, no
+`GetDangerousOpenLiquidVolume`, no `GameObject.*`. PROBE 2' enforces
+this by static grep against the `Decide` method body.
+
+If a policy needs richer per-direction safety information than
+`adjacent.blocked_dirs[]` provides (e.g., walkable-vs-wall, hostile
+in adjacent cell other than the first one wins), that information
+MUST be pre-baked into `DecisionInput` by `BuildDecisionInput`. Adding
+fields to `DecisionInput` is a `decision_input.v2` change and
+requires a new ADR. Phase 0-G locks `decision_input.v1` to the field
+set above; richer signals are deferred to Phase 1+ design.
+
+### How PROBE 3c (blocked-direction memory) is satisfied
+
+PROBE 3c is satisfied via `adjacent.blocked_dirs[]`, NOT via
+`recent.last_*`. `recent` is a single-turn snapshot of the last
+action; it does not carry K-deep history. After a 3-turn east-bump
+sequence, `BuildDecisionInput` will have accumulated `"E"` in
+`adjacent.blocked_dirs[]` (added on the first failure), and on turn 4
+the policy can detect it as a single-element membership check. No
+multi-turn lookback inside `Decide` is required.
 
 ---
 

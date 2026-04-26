@@ -564,7 +564,7 @@ private DecisionInput BuildDecisionInput(GameObject player, int turn)
         Adjacent = new AdjacencySnapshot
         {
             HostileDir = hostileDir,
-            HostileId = (hostileObj != null) ? hostileObj.id : null,
+            HostileId = (hostileObj != null) ? hostileObj.ID : null,
             BlockedDirs = new List<string>(_blockedDirs),
         },
         Recent = new RecentHistory
@@ -678,11 +678,25 @@ HandleEvent(CommandTakeActionEvent E):
     if !decisionEmitted:
       MetricsManager.LogInfo("[LLMOfQud][decision] " + BuildDecisionSentinelJson(turn, ex))
     MetricsManager.LogInfo("[LLMOfQud][cmd] " + BuildCmdSentinelJson(turn, ex))
-    # Layer 4 abnormal-energy defense (ADR 0007)
-    if player != null:
-      player.Energy.BaseValue = 0
-      try { player.PassTurn(); } catch { }
-    if player != null and player.Energy.Value >= 1000:
+
+    # 3-layer drain — energy-guarded recovery (Phase 0-F invariant /
+    # ADR 0007). Catch-path threshold is the literal 1000 (NOT
+    # energyBefore), because the exception may fire before
+    # energyBefore is captured. The autonomy invariant depends on
+    # Energy.Value < 1000 after this handler returns.
+    if player != null and player.Energy != null and player.Energy.Value >= 1000:
+      try { player.PassTurn() } catch { /* swallow */ }
+      # BaseValue=0 is the last-ditch step ONLY if PassTurn did not
+      # drain to < 1000. Do NOT clobber BaseValue when an action has
+      # already spent energy.
+      if player.Energy.Value >= 1000:
+        player.Energy.BaseValue = 0
+
+  finally:
+    # ADR 0007: PreventAction is Layer-4 abnormal-energy defense, not
+    # the primary autonomy mechanism. Set ONLY when post-recovery
+    # Energy.Value >= 1000 (Layers 1/2/3 all failed to drain).
+    if player != null and player.Energy != null and player.Energy.Value >= 1000:
       E.PreventAction = true
 
   return true

@@ -159,15 +159,23 @@ LLM-time will inherit. ADR 0009 rescopes Phase 0-G accordingly.
    interpretation is sharpened. Same pattern as ADR 0008 Decision #6
    sharpening `:2816`'s "≥99%" as "19/20 at N=20".
 
-7. **Implementation discretion.** Inside `Decide`, the policy
-   implementation is free to choose: HP threshold for escape (3b uses
-   30% as the *probe* threshold only; the policy may use any
-   threshold that passes the probe), direction priority for explore,
-   safe-cell predicate detail, escape tactic when surrounded
-   (no spec-locked `boxed_in_attack` name), and whether to maintain
-   blocked-direction memory in `DecisionInput` or recompute per turn.
-   The only constraints are the boundary (Decision #4) and the
-   acceptance criteria (Decision #5).
+7. **Implementation discretion (within the boundary contract).**
+   Inside `Decide`, the policy implementation is free to choose: HP
+   threshold for escape (3b uses 30% as the *probe* threshold only;
+   the policy may use any threshold that passes the probe), direction
+   priority for explore, escape tactic when surrounded (no
+   spec-locked `boxed_in_attack` name), and how to interpret
+   `adjacent.blocked_dirs[]` (hard-block, soft-deprioritize, or
+   ignore). The boundary (Decision #4) is non-negotiable: `Decide`
+   reads only `DecisionInput`. Any safe-cell or richer-than-`blocked_dirs`
+   signal that a future policy needs MUST be added to `DecisionInput`
+   by `BuildDecisionInput` and is a `decision_input.v2` change
+   requiring a new ADR. Phase 0-G locks `decision_input.v1` to the
+   field set in the spec; the wire `intent` and `reason_code` enums
+   in `decision.v1` are likewise locked, and additions require
+   `decision.v2`. The only constraints on `Decide`'s internal logic
+   are the boundary (Decision #4), the acceptance criteria
+   (Decision #5), and the wire-schema enum lock.
 
 ## Alternatives Considered
 
