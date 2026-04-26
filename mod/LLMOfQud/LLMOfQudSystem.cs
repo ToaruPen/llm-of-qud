@@ -173,9 +173,9 @@ namespace LLMOfQud
         // action loop in ActionManager (decompiled/XRL.Core/ActionManager.cs:829),
         // AFTER BeginTakeActionEvent has already enqueued the per-turn observation
         // snapshot. Acting here keeps EndActionEvent, hostile interrupt, AutoAct,
-        // and the player render fallback (ActionManager.cs:1806-1808) intact.
+        // and the player render fallback (decompiled/XRL.Core/ActionManager.cs:1806-1808) intact.
         // BeginTakeActionEvent would skip all of those because draining energy
-        // there fails the inner loop's gate at :800.
+        // there fails the inner loop's gate at decompiled/XRL.Core/ActionManager.cs:800.
         // [cmd] is emitted on the game thread directly (NOT through PendingSnapshot)
         // — see ADR 0006 Consequence #3 and the design spec's Architecture section.
         public override bool HandleEvent(CommandTakeActionEvent E)
@@ -205,7 +205,7 @@ namespace LLMOfQud
                 // Direction priority: N -> NE -> E -> SE -> S -> SW -> W -> NW.
                 // First non-null Cell.GetCombatTarget hit wins.
                 // The filter o => o != player && o.IsHostileTowards(player) mirrors
-                // what Combat.AttackCell uses internally (Combat.cs:877-889).
+                // what Combat.AttackCell uses internally (decompiled/XRL.World.Parts/Combat.cs:877-889).
                 string targetDir = null;
                 GameObject targetObj = null;
                 if (cellBefore != null)
@@ -228,7 +228,7 @@ namespace LLMOfQud
                         //     GameObject Skip = null, List<GameObject> SkipList = null,
                         //     bool AllowInanimate = true, bool InanimateSolidOnly = false,
                         //     Predicate<GameObject> Filter = null)
-                        // GameObject.cs:10887-10894 IsHostileTowards.
+                        // decompiled/XRL.World/GameObject.cs:10887-10894 IsHostileTowards.
                         GameObject t = adj.GetCombatTarget(
                             Attacker: player,
                             IgnoreFlight: false,
@@ -270,7 +270,7 @@ namespace LLMOfQud
                         targetPosBeforeZone = tCell.ParentZone?.ZoneID;
                     }
                     // hitpoints = Statistic.Value (live HP), per spec field semantics.
-                    // GameObject.cs:1177-1198: hitpoints / baseHitpoints.
+                    // decompiled/XRL.World/GameObject.cs:1177-1198: hitpoints / baseHitpoints.
                     targetHpBefore = targetObj.hitpoints;
                     result = player.AttackDirection(targetDir);
                     action = "AttackDirection";
@@ -279,7 +279,7 @@ namespace LLMOfQud
                 else
                 {
                     // Step A fallback: Move East.
-                    AutoAct.ClearAutoMoveStop();   // mirror XRLCore.cs:1108
+                    AutoAct.ClearAutoMoveStop();   // mirror decompiled/XRL.Core/XRLCore.cs:1108
                     result = player.Move("E", DoConfirmations: false);
                     action = "Move";
                     dir = "E";
@@ -340,7 +340,7 @@ namespace LLMOfQud
                 // ">= energyBefore" guard incorrectly skip drain. The autonomy
                 // invariant is "engine does not wait on keyboard input"; that
                 // depends only on Energy.Value < 1000 after our handler returns
-                // (ActionManager.cs:800, :838, :1797-1799).
+                // (decompiled/XRL.Core/ActionManager.cs:800, :838, :1797-1799).
                 if (player?.Energy != null && player.Energy.Value >= 1000)
                 {
                     try { player.PassTurn(); } catch { /* swallow */ }
@@ -358,7 +358,7 @@ namespace LLMOfQud
                 // from Layers 1/2/3 (Move/AttackDirection success → PassTurn
                 // fallback → BaseValue=0 last-ditch). The `:838` energy guard at
                 // decompiled/XRL.Core/ActionManager.cs:838 already prevents the
-                // keyboard-input branch (PlayerTurn at :1797-1799) when
+                // keyboard-input branch (PlayerTurn at decompiled/XRL.Core/ActionManager.cs:1797-1799) when
                 // Energy.Value < 1000; the iteration falls through to the
                 // player render fallback at decompiled/XRL.Core/ActionManager.cs:1806-1808
                 // and `[screen]/[state]/[caps]/[build]` flush per turn.
