@@ -686,10 +686,22 @@ HandleEvent(CommandTakeActionEvent E):
       result = player.AttackDirection(decision.Dir)
     elif decision.Action == "Move":
       result = player.Move(decision.Dir, DoConfirmations: false)
-      if !result and player.Energy.Value == energyBefore:
-        # Layer 2 drain — Phase 0-F invariant
-        player.PassTurn()
-        fallback = "pass_turn"
+
+    # 3-layer drain — applies UNIFORMLY to BOTH terminal actions
+    # (Phase 0-F invariant; see LLMOfQudSystem.cs:288-300). Either
+    # action can return false without spending energy (Move bumps
+    # a wall on the unforced path; AttackDirection misses a moved /
+    # invalid target). The fallback check must be outside the
+    # action-dispatch branch, not inside Move's branch only.
+    bool energySpent = (player.Energy != null and player.Energy.Value < energyBefore)
+    if !result and !energySpent:
+      player.PassTurn()
+      energySpent = true
+      fallback = "pass_turn"
+    elif !result:
+      # Action drained energy on its own fail path; record fallback
+      # for log honesty (Phase 0-F spec line 153 invariant).
+      fallback = "pass_turn"
 
     UpdateBlockedDirsMemory(decision.Action, decision.Dir, result, fallback)
     UpdateRecentHistory(decision.Action, decision.Dir, result, turn)
@@ -912,12 +924,14 @@ Within a single CoQ launch, multiple runs are possible by quitting
 back to the main menu and starting a new game (`_beginTurnCount`
 resets per Phase 0-E behavior).
 
-- [ ] **Step 4: Validate per-run with the anti-degeneracy validator.**
+- [ ] **Step 4: Write the validator to disk, then validate per-run.**
+
+The validator is reused by Step 5's tally loop, so write it to a file
+once instead of piping the heredoc to python3 stdin per invocation.
 
 ```bash
-RUN=1   # or 2..5
-RUNDIR=/tmp/phase-0-g-acceptance/run-$RUN
-RUN=$RUN RUNDIR=$RUNDIR python3 - <<'PY'
+mkdir -p /tmp/phase-0-g-acceptance
+cat > /tmp/phase-0-g-acceptance/validate.py <<'PY'
 import json, os, sys, re
 
 run = int(os.environ["RUN"])
@@ -1028,9 +1042,16 @@ if hard_failures:
     print(f"Run {run}: FAIL"); sys.exit(1)
 print(f"Run {run}: PASS"); sys.exit(0)
 PY
+
+# Per-run smoke check (run for one RUN before the Step-5 loop).
+RUN=1   # or 2..5
+RUNDIR=/tmp/phase-0-g-acceptance/run-$RUN
+RUN=$RUN RUNDIR=$RUNDIR python3 /tmp/phase-0-g-acceptance/validate.py
 ```
 
 - [ ] **Step 5: Tally 3-of-5 gate + intent-distinct check.**
+
+The validator file written in Step 4 is reused by this loop.
 
 ```bash
 PASSING=0
@@ -1059,9 +1080,6 @@ DISTINCT=$(echo "$ALL_INTENTS" | grep -cE '.+')
 PASS gate: `PASSING >= 3` AND `Intent-diversity: PASS`. If FAIL,
 revise `HeuristicPolicy` and re-run the failing run(s) — the
 boundary does not change, only the in-process policy.
-
-(Operator: copy the Step 4 Python heredoc body to
-`/tmp/phase-0-g-acceptance/validate.py` for reuse.)
 
 ---
 
