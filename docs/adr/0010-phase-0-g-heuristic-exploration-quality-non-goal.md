@@ -228,6 +228,12 @@ on top.
   reframing** so the same category error does not recur in later
   phases.
 
+## Supersedes
+
+None. This ADR sharpens the operational interpretation of
+ADR 0009 Decision #5.4 without amending its text. Future readers
+should read both together.
+
 ## Related Artifacts
 
 - `docs/adr/0009-phase-0-g-rescope-judgment-boundary.md` —
@@ -260,9 +266,3 @@ it is verbatim chat output and adds no information beyond what is
 inlined into §Context above). The Run 5 trace that triggered the
 rescope is in the operator's 2026-04-27 acceptance Player.log
 (operator-local; key metrics inlined into §Context above).
-
-## Supersedes
-
-None. This ADR sharpens the operational interpretation of
-ADR 0009 Decision #5.4 without amending its text. Future readers
-should read both together.
