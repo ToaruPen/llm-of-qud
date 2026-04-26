@@ -202,8 +202,10 @@ on top.
 - **No further `HeuristicPolicy` changes** are made for Phase 0-G.
   The current `mod/LLMOfQud/HeuristicPolicy.cs` is the final Phase
   0-G policy.
-- **No `validate.py` changes** at `/tmp/phase-0-g-acceptance/validate.py`.
-  The validator's existing 7 checks remain authoritative.
+- **No `validate.py` changes** to the operator-local Phase 0-G
+  acceptance validator (`validate.py`, kept under an operator-local
+  temporary acceptance directory; not committed). The validator's
+  existing 7 checks remain authoritative.
 - **Phase 0-G exit memo (Task 9)** must include the Known
   Limitations section per Decision #6.
 - **Phase 1 inherits the boundary unchanged.** When the WebSocket

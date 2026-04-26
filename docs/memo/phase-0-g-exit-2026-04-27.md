@@ -261,8 +261,10 @@ ERROR-sentinel handling).
   (the escape direction). All Moves succeed (`pos_after !=
   pos_before`), so the validator metric counts each step as a
   successful terminal action. Per ADR 0010 this is acceptable;
-  Phase 1 LLM owns exploration quality. The trace is preserved in
-  `/tmp/phase-0-g-acceptance/run-5/` for future reference.
+  Phase 1 LLM owns exploration quality. The trace is preserved
+  operator-locally under the Phase 0-G acceptance run-5 directory
+  for future reference (path inlined in the operator-local
+  artifacts section below).
 - **Run 4 1-line slicing artifact.** `cmd=622` vs
   `state/caps/build=621`. The Player.log slicer cut the chargen
   boundary one [cmd] line later than the matched [state]/[caps]/
