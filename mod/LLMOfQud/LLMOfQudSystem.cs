@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using ConsoleLib.Console;
@@ -6,7 +7,7 @@ using XRL;
 using XRL.Core;
 using XRL.UI;
 using XRL.World;
-using XRL.World.Capabilities;   // NEW: AutoAct.ClearAutoMoveStop
+using XRL.World.Capabilities;   // AutoAct.ClearAutoMoveStop
 
 namespace LLMOfQud
 {
@@ -27,6 +28,20 @@ namespace LLMOfQud
         private static PendingSnapshot _pendingSnapshot;
 
         private int _beginTurnCount;
+
+        // Phase 0-G: IDecisionPolicy boundary. HeuristicPolicy is stateless;
+        // readonly field is safe for the [Serializable] class.
+        private readonly IDecisionPolicy _policy = new HeuristicPolicy();
+
+        // Phase 0-G: memory for DecisionInput.Adjacent.BlockedDirs and .Recent.
+        // Updated after each action dispatch, read by BuildDecisionInput on the
+        // next CTA invocation. These are legitimate per-game instance state;
+        // the [Serializable] attribute covers them as part of save/load.
+        private readonly HashSet<string> _blockedDirs = new HashSet<string>();
+        private int _lastActionTurn = -1;
+        private string _lastAction;
+        private string _lastDir;
+        private bool _lastResult;
 
         public override void RegisterPlayer(GameObject Player, IEventRegistrar Registrar)
         {
@@ -166,6 +181,82 @@ namespace LLMOfQud
                     "[LLMOfQud] begin_take_action count=" + _beginTurnCount);
             }
             return base.HandleEvent(E);
+        }
+
+        // Phase 0-G: build the DecisionInput DTO that the policy receives.
+        // hostileObj (out) carries the adjacent-hostile reference so the
+        // caller can capture target_* fields without an instance field
+        // (addendum A2: no stale-state leakage between CTA dispatches).
+        // cell may be null (player not positioned); defensive fallbacks
+        // match Phase 0-F's posBeforeX/Y = -1, zone = null pattern.
+        private DecisionInput BuildDecisionInput(
+            GameObject player, int turn, out GameObject hostileObj)
+        {
+            Cell cell = player.CurrentCell;
+            string hostileDir;
+            ScanAdjacentHostile(cell, player, out hostileDir, out hostileObj);
+
+            int posX = cell != null ? cell.X : -1;
+            int posY = cell != null ? cell.Y : -1;
+            string posZone = cell?.ParentZone?.ZoneID;
+
+            return new DecisionInput
+            {
+                Turn = turn,
+                Player = new PlayerSnapshot
+                {
+                    // decompiled/XRL.World/GameObject.cs:1177-1198: hitpoints / baseHitpoints.
+                    Hp = player.hitpoints,
+                    MaxHp = player.baseHitpoints,
+                    Pos = new Pos { X = posX, Y = posY, Zone = posZone },
+                },
+                Adjacent = new AdjacencySnapshot
+                {
+                    HostileDir = hostileDir,
+                    HostileId = (hostileObj != null) ? hostileObj.ID : null,
+                    BlockedDirs = new List<string>(_blockedDirs),
+                },
+                Recent = new RecentHistory
+                {
+                    LastActionTurn = _lastActionTurn,
+                    LastAction = _lastAction,
+                    LastDir = _lastDir,
+                    LastResult = _lastResult,
+                },
+            };
+        }
+
+        // Phase 0-G: update blocked-direction memory after each action.
+        // A Move that needed a PassTurn fallback means the direction was
+        // blocked; a successful Move clears stale blockages (player moved).
+        private void UpdateBlockedDirsMemory(
+            string action, string dir, bool result, string fallback)
+        {
+            if (action == "Move" && fallback == "pass_turn" && dir != null)
+            {
+                _blockedDirs.Add(dir);
+                // Cap at 8 (one per cardinal / ordinal direction). Coarse
+                // clear-and-re-add is acceptable for Phase 0-G.
+                if (_blockedDirs.Count > 8)
+                {
+                    _blockedDirs.Clear();
+                    _blockedDirs.Add(dir);
+                }
+            }
+            else if (action == "Move" && result)
+            {
+                // Player moved successfully; old blockages may no longer apply.
+                _blockedDirs.Clear();
+            }
+        }
+
+        // Phase 0-G: persist the most-recent action for DecisionInput.Recent.
+        private void UpdateRecentHistory(string action, string dir, bool result, int turn)
+        {
+            _lastActionTurn = turn;
+            _lastAction = action;
+            _lastDir = dir;
+            _lastResult = result;
         }
 
         // Phase 0-G: scan adjacent cells for the nearest hostile in direction-
