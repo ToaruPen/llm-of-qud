@@ -93,10 +93,11 @@ Phase 0-F implements movement and attack command issuance via:
   `mod/LLMOfQud/SnapshotState.cs`
   (command JSON builders + helper extraction).
 
-Future artifact (not yet produced; will be linked here once written):
-the Phase 0-F exit memo, created at the implementation plan's Task 8
-under `docs/memo/` with filename `phase-0-f-exit-YYYY-MM-DD.md` (the
-date stamp is fixed at memo-write time via `date -u +%Y-%m-%d`).
+- `docs/memo/phase-0-f-exit-2026-04-26.md` — Phase 0-F exit memo
+  created at the implementation plan's Task 8. Records the post-ADR-0007
+  acceptance results (505-record combined Step A + Step B run, full
+  6-channel parity, 11 damaging hits) and the carry-forward observations
+  for Phase 0-G / Phase 1.
 
 ## Supersedes
 

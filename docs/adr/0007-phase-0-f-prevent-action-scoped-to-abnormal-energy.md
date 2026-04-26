@@ -198,10 +198,10 @@ the empirical conditions under which they hold.
 - `/tmp/phase-0-f-acceptance/raw-player-15-05-08.log`
   — 488-turn empirical evidence (operator-local; not committed).
 
-Future artifact (not yet produced; will be linked once written):
-the Phase 0-F exit memo, written at the implementation plan's Task 8
-under `docs/memo/` with filename `phase-0-f-exit-YYYY-MM-DD.md`. The
-exit memo records the post-ADR-0007 acceptance results.
+- `docs/memo/phase-0-f-exit-2026-04-26.md` — Phase 0-F exit memo
+  recording the post-ADR-0007 acceptance results (505-record combined
+  Step A + Step B run, full 6-channel parity, 11 damaging hits) and
+  the carry-forward observations for Phase 0-G / Phase 1.
 
 ## Supersedes
 
