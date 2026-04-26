@@ -6,6 +6,7 @@ using XRL;
 using XRL.Core;
 using XRL.UI;
 using XRL.World;
+using XRL.World.Capabilities;   // NEW: AutoAct.ClearAutoMoveStop
 
 namespace LLMOfQud
 {
@@ -53,6 +54,7 @@ namespace LLMOfQud
                 _afterRenderRegistered = true;
             }
             Registrar.Register(SingletonEvent<BeginTakeActionEvent>.ID);
+            Registrar.Register(SingletonEvent<CommandTakeActionEvent>.ID);
             base.RegisterPlayer(Player, Registrar);
         }
 
@@ -164,6 +166,146 @@ namespace LLMOfQud
                     "[LLMOfQud] begin_take_action count=" + _beginTurnCount);
             }
             return base.HandleEvent(E);
+        }
+
+        // Phase 0-F: act on the player's command point.
+        // Hook chosen per ADR 0006: CommandTakeActionEvent fires inside the inner
+        // action loop in ActionManager (decompiled/XRL.Core/ActionManager.cs:829),
+        // AFTER BeginTakeActionEvent has already enqueued the per-turn observation
+        // snapshot. Acting here keeps EndActionEvent, hostile interrupt, AutoAct,
+        // and the player render fallback (ActionManager.cs:1806-1808) intact.
+        // BeginTakeActionEvent would skip all of those because draining energy
+        // there fails the inner loop's gate at :800.
+        // [cmd] is emitted on the game thread directly (NOT through PendingSnapshot)
+        // — see ADR 0006 Consequence #3 and the design spec's Architecture section.
+        public override bool HandleEvent(CommandTakeActionEvent E)
+        {
+            int turn = _beginTurnCount;
+            GameObject player = The.Player;
+
+            // Defensive: HandleEvent should not fire when player is null (the
+            // event is dispatched against the player object), but a body-swap
+            // window or shutdown race could leave us with no player. Emit a
+            // sentinel and let the loop fall through.
+            if (player == null)
+            {
+                MetricsManager.LogInfo(
+                    "[LLMOfQud][cmd] {\"turn\":" + turn +
+                    ",\"schema\":\"command_issuance.v1\",\"error\":{\"type\":\"NullPlayer\",\"message\":\"The.Player is null\"}}");
+                E.PreventAction = true;
+                return true;
+            }
+
+            int energyBefore = 0;
+            try
+            {
+                energyBefore = player.Energy?.Value ?? 0;
+                Cell cellBefore = player.CurrentCell;
+                int posBeforeX = cellBefore?.X ?? -1;
+                int posBeforeY = cellBefore?.Y ?? -1;
+                string posBeforeZone = cellBefore?.ParentZone?.ZoneID;
+
+                // Step A: hardcoded Move East. Step B detection is added in Task 5.
+                AutoAct.ClearAutoMoveStop();   // mirror XRLCore.cs:1108 wrapper
+                bool result = player.Move("E", DoConfirmations: false);
+
+                bool energySpent = (player.Energy != null && player.Energy.Value < energyBefore);
+
+                string fallback = null;
+                if (!result && !energySpent)
+                {
+                    // Layer 2: action returned false without spending energy.
+                    // PassTurn() => UseEnergy(1000, "Pass", Passive:true) so the
+                    // turn advances and the engine doesn't fall through to
+                    // PlayerTurn() waiting on keyboard input.
+                    player.PassTurn();
+                    energySpent = true;
+                    fallback = "pass_turn";
+                }
+                else if (!result)
+                {
+                    // API drained energy on its own fail path (e.g., flag=true
+                    // dashing case at GameObject.cs:15309 -> :15378-15382). Log as
+                    // pass_turn for accounting; the autonomy invariant
+                    // energy_after < energy_before still holds.
+                    fallback = "pass_turn";
+                }
+
+                int energyAfter = player.Energy?.Value ?? 0;
+                Cell cellAfter = player.CurrentCell;
+
+                SnapshotState.CmdRecord rec = new SnapshotState.CmdRecord
+                {
+                    Turn = turn,
+                    Action = "Move",
+                    Dir = "E",
+                    Result = result,
+                    Fallback = fallback,
+                    EnergyBefore = energyBefore,
+                    EnergyAfter = energyAfter,
+                    PosBeforeX = posBeforeX,
+                    PosBeforeY = posBeforeY,
+                    PosBeforeZone = posBeforeZone,
+                    PosAfterX = cellAfter?.X ?? -1,
+                    PosAfterY = cellAfter?.Y ?? -1,
+                    PosAfterZone = cellAfter?.ParentZone?.ZoneID,
+                    TargetId = null,
+                    TargetName = null,
+                    HasTargetPosBefore = false,
+                    TargetHpBefore = null,
+                    TargetHpAfter = null,
+                };
+
+                MetricsManager.LogInfo("[LLMOfQud][cmd] " + SnapshotState.BuildCmdJson(rec));
+            }
+            catch (Exception ex)
+            {
+                MetricsManager.LogInfo(
+                    "[LLMOfQud][cmd] " + SnapshotState.BuildCmdSentinelJson(turn, ex));
+                // Layer 3 ladder: if energy hasn't drained yet, try PassTurn first;
+                // if that also throws, set BaseValue=0 as a last-ditch emergency
+                // drain. ADR 0006 Consequence #5: BaseValue=0 is intentionally NOT
+                // equivalent to PassTurn — it bypasses UseEnergyEvent
+                // (decompiled/XRL.World/GameObject.cs:2925-2930). Direct BaseValue=0
+                // only runs the Statistic setter and NotifyChange
+                // (decompiled/XRL.World/Statistic.cs:218-232) and may fire
+                // StatChange_* listeners (:646-673), but no UseEnergyEvent. Use
+                // ONLY when PassTurn() itself throws.
+                // The threshold is the loop-gate condition (ActionManager.cs:800,
+                // :838): the engine reaches PlayerTurn() at :1797-1799 only when
+                // Energy.Value >= 1000. Compare against literal 1000 — NOT
+                // energyBefore — because (a) the exception may have fired BEFORE
+                // energyBefore was captured (initial value 0 → guard would skip
+                // drain incorrectly), (b) the autonomy invariant is "engine does
+                // not wait on keyboard input", which only depends on whether
+                // energy stays >= 1000 after our handler returns.
+                if (player?.Energy != null && player.Energy.Value >= 1000)
+                {
+                    try { player.PassTurn(); } catch { /* swallow */ }
+                    if (player.Energy.Value >= 1000)
+                    {
+                        player.Energy.BaseValue = 0;
+                    }
+                }
+            }
+            finally
+            {
+                // PreventAction = true makes CommandTakeActionEvent.Check return
+                // false, which causes ActionManager.cs:829-832's inner-loop continue
+                // to skip the rest of the action path for this segment. Combined
+                // with energy drain (Layers 1/2/3 above), this is what guarantees
+                // the engine never falls through to The.Core.PlayerTurn() at
+                // :1797-1799 waiting on keyboard input.
+                E.PreventAction = true;
+            }
+
+            // Return true. Returning false would abort event dispatch — other
+            // handlers registered on CommandTakeActionEvent would not fire. The
+            // EventRegistry chain stops on false (decompiled/XRL.Collections/
+            // EventRegistry.cs:260-272); the GameObject parts/effects chain stops
+            // on false (decompiled/XRL.World/GameObject.cs:14024-14030, 14053-14059).
+            // PreventAction=true is the proper "skip this action" signal.
+            return true;
         }
 
         // Render a ScreenBuffer as an ASCII grid. Tile-mode cells hold the
