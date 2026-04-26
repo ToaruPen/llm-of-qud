@@ -30,7 +30,8 @@ and this spec is the rewritten version. See ADR 0009 §Decision and
 
 ### Boundary
 
-Inside `HandleEvent(CommandTakeActionEvent E)` in
+Inside `HandleEvent(CommandTakeActionEvent E)` (interface declaration:
+`decompiled/XRL/IEventHandler.cs:882`) in
 `mod/LLMOfQud/LLMOfQudSystem.cs`, the per-turn flow is three explicit
 phases with a single boundary contract:
 
@@ -41,11 +42,14 @@ phases with a single boundary contract:
    function over the DTO. Reads no CoQ APIs. Returns a `Decision`
    value.
 3. **`Execute(Decision)`** (game thread): dispatches the chosen
-   terminal CoQ call (`Move` or `AttackDirection` — the locked
+   terminal CoQ call (`Move` — `decompiled/XRL.World/GameObject.cs:15719`
+   — or `AttackDirection` —
+   `decompiled/XRL.World/GameObject.cs:17882` — the locked
    `decision.v1` action enum) and runs the 3-layer drain pattern
-   (`PassTurn()` is the Layer-2 fallback when a Move fails without
-   draining energy; it is engine bookkeeping, never a Decision-level
-   action).
+   (`PassTurn()` —
+   `decompiled/XRL.World/GameObject.cs:17543` — is the Layer-2
+   fallback when a Move fails without draining energy; it is engine
+   bookkeeping, never a Decision-level action).
 
 `Decide` is implemented behind the `IDecisionPolicy` interface
 (Decision #4 below). The Phase 0-G in-process implementation is
@@ -73,16 +77,24 @@ adjacency.
 
 ### Hooks and inherited posture
 
-- **Hook**: `CommandTakeActionEvent` (Phase 0-F). `BeginTakeActionEvent`
+- **Hook**: `CommandTakeActionEvent` (Phase 0-F;
+  `decompiled/XRL/IEventHandler.cs:882`). `BeginTakeActionEvent`
   continues to drive `[state]/[caps]/[build]` observation.
 - **Direct API path**: `Move(string Direction, bool DoConfirmations = true)`
-  and `AttackDirection(...)` (ADR 0006). No `CommandEvent.Send`.
+  (`decompiled/XRL.World/GameObject.cs:15719`) and
+  `AttackDirection(...)` (`decompiled/XRL.World/GameObject.cs:17882`)
+  (ADR 0006). No `CommandEvent.Send`.
 - **`PreventAction` scope**: success path leaves `PreventAction = false`
   so render-fallback fires per turn (ADR 0007). `PreventAction = true`
-  is set ONLY when post-recovery `Energy.Value >= 1000` (Layer 4
+  is set ONLY when post-recovery `Energy.Value >= 1000`
+  (`Energy` ≡ the `Statistic` named "Energy"; `Statistic.Value`
+  accessor at `decompiled/XRL.World/Statistic.cs:238`; Layer 4
   abnormal-energy defense).
-- **3-layer drain**: terminal action → `PassTurn()` fallback →
-  `Energy.BaseValue = 0` last-ditch (Phase 0-F).
+- **3-layer drain**: terminal action → `PassTurn()`
+  (`decompiled/XRL.World/GameObject.cs:17543`) fallback →
+  `Energy.BaseValue = 0`
+  (`Statistic.BaseValue` accessor at
+  `decompiled/XRL.World/Statistic.cs:218`) last-ditch (Phase 0-F).
 - **Game-thread direct emit**: `[decision]` and `[cmd]` are emitted
   via `MetricsManager.LogInfo` synchronously from `HandleEvent`.
   `PendingSnapshot` continues to carry only the four render-thread
@@ -249,10 +261,14 @@ memo §"locked invariants").
    - **3c — Blocked-direction memory.**
      Setup: position the Warden with a wall to the east, let the
      policy attempt `Move E` (or whatever the policy picks for
-     "explore" default) for 3 consecutive turns. Observe the 4th
-     `[decision]`. PASS: the 4th decision returns either `action ==
-     "Move"` with a `dir` different from the prior blocked direction
-     OR a non-`Move` `action`. NOT another attempt in the blocked
+     "explore" default) for 1 turn (the bump appends `"E"` to
+     `adjacent.blocked_dirs[]` on the FIRST failure — see "How
+     PROBE 3c is satisfied" below). Observe the SECOND
+     `[decision]` (1 turn into wall + 1 immediately after).
+     PASS: the second decision returns either `action == "Move"`
+     with a `dir` different from the prior blocked direction OR a
+     non-`Move` `action`, with `reason_code == "blocked_dir"` on
+     the post-bump turn. NOT another attempt in the blocked
      direction.
 
 4. **Meaningful interaction gate.**
@@ -322,11 +338,12 @@ set above; richer signals are deferred to Phase 1+ design.
 
 PROBE 3c is satisfied via `adjacent.blocked_dirs[]`, NOT via
 `recent.last_*`. `recent` is a single-turn snapshot of the last
-action; it does not carry K-deep history. After a 3-turn east-bump
-sequence, `BuildDecisionInput` will have accumulated `"E"` in
-`adjacent.blocked_dirs[]` (added on the first failure), and on turn 4
-the policy can detect it as a single-element membership check. No
-multi-turn lookback inside `Decide` is required.
+action; it does not carry K-deep history.
+`UpdateBlockedDirsMemory` (in `BuildDecisionInput`) appends the
+attempted `dir` to `adjacent.blocked_dirs[]` on the FIRST `Move`
+failure, so by the very next turn the membership check is decisive
+and the policy switches to a different `dir` (or a non-`Move`
+action). No multi-turn lookback inside `Decide` is required.
 
 ---
 

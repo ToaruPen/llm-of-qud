@@ -87,7 +87,10 @@ LLM-time will inherit. ADR 0009 rescopes Phase 0-G accordingly.
 
 4. **Judgment boundary is the new spec lock.** The revised spec locks
    ONLY the boundary, not the policy:
-   - **Interface:** `IDecisionPolicy.Decide(DecisionInput) → Decision`.
+   - **Interface:** `IDecisionPolicy.Decide(DecisionInput) → Decision`
+     (mod-internal interface defined in
+     `mod/LLMOfQud/IDecisionPolicy.cs`, no decompiled equivalent —
+     this is new in Phase 0-G).
      `Decide` is **input-only** — it does NOT read CoQ APIs directly;
      it operates only on the supplied DTO.
    - **`DecisionInput` schema:** a snapshot of per-turn state
@@ -109,7 +112,10 @@ LLM-time will inherit. ADR 0009 rescopes Phase 0-G accordingly.
 5. **Acceptance criteria reduced to 5** (from ADR 0008's 13):
    1. **Decision boundary exists.**
       `BuildDecisionInput → Decide → Execute` is the explicit
-      per-turn flow inside `HandleEvent(CommandTakeActionEvent)`.
+      per-turn flow inside
+      `HandleEvent(CommandTakeActionEvent)`
+      (interface declaration:
+      `decompiled/XRL/IEventHandler.cs:882`).
       `Decide` reads only the `DecisionInput` DTO. The
       implementation is self-contained and replaceable by an
       out-of-process call without changing `BuildDecisionInput` or
@@ -130,10 +136,15 @@ LLM-time will inherit. ADR 0009 rescopes Phase 0-G accordingly.
         The next `Decide` returns `intent != "attack"`. The specific
         escape action is implementation discretion.
       - **3c — Blocked-direction memory.** Player attempts a Move in
-        a wall-blocked direction for 3 consecutive turns. The 4th
-        `Decide` returns either a `Move` with a different `dir` OR a
-        non-`Move` `action`. NOT another `Move` in the blocked
-        direction.
+        a wall-blocked direction for 1 turn (the bump appends the
+        direction to `adjacent.blocked_dirs[]` on the FIRST failure
+        via `UpdateBlockedDirsMemory`). The SECOND `Decide` (1 turn
+        into wall + 1 immediately after) returns either a `Move`
+        with a different `dir` OR a non-`Move` `action`, with
+        `reason_code == "blocked_dir"`. NOT another `Move` in the
+        blocked direction. (Spec note: testing on the 4th turn
+        instead of the 2nd is impossible — the policy is designed to
+        switch on turn 2.)
    4. **Meaningful interaction gate** (operationalizes `:2812`):
       For each surviving run in the 5-run gate:
       - `pass_turn_fallback_rate ≤ 20%` over the run's `[cmd]` lines.
@@ -286,8 +297,10 @@ Does NOT supersede `docs/adr/0001-architecture-v5-9-freeze.md`,
 - `mod/LLMOfQud/SnapshotState.cs` — site for `DecisionInput`,
   `Decision` types and `BuildDecisionJson` builder.
 
-The codex 2026-04-26 redesign consultation that grounded this ADR is
-captured operator-local at `/tmp/phase-0-g-prep/codex-redesign-answer.md`
-(not in repo). The PROBE 1 BASELINE empirical run that triggered the
-rescope is in the operator's 2026-04-26 acceptance Player.log
-(operator-local; key metrics inlined into §Context above).
+The codex 2026-04-26 redesign consultation that grounded this ADR
+exists as an operator-local working note (file name
+`codex-redesign-answer.md`, intentionally not committed — it is
+verbatim chat output and adds no information beyond what is inlined
+into §Context above). The PROBE 1 BASELINE empirical run that
+triggered the rescope is in the operator's 2026-04-26 acceptance
+Player.log (operator-local; key metrics inlined into §Context above).
