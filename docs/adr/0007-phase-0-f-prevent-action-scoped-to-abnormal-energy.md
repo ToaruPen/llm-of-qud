@@ -195,13 +195,14 @@ the empirical conditions under which they hold.
   — `Buffer[,]` mutable shared state (rejected (C) alternative).
 - `decompiled/GameManager.cs:3049-3054, 3089-3091`
   — `TextConsole.BufferCS` lock (rejected (C) alternative).
-- `/tmp/phase-0-f-acceptance/raw-player-15-05-08.log`
-  — 488-turn empirical evidence (operator-local; not committed).
-
 - `docs/memo/phase-0-f-exit-2026-04-26.md` — Phase 0-F exit memo
   recording the post-ADR-0007 acceptance results (505-record combined
   Step A + Step B run, full 6-channel parity, 11 damaging hits) and
-  the carry-forward observations for Phase 0-G / Phase 1.
+  the carry-forward observations for Phase 0-G / Phase 1. The exit
+  memo's "References" section also points to operator-local evidence
+  artifacts under `/tmp/phase-0-f-acceptance/` that capture the pre-
+  and post-patch runs cited in the empirical observation table above;
+  those artifacts are not committed to the repository.
 
 ## Supersedes
 

@@ -213,6 +213,10 @@ namespace LLMOfQud
                     string[] priority = new[] { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
                     for (int i = 0; i < priority.Length; i++)
                     {
+                        // Verified signature at decompiled/XRL.World/Cell.cs:7322:
+                        //   public Cell GetCellFromDirection(string Direction, bool BuiltOnly = true)
+                        // BuiltOnly:false matches XRLCore's CmdMoveE wrapper which uses the same
+                        // un-built-aware lookup (Cell-level neighbor, not Zone-level).
                         Cell adj = cellBefore.GetCellFromDirection(priority[i], BuiltOnly: false);
                         if (adj == null) continue;
                         // Verified signature at decompiled/XRL.World/Cell.cs:8511:
