@@ -186,6 +186,11 @@ This note is intentionally placed in ADR 0011 (and not deferred to a
 PR-2 readiness ADR) so the rule is visible the moment PR-2 work begins
 and cannot be silently skipped.
 
+## Supersedes
+
+None. This ADR is additive and partial-amends v5.9 Phase 1 sequencing;
+it does not supersede prior ADRs.
+
 ## Related Artifacts
 
 - `docs/memo/phase-1-readiness-brainstorm-2026-04-27.md` — sealed
@@ -204,8 +209,3 @@ and cannot be silently skipped.
 - `docs/architecture-v5.md:1778-1804` — WebSocket thread routing and
   queue deadlock warning.
 - `mod/LLMOfQud/IDecisionPolicy.cs:58-64` — input-only policy boundary.
-
-## Supersedes
-
-None. This ADR is additive and partial-amends v5.9 Phase 1 sequencing;
-it does not supersede prior ADRs.
