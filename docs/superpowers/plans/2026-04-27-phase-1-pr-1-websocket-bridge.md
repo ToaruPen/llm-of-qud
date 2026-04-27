@@ -20,7 +20,7 @@ for O(timeout) on a `Task` completed by `BrainClient`, while
 `BrainClient` owns socket connect, send, receive, and reconnect detection
 on a dedicated non-game thread. The disconnect path is sealed as pause,
 not runtime `HeuristicPolicy` fallback, but the exact pause/wake mechanism
-is probe-driven by Task 1 and ADR 0013.
+is probe-driven by Task 1 and ADR 0014.
 
 **Tech Stack:** C# in the existing Roslyn-compiled CoQ MOD; Python 3.13
 with uv, `websockets` 16.0, `aiosqlite`, and `structlog` per
@@ -45,7 +45,7 @@ with uv, `websockets` 16.0, `aiosqlite`, and `structlog` per
 - **PR convergence**: PR-1.0 is this readiness PR: plan, ADR 0011,
   decision-log entry, decision record, and the sealed-decisions memo.
   It merges first. Implementation PR-1.1 opens only after Task 1 probe
-  results either lock ADR 0012 / ADR 0013 or force mid-flight ADRs using
+  results either lock ADR 0013 / ADR 0014 or force mid-flight ADRs using
   the ADR 0007 precedent.
 - **Phase 1 PR cascade**: PR-1.0 -> PR-1.1 -> PR-2 -> PR-3 -> Phase 2a.
 - **Probe-before-lock rule**: ADR 0007 exists because an empirical probe
@@ -54,7 +54,7 @@ with uv, `websockets` 16.0, `aiosqlite`, and `structlog` per
   PR-1 treats Probes 1, 2, 3, 6, and 8 from
   `docs/memo/phase-1-readiness-brainstorm-2026-04-27.md` §5 as Task 1
   gates. No C# or Python implementation proceeds until those probes pass
-  or the design pivots through ADR 0012 / ADR 0013.
+  or the design pivots through ADR 0013 / ADR 0014.
 
 ## Files affected
 
@@ -145,8 +145,8 @@ python3 scripts/create_adr_decision.py \
 **Files modified:**
 
 - Create: `docs/memo/phase-1-pr-1-probes-YYYY-MM-DD.md`
-- Create if probes pass cleanly: `docs/adr/0012-*.md`
 - Create if probes pass cleanly: `docs/adr/0013-*.md`
+- Create if probes pass cleanly: `docs/adr/0014-*.md`
 - Create mid-flight replacement ADRs if any probe falsifies a
   load-bearing claim.
 
@@ -167,7 +167,7 @@ python3 scripts/create_adr_decision.py \
   result, and falsification action in the Task 1 probe memo
   `docs/memo/phase-1-pr-1-probes-YYYY-MM-DD.md` (replace YYYY-MM-DD
   with the actual date when the probe phase runs).
-- No ADR 0012 / ADR 0013 claim is locked without a matching probe
+- No ADR 0013 / ADR 0014 claim is locked without a matching probe
   result. If a probe fails, write the corrective ADR in the ADR 0007
   pattern:
   cite the falsified claim, cite engine lines, then state the corrected
@@ -204,7 +204,7 @@ pre-commit run --all-files
   Pass: one `[decision]` and one `[cmd]` per CTA; `[screen]`,
   `[state]`, `[caps]`, and `[build]` remain correlated by turn; no
   keyboard prompt.
-  If falsified: ADR 0012 must reject blocking `Decide` as the durable
+  If falsified: ADR 0013 must reject blocking `Decide` as the durable
   model and choose prefetch, queue routing, or continuation with new
   probes.
 
@@ -213,7 +213,7 @@ pre-commit run --all-files
   Pass: fallback-labeled `[decision]` and `[cmd]` lines show accepted
   energy drain or accepted negative energy; `PreventAction` remains
   scoped to the ADR 0007 abnormal-energy catch path.
-  If falsified: ADR 0012 must alter timeout mechanics before
+  If falsified: ADR 0013 must alter timeout mechanics before
   implementation continues.
 
 - [ ] **Probe 3a: timeout fallback (NOT disconnect).**
@@ -223,7 +223,7 @@ pre-commit run --all-files
   abnormal-energy catch path; blocked-dir memory updates only after
   failed Move with `fallback == "pass_turn"`
   (`mod/LLMOfQud/LLMOfQudSystem.cs:259-299`).
-  If falsified: ADR 0012 must alter timeout mechanics before
+  If falsified: ADR 0013 must alter timeout mechanics before
   implementation continues.
 
 - [ ] **Probe 3b: disconnect mid-Decide enters pause (sealed Q3=pause).**
@@ -234,9 +234,9 @@ pre-commit run --all-files
   state; `PreventAction` not set; engine reaches `PlayerTurn` and
   enters the keyboard-wait idle path
   (`decompiled/XRL.Core/ActionManager.cs:838,1797-1799`).
-  If falsified: ADR 0013 must specify a different pause absorber, OR
+  If falsified: ADR 0014 must specify a different pause absorber, OR
   ADR 0011 §Q3 must be revisited (in which case escalate before
-  drafting ADR 0013).
+  drafting ADR 0014).
 
 - [ ] **Probe A: BTA / CTA bypass timing if Probe 8 (i) is ever
   exercised.**
@@ -272,7 +272,7 @@ pre-commit run --all-files
   Setup: 60 turns with 200ms artificial decision latency.
   Pass: each completed decision has exactly one action and one
   observation set; observations do not bunch after many turns.
-  If falsified: ADR 0012 must reject or narrow game-thread blocking.
+  If falsified: ADR 0013 must reject or narrow game-thread blocking.
 
 - [ ] **Probe 8: reconnect wake mechanism.**
   Setup: hold WebSocket disconnected for 30+ seconds, observe CoQ
@@ -303,7 +303,7 @@ pre-commit run --all-files
   (`decompiled/XRL.World/CommandTakeActionEvent.cs:37-39` returns
   false; ActionManager continues at
   `decompiled/XRL.Core/ActionManager.cs:829-832`).
-  If falsified: ADR 0013 must choose a different pause absorber or
+  If falsified: ADR 0014 must choose a different pause absorber or
   reconnect wake mechanism before Task 4 proceeds.
 
 - [ ] **Probe E: wake-key innocuousness (fires only if Probe 8 chooses
@@ -389,7 +389,7 @@ pre-commit run --all-files
   construction aid; runtime disconnect does not continue autonomous
   actions through it.
 - `DisconnectedException` enters the Task 1 Probe 8 pause posture.
-- Reconnect-wake hook is implemented by the ADR 0013 mechanism.
+- Reconnect-wake hook is implemented by the ADR 0014 mechanism.
 - ADR 0007 scope remains unchanged: `PreventAction` is not used on
   the success path, and the render fallback at
   `decompiled/XRL.Core/ActionManager.cs:1806-1808` remains load-bearing.
@@ -527,7 +527,7 @@ uv run pytest tests/
 **Pass criteria:**
 
 - Memo follows the Phase 0-G exit-memo style.
-- Includes probe outcomes, ADR 0012 / 0013 status, acceptance metrics,
+- Includes probe outcomes, ADR 0013 / 0014 status, acceptance metrics,
   known deferrals, and PR-2 handoff.
 - Calls out any schema or envelope facts that remain intentionally
   deferred.
