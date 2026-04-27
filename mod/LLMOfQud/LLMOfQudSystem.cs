@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Text;
 using System.Threading;
 using ConsoleLib.Console;
+using UnityEngine;
 using XRL;
 using XRL.Core;
 using XRL.UI;
@@ -30,9 +31,11 @@ namespace LLMOfQud
 
         private int _beginTurnCount;
 
-        // Phase 0-G: IDecisionPolicy boundary. HeuristicPolicy is stateless;
-        // readonly field is safe for the [Serializable] class.
-        private readonly IDecisionPolicy _policy = new HeuristicPolicy();
+        // Phase 1 PR-1: IDecisionPolicy boundary now crosses the WebSocket bridge.
+        // Runtime bridge state is rehydrated from RegisterPlayer / AfterLoad because
+        // IGameSystem is serialized and load calls AfterLoad
+        // (decompiled/XRL/IGameSystem.cs:11-12; decompiled/XRL/XRLGame.cs:1818-1821).
+        [NonSerialized] private IDecisionPolicy _policy;
 
         // Phase 0-G: memory for DecisionInput.Adjacent.BlockedDirs and .Recent.
         // Updated after each action dispatch, read by BuildDecisionInput on the
@@ -58,6 +61,31 @@ namespace LLMOfQud
         private string _lastDir;
         private bool _lastResult;
 
+        private void EnsureRuntimePolicy()
+        {
+            WebSocketPolicy webSocketPolicy = _policy as WebSocketPolicy;
+            if (webSocketPolicy == null)
+            {
+                webSocketPolicy = new WebSocketPolicy(BrainClient.DefaultEndpoint, OnBrainReconnected);
+                _policy = webSocketPolicy;
+                return;
+            }
+            webSocketPolicy.EnsureClient(OnBrainReconnected);
+        }
+
+        private static void OnBrainReconnected()
+        {
+            // Probe 8 default: wake native PlayerTurn keyboard idle by injecting
+            // the most inert key. Keyboard.PushKey enqueues and signals KeyEvent at
+            // decompiled/ConsoleLib.Console/Keyboard.cs:763-781; PlayerTurn idles
+            // on Keyboard.IdleWait at decompiled/XRL.Core/XRLCore.cs:2307-2315.
+            //
+            // Probe 8 fallback (not active): drain one turn via PassTurn if PushKey
+            // is empirically falsified. Do not use PreventAction-without-drain.
+            Keyboard.PushKey(KeyCode.None);
+            MetricsManager.LogInfo("[LLMOfQud][wake] PushKey injected key=None");
+        }
+
         // Cell key for _blockedDirsByCell. Stable string form so the dictionary
         // does not depend on Cell object identity (Cell instances are
         // re-created when zones unload / reload). Format mirrors the [cmd]
@@ -79,6 +107,10 @@ namespace LLMOfQud
                     "[LLMOfQud] loaded v" + VERSION +
                     " at " + DateTime.UtcNow.ToString("o"));
             }
+            if (!Registrar.IsUnregister)
+            {
+                EnsureRuntimePolicy();
+            }
             if (!Registrar.IsUnregister && !_afterRenderRegistered)
             {
                 // XRLCore fires this after Zone.Render populates the source buffer
@@ -98,6 +130,12 @@ namespace LLMOfQud
             Registrar.Register(SingletonEvent<BeginTakeActionEvent>.ID);
             Registrar.Register(SingletonEvent<CommandTakeActionEvent>.ID);
             base.RegisterPlayer(Player, Registrar);
+        }
+
+        public override void AfterLoad(XRLGame game)
+        {
+            base.AfterLoad(game);
+            EnsureRuntimePolicy();
         }
 
         public override bool HandleEvent(BeginTakeActionEvent E)
@@ -392,6 +430,7 @@ namespace LLMOfQud
             // the outer catch can decide whether to emit a [decision] sentinel itself
             // (needed when BuildDecisionInput or Execute throws before Decide runs).
             bool decisionEmitted = false;
+            bool disconnectPause = false;
             int energyBefore = 0;
             try
             {
@@ -412,7 +451,12 @@ namespace LLMOfQud
                 Decision decision;
                 try
                 {
+                    EnsureRuntimePolicy();
                     decision = _policy.Decide(input);
+                }
+                catch (DisconnectedException)
+                {
+                    throw;
                 }
                 catch (Exception policyEx)
                 {
@@ -551,6 +595,20 @@ namespace LLMOfQud
 
                 MetricsManager.LogInfo("[LLMOfQud][cmd] " + SnapshotState.BuildCmdJson(rec));
             }
+            catch (DisconnectedException ex)
+            {
+                // ADR 0011 Q3: disconnect means pause, not runtime HeuristicPolicy
+                // fallback. Emit a non-decision.v1 sentinel-style line only; no
+                // [cmd], no terminal action, no energy mutation, and no
+                // PreventAction. Keeping Energy.Value >= 1000 lets ActionManager
+                // enter PlayerTurn at decompiled/XRL.Core/ActionManager.cs:838,
+                // :1797-1799; reconnect wake uses Keyboard.PushKey.
+                disconnectPause = true;
+                decisionEmitted = true;
+                MetricsManager.LogInfo(
+                    "[LLMOfQud][decision] DISCONNECTED turn=" + turn +
+                    " posture=pause message=" + SanitizeForLog(ex.Message));
+            }
             catch (Exception ex)
             {
                 // If [decision] was not yet emitted (BuildDecisionInput or pre-Decide
@@ -602,13 +660,22 @@ namespace LLMOfQud
                 // Reach this defense ONLY when post-recovery energy is still
                 // >= 1000 (i.e., Layers 1/2/3 all failed to drain). One render
                 // cadence is sacrificed to preserve autonomy.
-                if (player?.Energy != null && player.Energy.Value >= 1000)
+                if (!disconnectPause && player?.Energy != null && player.Energy.Value >= 1000)
                 {
                     E.PreventAction = true;
                 }
             }
 
             return true;
+        }
+
+        private static string SanitizeForLog(string value)
+        {
+            if (value == null)
+            {
+                return "";
+            }
+            return value.Replace('\n', ' ').Replace('\r', ' ');
         }
 
         // Render a ScreenBuffer as an ASCII grid. Tile-mode cells hold the
