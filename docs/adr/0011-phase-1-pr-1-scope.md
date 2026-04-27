@@ -34,7 +34,7 @@ and render fallback, so the design had to be corrected by a mid-
 implementation ADR before acceptance could be trusted. Phase 1 PR-1 has
 the same class of load-bearing claims around async `Decide`, game-thread
 blocking, disconnect pause, and reconnect wake. Those claims must be
-probed before ADR 0012 / ADR 0013 lock the durable mechanics.
+probed before ADR 0013 / ADR 0014 lock the durable mechanics.
 
 ## Decision
 
@@ -73,7 +73,7 @@ PR-1 (boundary + plumbing):
   - Disconnect = pause posture (no HeuristicPolicy fallback)
   - Reconnect-wake mechanism (Probe 8 result drives the choice)
   - Latency target: <100ms round-trip with no-LLM canned Python policy
-  Required ADRs: 0011 (PR-1 scope), 0012 (async Decide threading), 0013 (pause + reconnect)
+  Required ADRs: 0011 (PR-1 scope), 0013 (async Decide threading), 0014 (pause + reconnect)
 
 PR-2 (envelope + ops):
   - 1-B Tool call message format (request/response, v5.9 envelope)
@@ -90,10 +90,16 @@ PR-3 (idempotency, Phase 2a Gate 1 prerequisite):
 Phase 2a opens here; LLM is connected via Codex auth from PR-1.
 ```
 
-ADR 0012 (async `IDecisionPolicy.Decide` threading contract) and
-ADR 0013 (disconnect=pause plus reconnect wake) will land later:
+ADR 0013 (async `IDecisionPolicy.Decide` threading contract) and
+ADR 0014 (disconnect=pause plus reconnect wake) will land later:
 either in this readiness sequence if Task 1 probe results arrive
 cleanly, or as mid-flight ADRs in PR-1.1 using the ADR 0007 pattern.
+
+Note (added 2026-04-27 by ADR 0012): the original forward references
+to ADRs 0012 and 0013 above shift to ADR 0013 (async Decide threading)
+and ADR 0014 (disconnect=pause + reconnect wake) because ADR 0012 was
+used by the plan-hotfix landed in PR #19. ADR 0011 sealed Q1-Q5 are
+unchanged.
 
 ## Alternatives Considered
 
@@ -142,9 +148,9 @@ Harder:
 
 Re-open triggers:
 
-- If Task 1 probes falsify blocking-await viability, ADR 0012 may
+- If Task 1 probes falsify blocking-await viability, ADR 0013 may
   supersede the implementation mechanics assumed by this scope.
-- If Task 1 probes falsify pause or reconnect-wake viability, ADR 0013
+- If Task 1 probes falsify pause or reconnect-wake viability, ADR 0014
   may supersede the disconnect posture or move pause mechanics to a
   different engine path.
 - If PR-1 latency cannot meet `<100ms` with no LLM

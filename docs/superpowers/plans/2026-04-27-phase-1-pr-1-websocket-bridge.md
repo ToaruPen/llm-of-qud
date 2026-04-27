@@ -20,7 +20,7 @@ for O(timeout) on a `Task` completed by `BrainClient`, while
 `BrainClient` owns socket connect, send, receive, and reconnect detection
 on a dedicated non-game thread. The disconnect path is sealed as pause,
 not runtime `HeuristicPolicy` fallback, but the exact pause/wake mechanism
-is probe-driven by Task 1 and ADR 0013.
+is probe-driven by Task 1 and ADR 0014.
 
 **Tech Stack:** C# in the existing Roslyn-compiled CoQ MOD; Python 3.13
 with uv, `websockets` 16.0, `aiosqlite`, and `structlog` per
@@ -45,7 +45,7 @@ with uv, `websockets` 16.0, `aiosqlite`, and `structlog` per
 - **PR convergence**: PR-1.0 is this readiness PR: plan, ADR 0011,
   decision-log entry, decision record, and the sealed-decisions memo.
   It merges first. Implementation PR-1.1 opens only after Task 1 probe
-  results either lock ADR 0012 / ADR 0013 or force mid-flight ADRs using
+  results either lock ADR 0013 / ADR 0014 or force mid-flight ADRs using
   the ADR 0007 precedent.
 - **Phase 1 PR cascade**: PR-1.0 -> PR-1.1 -> PR-2 -> PR-3 -> Phase 2a.
 - **Probe-before-lock rule**: ADR 0007 exists because an empirical probe
@@ -54,7 +54,7 @@ with uv, `websockets` 16.0, `aiosqlite`, and `structlog` per
   PR-1 treats Probes 1, 2, 3, 6, and 8 from
   `docs/memo/phase-1-readiness-brainstorm-2026-04-27.md` §5 as Task 1
   gates. No C# or Python implementation proceeds until those probes pass
-  or the design pivots through ADR 0012 / ADR 0013.
+  or the design pivots through ADR 0013 / ADR 0014.
 
 ## Files affected
 
@@ -145,28 +145,58 @@ python3 scripts/create_adr_decision.py \
 **Files modified:**
 
 - Create: `docs/memo/phase-1-pr-1-probes-YYYY-MM-DD.md`
-- Create if probes pass cleanly: `docs/adr/0012-*.md`
 - Create if probes pass cleanly: `docs/adr/0013-*.md`
+- Create if probes pass cleanly: `docs/adr/0014-*.md`
 - Create mid-flight replacement ADRs if any probe falsifies a
   load-bearing claim.
 
 **Pass criteria:**
 
-- Probes 1, 2, 3, 6, and 8 are run against minimal instrumentation
-  before production C# / Python implementation begins.
+- All probes (Compile-sanity, 1, 2, 3a, 3b, A, D, 6, 8 with E if
+  (iv) selected) must be run against minimal `probe-only`
+  instrumentation as defined in Task 2/3/4/5/6/7 SCAFFOLDING
+  (compiles + runs but does not implement tools, auth, or telemetry
+  beyond bare logging).
+- Recommended sequencing: ONE primary CoQ launch with a
+  phase-controlled Python server orchestrating Probes in order
+  Compile-sanity (build-time, before launch) -> 1 -> 6 -> 2 -> 3a ->
+  3b -> A -> D -> 8(iv) -> E. Reserve ONE recovery launch for
+  save/load split or 8(iv) failure path. Do not burn the same session
+  testing low-priority freeze-prone options.
 - Each probe records setup, raw observable, expected result, actual
-  result, and falsification action.
-- No ADR 0012 / ADR 0013 claim is locked without a matching probe
-  result. If a probe fails, write the ADR in the ADR 0007 pattern:
+  result, and falsification action in the Task 1 probe memo
+  `docs/memo/phase-1-pr-1-probes-YYYY-MM-DD.md` (replace YYYY-MM-DD
+  with the actual date when the probe phase runs).
+- No ADR 0013 / ADR 0014 claim is locked without a matching probe
+  result. If a probe fails, write the corrective ADR in the ADR 0007
+  pattern:
   cite the falsified claim, cite engine lines, then state the corrected
   rule.
 
 **Verification commands:**
 
 ```bash
-rg -n "Probe 1|Probe 2|Probe 3|Probe 6|Probe 8" docs/memo/phase-1-pr-1-probes-*.md
+rg -n "Compile-sanity|Probe 1|Probe 2|Probe 3a|Probe 3b|Probe A|Probe D|Probe 6|Probe 8|Probe E" docs/memo/phase-1-pr-1-probes-*.md
 pre-commit run --all-files
 ```
+
+- [ ] **Pre-Probe Step: Compile-time `ClientWebSocket` availability
+  sanity.**
+  Claim: CoQ's mod compiler references currently loaded AppDomain
+  assemblies (`decompiled/XRL/ModManager.cs:402-405`) and compiles mod
+  files via Roslyn (`decompiled/XRL/ModInfo.cs:757-771`). If
+  `System.Net.WebSockets.ClientWebSocket` is not already referenceable
+  in that set, `BrainClient.cs` cannot compile and Probe 1 cannot run.
+  Setup: write a 1-file probe stub `mod/LLMOfQud/BrainClient.cs`
+  containing only a `using System.Net.WebSockets;` and a single
+  `ClientWebSocket` field reference. Compile via the standard CoQ mod
+  load. Inspect `build_log.txt`.
+  Pass: "Compiling N files... Success :)" with no `MODWARN` /
+  `COMPILER ERRORS` lines for `LLMOfQud`.
+  If falsified: ADR 0011 must amend its assumption that
+  `ClientWebSocket` is the right C# WebSocket primitive; the impl
+  PR-1.1 may need a different library (e.g. WebSocketSharp via Harmony
+  reference, or NuGet shim).
 
 - [ ] **Probe 1: blocking WebSocket wait on CTA.**
   Setup: 100 turns with Python sleeping 0ms, 50ms, 100ms, and 250ms
@@ -174,7 +204,7 @@ pre-commit run --all-files
   Pass: one `[decision]` and one `[cmd]` per CTA; `[screen]`,
   `[state]`, `[caps]`, and `[build]` remain correlated by turn; no
   keyboard prompt.
-  If falsified: ADR 0012 must reject blocking `Decide` as the durable
+  If falsified: ADR 0013 must reject blocking `Decide` as the durable
   model and choose prefetch, queue routing, or continuation with new
   probes.
 
@@ -183,25 +213,66 @@ pre-commit run --all-files
   Pass: fallback-labeled `[decision]` and `[cmd]` lines show accepted
   energy drain or accepted negative energy; `PreventAction` remains
   scoped to the ADR 0007 abnormal-energy catch path.
-  If falsified: ADR 0012 must alter timeout mechanics before
+  If falsified: ADR 0013 must alter timeout mechanics before
   implementation continues.
 
-- [ ] **Probe 3: disconnect mid-`Decide`.**
+- [ ] **Probe 3a: timeout fallback (NOT disconnect).**
+  Setup: Python sleeps beyond timeout for 50 turns.
+  Pass: exactly one `[decision]` and one `[cmd]` per turn with
+  fallback-labeled action; `PreventAction` remains scoped to ADR 0007
+  abnormal-energy catch path; blocked-dir memory updates only after
+  failed Move with `fallback == "pass_turn"`
+  (`mod/LLMOfQud/LLMOfQudSystem.cs:259-299`).
+  If falsified: ADR 0013 must alter timeout mechanics before
+  implementation continues.
+
+- [ ] **Probe 3b: disconnect mid-Decide enters pause (sealed Q3=pause).**
   Setup: Python accepts a request, closes the socket before response,
-  and repeats over 20 turns.
-  Pass: exactly one `[decision]` and one `[cmd]` per turn, no duplicate
-  terminal action, no stale decision applied after reconnect, and
-  blocked-dir memory updates only after failed Move with
-  `fallback == "pass_turn"` as in
-  `mod/LLMOfQud/LLMOfQudSystem.cs:259-299`.
-  If falsified: ADR 0013 must specify stale response rejection or a
-  different disconnect sequence.
+  repeats over 20 turns.
+  Pass: NO `[decision]` and NO `[cmd]` line are emitted for the
+  disconnect-window turn; `Energy.Value` unchanged from pre-disconnect
+  state; `PreventAction` not set; engine reaches `PlayerTurn` and
+  enters the keyboard-wait idle path
+  (`decompiled/XRL.Core/ActionManager.cs:838,1797-1799`).
+  If falsified: ADR 0014 must specify a different pause absorber, OR
+  ADR 0011 §Q3 must be revisited (in which case escalate before
+  drafting ADR 0014).
+
+- [ ] **Probe A: BTA / CTA bypass timing if Probe 8 (i) is ever
+  exercised.**
+  Setup: instrument `HandleEvent(BeginTakeActionEvent)` and
+  `HandleEvent(CommandTakeActionEvent)` to emit per-call counts; run
+  one disconnect pause via BTA-side blocking (Probe 8 option (i) test,
+  watchdog < 5s). Observable: BTA call count, CTA call count, energy
+  before/after, presence of hostile-interrupt and render fallback.
+  Pass: BTA blocking does NOT zero energy at
+  `decompiled/XRL.Core/ActionManager.cs:788-791`, CTA branch is NOT
+  skipped on resume, render fallback at
+  `decompiled/XRL.Core/ActionManager.cs:1806-1808` still flushes.
+  If falsified: Probe 8 (i) is rejected even as a fallback, and option
+  (iv) becomes the only viable wake mechanism.
+
+- [ ] **Probe D: save/load lifecycle for the WebSocket bridge state.**
+  Phase 0-G left save/load resilience untested
+  (`docs/memo/phase-0-g-exit-2026-04-27.md` §Open hazards). The new
+  bridge re-opens this hazard because `LLMOfQudSystem` extends
+  `IGameSystem` which is `[Serializable]`
+  (`decompiled/XRL/IGameSystem.cs:11-12`); CoQ writes systems on save
+  (`decompiled/XRL/XRLGame.cs:1573-1582`) and calls `AfterLoad` after
+  read (`decompiled/XRL/XRLGame.cs:1818-1821`). Setup: connected run
+  -> save -> load -> verify reconnect -> 5 turns. Pass: exactly one
+  active `BrainClient` instance after load; no duplicate after-render
+  callback registration; no serialized socket / thread / cancellation
+  token state; first turn after load reaches normal Decide flow.
+  If falsified: `BrainClient` runtime fields must be marked
+  `[NonSerialized]` and recreated in `AfterLoad` / `RegisterPlayer`
+  (typical fix; this is a known-shape problem, not a redesign).
 
 - [ ] **Probe 6: render fallback under slow decisions.**
   Setup: 60 turns with 200ms artificial decision latency.
   Pass: each completed decision has exactly one action and one
   observation set; observations do not bunch after many turns.
-  If falsified: ADR 0012 must reject or narrow game-thread blocking.
+  If falsified: ADR 0013 must reject or narrow game-thread blocking.
 
 - [ ] **Probe 8: reconnect wake mechanism.**
   Setup: hold WebSocket disconnected for 30+ seconds, observe CoQ
@@ -211,11 +282,42 @@ pre-commit run --all-files
   Pass: chosen wake resumes within one render frame, applies no stale
   action, and leaves energy unchanged from the pre-pause state.
   Sub-options to test:
-  (i) block-BTA polling loop; (ii) drain energy via `PassTurn`;
-  (iii) `PreventAction = true` with no energy drain; (iv)
-  `Keyboard.PushKey` wake injection.
-  If falsified: ADR 0013 must choose a different pause absorber or
+  Primary: **(iv) `Keyboard.PushKey` wake injection** — matches CoQ
+  native idle path. `PlayerTurn` checks keyboard input
+  (`decompiled/XRL.Core/XRLCore.cs:726`) and idles via
+  `Keyboard.IdleWait()` while energy is high
+  (`decompiled/XRL.Core/XRLCore.cs:2307-2315`); `Keyboard.PushKey`
+  enqueues under lock and signals `KeyEvent`
+  (`decompiled/ConsoleLib.Console/Keyboard.cs:763-781`). Failure mode
+  = wake key is interpreted as a real player command; mitigated by
+  Probe E (next change) which proves the chosen wake key is innocuous.
+  Fallback: **(ii) drain energy via `PassTurn` on disconnect** — only
+  if (iv) is empirically falsified. Trade-off: not a true pause; time
+  advances and NPCs/environment can act, so the disconnect window
+  grants other actors free turns.
+  NOT TESTED: **(i) block-BTA polling loop** — Unity main-thread freeze
+  risk per Probe A above; would be tested only if BOTH (iv) and (ii)
+  fail.
+  REJECTED: **(iii) `PreventAction = true` with no energy drain** —
+  same shape as the Phase 0-F failure that ADR 0007 corrected
+  (`decompiled/XRL.World/CommandTakeActionEvent.cs:37-39` returns
+  false; ActionManager continues at
+  `decompiled/XRL.Core/ActionManager.cs:829-832`).
+  If falsified: ADR 0014 must choose a different pause absorber or
   reconnect wake mechanism before Task 4 proceeds.
+
+- [ ] **Probe E: wake-key innocuousness (fires only if Probe 8 chooses
+  option (iv)).**
+  Setup: select the most innocuous `Keys` enum value available (e.g.
+  an unmapped diagnostic key, NOT `Space` / `Enter` / a movement key);
+  inject via `Keyboard.PushKey` from the BrainClient reconnect
+  callback; observe over 20 reconnect cycles.
+  Pass: injected key is NOT interpreted as a player command (no
+  `[cmd]` line, no movement, no menu open); `Energy.Value` unchanged
+  across the wake; next CTA fires from the post-reconnect Python
+  decision, not from the wake key.
+  If falsified: choose a different key OR fall back to Probe 8 option
+  (ii).
 
 ## Task 2: `BrainClient.cs` skeleton
 
@@ -287,7 +389,7 @@ pre-commit run --all-files
   construction aid; runtime disconnect does not continue autonomous
   actions through it.
 - `DisconnectedException` enters the Task 1 Probe 8 pause posture.
-- Reconnect-wake hook is implemented by the ADR 0013 mechanism.
+- Reconnect-wake hook is implemented by the ADR 0014 mechanism.
 - ADR 0007 scope remains unchanged: `PreventAction` is not used on
   the success path, and the render fallback at
   `decompiled/XRL.Core/ActionManager.cs:1806-1808` remains load-bearing.
@@ -425,7 +527,7 @@ uv run pytest tests/
 **Pass criteria:**
 
 - Memo follows the Phase 0-G exit-memo style.
-- Includes probe outcomes, ADR 0012 / 0013 status, acceptance metrics,
+- Includes probe outcomes, ADR 0013 / 0014 status, acceptance metrics,
   known deferrals, and PR-2 handoff.
 - Calls out any schema or envelope facts that remain intentionally
   deferred.
@@ -463,3 +565,25 @@ the full `tool_call` / `tool_result` envelope portion lands in PR-2.
 - **SQLite schema churn:** PR-1 telemetry tables precede the PR-2
   envelope lock, so `decision_request` / `decision_response` columns may
   churn when `tool_call` / `tool_result` becomes authoritative.
+- **C# WebSocket assembly availability may fail before runtime.** CoQ's
+  mod compiler references currently loaded AppDomain assemblies
+  (`decompiled/XRL/ModManager.cs:402-405`) and compiles mod files via
+  Roslyn (`decompiled/XRL/ModInfo.cs:757-771`). If
+  `System.Net.WebSockets` / `ClientWebSocket` is not already
+  referenceable, `BrainClient.cs` may fail to compile even though the
+  design is sound. Mitigated by the Pre-Probe compile-sanity step.
+- **Bridge runtime state can corrupt save/load unless explicitly
+  nonserialized and rehydrated.** `IGameSystem` is `[Serializable]`
+  (`decompiled/XRL/IGameSystem.cs:11-12`). CoQ writes each system on
+  save (`decompiled/XRL/XRLGame.cs:1573-1582`) and calls `AfterLoad`
+  after load (`decompiled/XRL/XRLGame.cs:1818-1821`).
+  `ClientWebSocket`, threads, tasks, cancellation tokens, and pending
+  request maps must NOT live in serialized fields. Mark runtime fields
+  `[NonSerialized]`; recreate in `AfterLoad` / `RegisterPlayer`.
+  Validated by Probe D.
+- **Startup race between CoQ mod load and Python server readiness.**
+  PR-1 requires Python WebSocket on `localhost:4040` with `websockets`
+  16.0. If CoQ connects during `RegisterPlayer` before `brain/app.py`
+  is listening, the first turn enters disconnect=pause before Probe 1
+  begins. Mitigated by bounded retry/backoff in BrainClient and a clear
+  `[connection_lifecycle]` log line before the first CTA decision.
