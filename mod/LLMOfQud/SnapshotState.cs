@@ -935,6 +935,68 @@ namespace LLMOfQud
             return sb.ToString();
         }
 
+        // Phase 0-G [decision] line builder. Schema decision.v1 is jointly locked
+        // with command_issuance.v1's action enum: action ∈ {Move, AttackDirection},
+        // PassTurn is engine bookkeeping (3-layer drain Layer-2 fallback) and never
+        // a Decision.Action. intent ∈ {attack, escape, explore}; reason_code is a
+        // small enum classifying the branch. Field order is the schema lock;
+        // reordering / adding requires decision.v2 + ADR.
+        // input_summary is an operator-readable digest of DecisionInput (full DTO
+        // is too large to log per turn). Caller prepends "[LLMOfQud][decision] "
+        // at the LogInfo call site. Emits BEFORE [cmd] on the same handler.
+        internal static string BuildDecisionJson(int turn, Decision decision, DecisionInput input)
+        {
+            StringBuilder sb = new StringBuilder(384);
+            sb.Append('{');
+            sb.Append("\"turn\":").Append(turn.ToString(CultureInfo.InvariantCulture));
+            sb.Append(",\"schema\":\"decision.v1\"");
+            sb.Append(",\"input_summary\":{");
+            sb.Append("\"hp\":").Append(input.Player.Hp.ToString(CultureInfo.InvariantCulture));
+            sb.Append(",\"max_hp\":").Append(input.Player.MaxHp.ToString(CultureInfo.InvariantCulture));
+            sb.Append(",\"adjacent_hostile_dir\":");
+            AppendJsonStringOrNull(sb, input.Adjacent.HostileDir);
+            sb.Append(",\"blocked_dirs_count\":");
+            int blockedCount = input.Adjacent.BlockedDirs == null ? 0 : input.Adjacent.BlockedDirs.Count;
+            sb.Append(blockedCount.ToString(CultureInfo.InvariantCulture));
+            sb.Append('}');
+            sb.Append(",\"intent\":");
+            AppendJsonStringOrNull(sb, decision.Intent);
+            sb.Append(",\"action\":");
+            AppendJsonStringOrNull(sb, decision.Action);
+            sb.Append(",\"dir\":");
+            AppendJsonStringOrNull(sb, decision.Dir);
+            sb.Append(",\"reason_code\":");
+            AppendJsonStringOrNull(sb, decision.ReasonCode);
+            // Serialize policy-returned Decision.Error (distinct from the
+            // Decide-throws path, which uses BuildDecisionSentinelJson). A policy
+            // may return a non-throwing error Decision (e.g., reason_code =
+            // "policy_error" with a structured Error message); dropping it here
+            // would hide failure from the acceptance gate.
+            sb.Append(",\"error\":");
+            AppendJsonStringOrNull(sb, decision.Error);
+            sb.Append('}');
+            return sb.ToString();
+        }
+
+        // Reduced sentinel shape consistent with Phase 0-D [caps] / 0-E [build] /
+        // 0-F [cmd] sentinels: {turn, schema, error:{type, message}}. Used when
+        // HandleEvent(CommandTakeActionEvent) catches an exception thrown from
+        // BuildDecisionInput or IDecisionPolicy.Decide. AppendJsonString correctly
+        // escapes RFC-8259 control characters in ex.Message.
+        internal static string BuildDecisionSentinelJson(int turn, Exception ex)
+        {
+            StringBuilder sb = new StringBuilder(192);
+            sb.Append('{');
+            sb.Append("\"turn\":").Append(turn.ToString(CultureInfo.InvariantCulture));
+            sb.Append(",\"schema\":\"decision.v1\"");
+            sb.Append(",\"error\":{\"type\":");
+            AppendJsonString(sb, ex.GetType().Name);
+            sb.Append(",\"message\":");
+            AppendJsonString(sb, ex.Message ?? "");
+            sb.Append("}}");
+            return sb.ToString();
+        }
+
         // Inline helper: emit a {"x":N,"y":N,"zone":"..."} object. Mirrors the shape
         // [state] uses (SnapshotState.cs:206-211 — pos-of-player). zone is the
         // GameObject.CurrentCell.ParentZone.ZoneID string. Emits zone via

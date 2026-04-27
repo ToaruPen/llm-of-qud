@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using System.Threading;
 using ConsoleLib.Console;
@@ -6,7 +8,7 @@ using XRL;
 using XRL.Core;
 using XRL.UI;
 using XRL.World;
-using XRL.World.Capabilities;   // NEW: AutoAct.ClearAutoMoveStop
+using XRL.World.Capabilities;   // AutoAct.ClearAutoMoveStop
 
 namespace LLMOfQud
 {
@@ -27,6 +29,46 @@ namespace LLMOfQud
         private static PendingSnapshot _pendingSnapshot;
 
         private int _beginTurnCount;
+
+        // Phase 0-G: IDecisionPolicy boundary. HeuristicPolicy is stateless;
+        // readonly field is safe for the [Serializable] class.
+        private readonly IDecisionPolicy _policy = new HeuristicPolicy();
+
+        // Phase 0-G: memory for DecisionInput.Adjacent.BlockedDirs and .Recent.
+        // Updated after each action dispatch, read by BuildDecisionInput on the
+        // next CTA invocation. These are legitimate per-game instance state;
+        // the [Serializable] attribute covers them as part of save/load.
+        //
+        // Per-cell blocked-dir memory: keyed by cell coordinate (x:y:zone).
+        // BuildDecisionInput passes only the CURRENT cell's blocked-dir set as
+        // DecisionInput.Adjacent.BlockedDirs, so the policy sees "directions
+        // that failed FROM this cell" rather than "directions that failed
+        // anywhere". Earlier Phase 0-G drafts used a flat HashSet plus a
+        // clear-on-success rule; that lost wall knowledge whenever the player
+        // stepped one cell, causing 2-cell pockets between walls to oscillate
+        // forever (observed in Run 2: 49% pass_turn fallback rate over 1777
+        // turns). Per-cell memory eliminates that re-learning loop without
+        // changing the decision_input.v1 wire schema (BlockedDirs : List<string>
+        // is unchanged; only the source of its contents shifts from global to
+        // per-cell). HeuristicPolicy is unmodified.
+        private readonly Dictionary<string, HashSet<string>> _blockedDirsByCell =
+            new Dictionary<string, HashSet<string>>();
+        private int _lastActionTurn = -1;
+        private string _lastAction;
+        private string _lastDir;
+        private bool _lastResult;
+
+        // Cell key for _blockedDirsByCell. Stable string form so the dictionary
+        // does not depend on Cell object identity (Cell instances are
+        // re-created when zones unload / reload). Format mirrors the [cmd]
+        // pos_before / pos_after JSON shape so debugging across channels is
+        // trivial: "x:y:zone".
+        private static string CellKey(int x, int y, string zone)
+        {
+            return x.ToString(CultureInfo.InvariantCulture) + ":" +
+                   y.ToString(CultureInfo.InvariantCulture) + ":" +
+                   (zone ?? "<null-zone>");
+        }
 
         public override void RegisterPlayer(GameObject Player, IEventRegistrar Registrar)
         {
@@ -168,7 +210,153 @@ namespace LLMOfQud
             return base.HandleEvent(E);
         }
 
-        // Phase 0-F: act on the player's command point.
+        // Phase 0-G: build the DecisionInput DTO that the policy receives.
+        // hostileObj (out) carries the adjacent-hostile reference so the
+        // caller can capture target_* fields without an instance field
+        // (addendum A2: no stale-state leakage between CTA dispatches).
+        // cell may be null (player not positioned); defensive fallbacks
+        // match Phase 0-F's posBeforeX/Y = -1, zone = null pattern.
+        private DecisionInput BuildDecisionInput(
+            GameObject player, int turn, out GameObject hostileObj)
+        {
+            Cell cell = player.CurrentCell;
+            string hostileDir;
+            ScanAdjacentHostile(cell, player, out hostileDir, out hostileObj);
+
+            int posX = cell != null ? cell.X : -1;
+            int posY = cell != null ? cell.Y : -1;
+            string posZone = cell?.ParentZone?.ZoneID;
+
+            return new DecisionInput
+            {
+                Turn = turn,
+                Player = new PlayerSnapshot
+                {
+                    // decompiled/XRL.World/GameObject.cs:1177-1198: hitpoints / baseHitpoints.
+                    Hp = player.hitpoints,
+                    MaxHp = player.baseHitpoints,
+                    Pos = new Pos { X = posX, Y = posY, Zone = posZone },
+                },
+                Adjacent = new AdjacencySnapshot
+                {
+                    HostileDir = hostileDir,
+                    HostileId = (hostileObj != null) ? hostileObj.ID : null,
+                    // Per-cell lookup: pass only THIS cell's blocked-dir
+                    // history. Empty list when the cell has never had a
+                    // failed Move from it. See _blockedDirsByCell docstring.
+                    BlockedDirs = LookupBlockedDirsForCell(posX, posY, posZone),
+                },
+                Recent = new RecentHistory
+                {
+                    LastActionTurn = _lastActionTurn,
+                    LastAction = _lastAction,
+                    LastDir = _lastDir,
+                    LastResult = _lastResult,
+                },
+            };
+        }
+
+        // Phase 0-G: update blocked-direction memory after each action.
+        // A Move that needed a PassTurn fallback means the direction was
+        // blocked AT pos_before; record it on that cell's entry only.
+        // Successful Moves do NOT clear memory — wall geometry is persistent
+        // in Joppa, and earlier Phase 0-G drafts that cleared on success
+        // re-learned the same walls every time the player re-entered a cell
+        // (oscillation observed in Run 2).
+        private void UpdateBlockedDirsMemory(
+            string action, string dir, bool result, string fallback,
+            int posBeforeX, int posBeforeY, string posBeforeZone)
+        {
+            if (action != "Move" || dir == null) return;
+            if (result || fallback != "pass_turn") return;
+
+            string key = CellKey(posBeforeX, posBeforeY, posBeforeZone);
+            HashSet<string> set;
+            if (!_blockedDirsByCell.TryGetValue(key, out set))
+            {
+                set = new HashSet<string>();
+                _blockedDirsByCell[key] = set;
+            }
+            set.Add(dir);
+            // Per-cell cap at 8 (one per cardinal / ordinal direction). At
+            // 8 the cell is fully blocked; any further failed dir is a
+            // duplicate of an existing entry.
+        }
+
+        // Phase 0-G: read the current cell's blocked-dir history into a fresh
+        // list for DecisionInput.Adjacent.BlockedDirs. Returns an empty list
+        // (NOT null) when no entry exists, matching the schema invariant that
+        // BlockedDirs is always a list (possibly empty).
+        private List<string> LookupBlockedDirsForCell(int x, int y, string zone)
+        {
+            string key = CellKey(x, y, zone);
+            HashSet<string> set;
+            if (_blockedDirsByCell.TryGetValue(key, out set) && set.Count > 0)
+            {
+                return new List<string>(set);
+            }
+            return new List<string>();
+        }
+
+        // Phase 0-G: persist the most-recent action for DecisionInput.Recent.
+        private void UpdateRecentHistory(string action, string dir, bool result, int turn)
+        {
+            _lastActionTurn = turn;
+            _lastAction = action;
+            _lastDir = dir;
+            _lastResult = result;
+        }
+
+        // Phase 0-G: scan adjacent cells for the nearest hostile in direction-
+        // priority order. Direction priority: N -> NE -> E -> SE -> S -> SW -> W -> NW.
+        // First non-null Cell.GetCombatTarget hit wins. The filter mirrors what
+        // Combat.AttackCell uses internally (decompiled/XRL.World.Parts/Combat.cs:877-889).
+        // Extracted from the Phase 0-F inline block for reuse by BuildDecisionInput.
+        private static void ScanAdjacentHostile(
+            Cell cellBefore, GameObject player,
+            out string targetDir, out GameObject targetObj)
+        {
+            targetDir = null;
+            targetObj = null;
+            if (cellBefore == null) return;
+            string[] priority = new[] { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
+            for (int i = 0; i < priority.Length; i++)
+            {
+                // Verified signature at decompiled/XRL.World/Cell.cs:7322:
+                //   public Cell GetCellFromDirection(string Direction, bool BuiltOnly = true)
+                // BuiltOnly:false matches XRLCore's CmdMoveE wrapper which uses the same
+                // un-built-aware lookup (Cell-level neighbor, not Zone-level).
+                Cell adj = cellBefore.GetCellFromDirection(priority[i], BuiltOnly: false);
+                if (adj == null) continue;
+                // Verified signature at decompiled/XRL.World/Cell.cs:8511:
+                //   GetCombatTarget(GameObject Attacker = null,
+                //     bool IgnoreFlight = false, bool IgnoreAttackable = false,
+                //     bool IgnorePhase = false, int Phase = 0,
+                //     GameObject Projectile = null, GameObject Launcher = null,
+                //     GameObject CheckPhaseAgainst = null,
+                //     GameObject Skip = null, List<GameObject> SkipList = null,
+                //     bool AllowInanimate = true, bool InanimateSolidOnly = false,
+                //     Predicate<GameObject> Filter = null)
+                // decompiled/XRL.World/GameObject.cs:10887-10894 IsHostileTowards.
+                GameObject t = adj.GetCombatTarget(
+                    Attacker: player,
+                    IgnoreFlight: false,
+                    IgnoreAttackable: false,
+                    IgnorePhase: false,
+                    Phase: 5,
+                    AllowInanimate: false,
+                    Filter: o => o != player && o.IsHostileTowards(player));
+                if (t != null)
+                {
+                    targetDir = priority[i];
+                    targetObj = t;
+                    return;
+                }
+            }
+        }
+
+        // Phase 0-G: act on the player's command point with the explicit
+        // BuildDecisionInput → Decide → Execute boundary (ADR 0009).
         // Hook chosen per ADR 0006: CommandTakeActionEvent fires inside the inner
         // action loop in ActionManager (decompiled/XRL.Core/ActionManager.cs:829),
         // AFTER BeginTakeActionEvent has already enqueued the per-turn observation
@@ -176,15 +364,23 @@ namespace LLMOfQud
         // and the player render fallback (decompiled/XRL.Core/ActionManager.cs:1806-1808) intact.
         // BeginTakeActionEvent would skip all of those because draining energy
         // there fails the inner loop's gate at decompiled/XRL.Core/ActionManager.cs:800.
-        // [cmd] is emitted on the game thread directly (NOT through PendingSnapshot)
-        // — see ADR 0006 Consequence #3 and the design spec's Architecture section.
+        // [decision] and [cmd] are emitted on the game thread directly (NOT through
+        // PendingSnapshot) — see ADR 0006 Consequence #3.
         public override bool HandleEvent(CommandTakeActionEvent E)
         {
             int turn = _beginTurnCount;
             GameObject player = The.Player;
 
+            // Addendum A3: null-player sentinel path. Emit [decision] sentinel
+            // BEFORE [cmd] sentinel (spec: [decision] precedes [cmd] on every
+            // code path for parser parity). Then set PreventAction and return.
+            // BuildDecisionInput is NOT called when player is null.
             if (player == null)
             {
+                MetricsManager.LogInfo(
+                    "[LLMOfQud][decision] {\"turn\":" + turn +
+                    ",\"schema\":\"decision.v1\",\"error\":{\"type\":\"NullPlayer\"" +
+                    ",\"message\":\"The.Player is null\"}}");
                 MetricsManager.LogInfo(
                     "[LLMOfQud][cmd] {\"turn\":" + turn +
                     ",\"schema\":\"command_issuance.v1\",\"error\":{\"type\":\"NullPlayer\",\"message\":\"The.Player is null\"}}");
@@ -192,6 +388,10 @@ namespace LLMOfQud
                 return true;
             }
 
+            // decisionEmitted tracks whether a [decision] line has been logged so
+            // the outer catch can decide whether to emit a [decision] sentinel itself
+            // (needed when BuildDecisionInput or Execute throws before Decide runs).
+            bool decisionEmitted = false;
             int energyBefore = 0;
             try
             {
@@ -201,54 +401,44 @@ namespace LLMOfQud
                 int posBeforeY = cellBefore?.Y ?? -1;
                 string posBeforeZone = cellBefore?.ParentZone?.ZoneID;
 
-                // Step B: adjacent hostile detection.
-                // Direction priority: N -> NE -> E -> SE -> S -> SW -> W -> NW.
-                // First non-null Cell.GetCombatTarget hit wins.
-                // The filter o => o != player && o.IsHostileTowards(player) mirrors
-                // what Combat.AttackCell uses internally (decompiled/XRL.World.Parts/Combat.cs:877-889).
-                string targetDir = null;
-                GameObject targetObj = null;
-                if (cellBefore != null)
+                // ---- BuildDecisionInput ----
+                // hostileObj is captured here (addendum A2: out param, not instance
+                // field) so target_* capture below uses the same reference that
+                // informed the decision, without stale-state leakage.
+                GameObject hostileObj;
+                DecisionInput input = BuildDecisionInput(player, turn, out hostileObj);
+
+                // ---- Decide ----
+                Decision decision;
+                try
                 {
-                    string[] priority = new[] { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
-                    for (int i = 0; i < priority.Length; i++)
-                    {
-                        // Verified signature at decompiled/XRL.World/Cell.cs:7322:
-                        //   public Cell GetCellFromDirection(string Direction, bool BuiltOnly = true)
-                        // BuiltOnly:false matches XRLCore's CmdMoveE wrapper which uses the same
-                        // un-built-aware lookup (Cell-level neighbor, not Zone-level).
-                        Cell adj = cellBefore.GetCellFromDirection(priority[i], BuiltOnly: false);
-                        if (adj == null) continue;
-                        // Verified signature at decompiled/XRL.World/Cell.cs:8511:
-                        //   GetCombatTarget(GameObject Attacker = null,
-                        //     bool IgnoreFlight = false, bool IgnoreAttackable = false,
-                        //     bool IgnorePhase = false, int Phase = 0,
-                        //     GameObject Projectile = null, GameObject Launcher = null,
-                        //     GameObject CheckPhaseAgainst = null,
-                        //     GameObject Skip = null, List<GameObject> SkipList = null,
-                        //     bool AllowInanimate = true, bool InanimateSolidOnly = false,
-                        //     Predicate<GameObject> Filter = null)
-                        // decompiled/XRL.World/GameObject.cs:10887-10894 IsHostileTowards.
-                        GameObject t = adj.GetCombatTarget(
-                            Attacker: player,
-                            IgnoreFlight: false,
-                            IgnoreAttackable: false,
-                            IgnorePhase: false,
-                            Phase: 5,
-                            AllowInanimate: false,
-                            Filter: o => o != player && o.IsHostileTowards(player));
-                        if (t != null)
-                        {
-                            targetDir = priority[i];
-                            targetObj = t;
-                            break;
-                        }
-                    }
+                    decision = _policy.Decide(input);
+                }
+                catch (Exception policyEx)
+                {
+                    MetricsManager.LogInfo(
+                        "[LLMOfQud][decision] " +
+                        SnapshotState.BuildDecisionSentinelJson(turn, policyEx));
+                    decisionEmitted = true;
+                    throw;  // propagates to outer catch for [cmd] sentinel + drain
                 }
 
-                bool result;
-                string action;
-                string dir;
+                // [decision] MUST be emitted BEFORE [cmd] on the same handler invocation.
+                MetricsManager.LogInfo(
+                    "[LLMOfQud][decision] " +
+                    SnapshotState.BuildDecisionJson(turn, decision, input));
+                decisionEmitted = true;
+
+                // ---- Execute ----
+                // target_* capture: snap hostileObj state BEFORE the action dispatch
+                // so target_hp_before reflects pre-attack HP (Phase 0-F invariant).
+                // target_* is populated ONLY when decision.Action == "AttackDirection",
+                // preserving Phase 0-F's structural invariant that target_id != null
+                // implies an attack outcome row (mirrors SnapshotState.CmdRecord
+                // docstring "null when no hostile attacked"). For escape/explore Move
+                // decisions, target_* stays null even when hostileObj is non-null —
+                // the [decision] line's input_summary.adjacent_hostile_dir captures
+                // the scan-time presence so downstream parsers don't lose that signal.
                 string targetId = null;
                 string targetName = null;
                 bool hasTargetPosBefore = false;
@@ -257,11 +447,11 @@ namespace LLMOfQud
                 string targetPosBeforeZone = null;
                 int? targetHpBefore = null;
 
-                if (targetObj != null)
+                if (decision.Action == "AttackDirection" && hostileObj != null)
                 {
-                    targetId = targetObj.ID;
-                    targetName = targetObj.ShortDisplayNameStripped;
-                    Cell tCell = targetObj.CurrentCell;
+                    targetId = hostileObj.ID;
+                    targetName = hostileObj.ShortDisplayNameStripped;
+                    Cell tCell = hostileObj.CurrentCell;
                     if (tCell != null)
                     {
                         hasTargetPosBefore = true;
@@ -271,23 +461,37 @@ namespace LLMOfQud
                     }
                     // hitpoints = Statistic.Value (live HP), per spec field semantics.
                     // decompiled/XRL.World/GameObject.cs:1177-1198: hitpoints / baseHitpoints.
-                    targetHpBefore = targetObj.hitpoints;
-                    result = player.AttackDirection(targetDir);
-                    action = "AttackDirection";
-                    dir = targetDir;
-                }
-                else
-                {
-                    // Step A fallback: Move East.
-                    AutoAct.ClearAutoMoveStop();   // mirror decompiled/XRL.Core/XRLCore.cs:1108
-                    result = player.Move("E", DoConfirmations: false);
-                    action = "Move";
-                    dir = "E";
+                    targetHpBefore = hostileObj.hitpoints;
                 }
 
-                bool energySpent = (player.Energy != null && player.Energy.Value < energyBefore);
-
+                bool result = false;
                 string fallback = null;
+
+                // decision.v1 locks Action ∈ {"Move", "AttackDirection"}.
+                // PassTurn is engine bookkeeping (3-layer drain Layer-2 fallback),
+                // never a Decision.Action. Adding PassTurn requires decision.v2 +
+                // command_issuance.v2 bump per spec.
+                if (decision.Action == "AttackDirection")
+                {
+                    // decompiled/XRL.World/GameObject.cs:17882
+                    result = player.AttackDirection(decision.Dir);
+                }
+                else if (decision.Action == "Move")
+                {
+                    // Addendum A4: ClearAutoMoveStop BEFORE every Move dispatch,
+                    // regardless of intent (escape or explore).
+                    // Mirrors decompiled/XRL.Core/XRLCore.cs:1108.
+                    AutoAct.ClearAutoMoveStop();
+                    // decompiled/XRL.World/GameObject.cs:15719
+                    result = player.Move(decision.Dir, DoConfirmations: false);
+                }
+
+                // 3-layer drain — applies UNIFORMLY to BOTH terminal actions
+                // (Phase 0-F invariant). Either action can return false without
+                // spending energy (Move bumps wall; AttackDirection misses moved
+                // target). The fallback check is outside the action-dispatch
+                // branch, not inside Move's branch only.
+                bool energySpent = (player.Energy != null && player.Energy.Value < energyBefore);
                 if (!result && !energySpent)
                 {
                     player.PassTurn();
@@ -296,18 +500,35 @@ namespace LLMOfQud
                 }
                 else if (!result)
                 {
+                    // Action drained energy on its own fail path; record for log
+                    // honesty (Phase 0-F spec invariant).
                     fallback = "pass_turn";
                 }
 
-                int? targetHpAfter = (targetObj != null) ? (int?)targetObj.hitpoints : null;
+                // Update memory AFTER drain, BEFORE emitting [cmd]. Per-cell
+                // blocked-dir memory uses pos_before (the cell where the failed
+                // Move was attempted FROM) as the dictionary key.
+                UpdateBlockedDirsMemory(
+                    decision.Action, decision.Dir, result, fallback,
+                    posBeforeX, posBeforeY, posBeforeZone);
+                UpdateRecentHistory(decision.Action, decision.Dir, result, turn);
+
+                // target_hp_after gated on the same AttackDirection-only condition as
+                // target_hp_before so the [cmd] row remains internally consistent
+                // (an attack-only row has both before/after; a non-attack row has
+                // both null). hostileObj may have moved or died; the after-snapshot
+                // is taken from the same reference we recorded for before.
+                int? targetHpAfter = (decision.Action == "AttackDirection" && hostileObj != null)
+                    ? (int?)hostileObj.hitpoints
+                    : null;
                 int energyAfter = player.Energy?.Value ?? 0;
                 Cell cellAfter = player.CurrentCell;
 
                 SnapshotState.CmdRecord rec = new SnapshotState.CmdRecord
                 {
                     Turn = turn,
-                    Action = action,
-                    Dir = dir,
+                    Action = decision.Action,
+                    Dir = decision.Dir,
                     Result = result,
                     Fallback = fallback,
                     EnergyBefore = energyBefore,
@@ -332,15 +553,24 @@ namespace LLMOfQud
             }
             catch (Exception ex)
             {
+                // If [decision] was not yet emitted (BuildDecisionInput or pre-Decide
+                // code threw), emit a [decision] sentinel first so [decision] always
+                // precedes [cmd] on every code path.
+                if (!decisionEmitted)
+                {
+                    MetricsManager.LogInfo(
+                        "[LLMOfQud][decision] " +
+                        SnapshotState.BuildDecisionSentinelJson(turn, ex));
+                }
                 MetricsManager.LogInfo(
                     "[LLMOfQud][cmd] " + SnapshotState.BuildCmdSentinelJson(turn, ex));
+
                 // Catch-path drain threshold = literal 1000, NOT energyBefore.
-                // See Task 4 commentary: the exception may fire before energyBefore
-                // is captured, in which case the local default of 0 would make a
-                // ">= energyBefore" guard incorrectly skip drain. The autonomy
-                // invariant is "engine does not wait on keyboard input"; that
-                // depends only on Energy.Value < 1000 after our handler returns
-                // (decompiled/XRL.Core/ActionManager.cs:800, :838, :1797-1799).
+                // ADR 0007: the exception may fire before energyBefore is captured,
+                // in which case the local default of 0 would make a ">= energyBefore"
+                // guard incorrectly skip drain. The autonomy invariant depends on
+                // Energy.Value < 1000 after this handler returns.
+                // decompiled/XRL.Core/ActionManager.cs:800, :838, :1797-1799.
                 if (player?.Energy != null && player.Energy.Value >= 1000)
                 {
                     try { player.PassTurn(); } catch { /* swallow */ }
@@ -367,7 +597,7 @@ namespace LLMOfQud
                 // (decompiled/XRL.World/CommandTakeActionEvent.cs:37-39) to return
                 // false, the iteration to `continue` at decompiled/XRL.Core/ActionManager.cs:829-832,
                 // and the render fallback to be skipped — destroying the
-                // observation-channel cadence Phase 0-A through 0-E established.
+                // observation-channel cadence Phase 0-A through 0-G established.
                 //
                 // Reach this defense ONLY when post-recovery energy is still
                 // >= 1000 (i.e., Layers 1/2/3 all failed to drain). One render
