@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace LLMOfQud
@@ -5,6 +6,15 @@ namespace LLMOfQud
     // IMPORTANT: Decide MUST NOT reference The.*, Cell.*, MetricsManager,
     // or any CoQ API outside the supplied DecisionInput. PROBE 2' (Task 4
     // Step 2) enforces this by grep.
+    //
+    // [Serializable]: LLMOfQudSystem holds an IDecisionPolicy field whose
+    // concrete instance is this class. CoQ's save system serializes
+    // [Serializable] system instances, so the concrete policy class must
+    // also be [Serializable]. HeuristicPolicy is stateless (only static
+    // readonly data); serialization is a no-op. Pattern matches
+    // decompiled/XRL/CheckpointingSystem.cs:13 (system [Serializable] +
+    // [NonSerialized] for fields whose types do not opt-in).
+    [Serializable]
     public sealed class HeuristicPolicy : IDecisionPolicy
     {
         // Probe 3b uses 30% as the probe threshold; the policy may use any
