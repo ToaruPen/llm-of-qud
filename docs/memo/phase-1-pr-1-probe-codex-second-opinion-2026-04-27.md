@@ -12,7 +12,7 @@ readiness PR cascade to incorporate the findings before any in-game
 probe runs.
 
 This memo captures Codex's full second-opinion content verbatim for
-traceability. Subsequent ADR 0012 / 0013 drafts must cite this memo when
+traceability. Subsequent ADR 0013 / 0014 drafts must cite this memo when
 claims it raises are referenced.
 
 ## Codex consultation prompt summary
