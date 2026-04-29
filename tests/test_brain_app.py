@@ -15,8 +15,12 @@ sys.path.insert(0, str(ROOT))
 from brain.app import (
     PHASE_ACCEPTANCE_ECHO,
     ServerConfig,
+    delay_for_phase,
+    parse_delay_ms,
     parse_decision_input,
     phase_for_phase1_acceptance,
+    require_int,
+    require_object,
     start_probe_server,
 )
 
@@ -61,6 +65,30 @@ def test_parse_decision_input_rejects_unexpected_schema() -> None:
 
     with pytest.raises(ValueError, match="unsupported decision input schema"):
         parse_decision_input(json.dumps(payload))
+
+
+def test_parse_decision_input_normalizes_invalid_hostile_direction() -> None:
+    request = parse_decision_input(
+        json.dumps(with_adjacent_hostile(minimal_decision_input(), "INVALID")),
+    )
+
+    assert request.summary.adjacent_hostile_dir is None
+
+
+def test_delay_phase_errors_include_offending_phase() -> None:
+    with pytest.raises(ValueError, match="unsupported phase: mystery"):
+        delay_for_phase("mystery")
+    with pytest.raises(ValueError, match="invalid sleep value for phase: sleep:abc"):
+        parse_delay_ms("sleep:abc")
+    with pytest.raises(ValueError, match="negative sleep value for phase: sleep:-1"):
+        parse_delay_ms("sleep:-1")
+
+
+def test_json_helpers_raise_informative_type_errors() -> None:
+    with pytest.raises(TypeError, match="require_object: expected key 'player' to be object"):
+        require_object({"player": 1}, "player")
+    with pytest.raises(TypeError, match="require_int: expected key 'turn' to be int"):
+        require_int({"turn": True}, "turn")
 
 
 @pytest.mark.asyncio
@@ -121,6 +149,24 @@ async def test_canned_policy_attacks_adjacent_hostile() -> None:
     assert response["action"] == "AttackDirection"
     assert response["dir"] == "NW"
     assert response["reason_code"] == "canned_adjacent_hostile"
+
+
+@pytest.mark.asyncio
+async def test_canned_policy_ignores_invalid_adjacent_hostile_direction() -> None:
+    server = await start_probe_server(ServerConfig(host="127.0.0.1", port=0))
+    try:
+        async with connect(f"ws://127.0.0.1:{server.port}") as websocket:
+            await websocket.send(
+                json.dumps(with_adjacent_hostile(minimal_decision_input(), "northwest")),
+            )
+            response = json.loads(await websocket.recv())
+    finally:
+        await server.close()
+
+    assert response["intent"] == "explore"
+    assert response["action"] == "Move"
+    assert response["dir"] == "E"
+    assert response["reason_code"] == "canned_no_llm"
 
 
 @pytest.mark.asyncio

@@ -21,6 +21,11 @@ class TelemetryWriterAlreadyOpenError(RuntimeError):
         super().__init__("TelemetryWriter is already open")
 
 
+class TelemetryWriterNotOpenError(RuntimeError):
+    def __init__(self) -> None:
+        super().__init__("No active DB connection: call open() before using DB writer")
+
+
 class TelemetryWriterConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -34,7 +39,7 @@ class TelemetryWriter:
 
     async def open(self) -> None:
         if self._conn is not None:
-            raise TelemetryWriterAlreadyOpenError
+            raise TelemetryWriterAlreadyOpenError()
         db_path = self._config.path.expanduser()
         db_path.parent.mkdir(parents=True, exist_ok=True)
         self._conn = await aiosqlite.connect(db_path)
@@ -108,5 +113,5 @@ class TelemetryWriter:
 
     def _require_conn(self) -> aiosqlite.Connection:
         if self._conn is None:
-            raise RuntimeError
+            raise TelemetryWriterNotOpenError()
         return self._conn

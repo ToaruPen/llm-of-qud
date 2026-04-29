@@ -63,6 +63,12 @@ def test_brainclient_response_log_includes_round_trip_elapsed_ms() -> None:
     assert "elapsed_ms=" in body
 
 
+def test_brainclient_runtime_logs_cite_metrics_manager_source() -> None:
+    source = (ROOT / "mod/LLMOfQud/BrainClient.cs").read_text()
+
+    assert "decompiled/MetricsManager.cs:407-409 (LogInfo -> Player.log)" in source
+
+
 def test_brainclient_rehydrates_all_nonserialized_runtime_state() -> None:
     source = (ROOT / "mod/LLMOfQud/BrainClient.cs").read_text()
     body = method_body(source, "private void InitializeRuntimeFields()")
@@ -79,7 +85,7 @@ def test_brainclient_stop_fails_pending_requests_and_blocks_new_work() -> None:
 
     assert "_stopped = true" in stop_body
     assert "FailPendingRequestsLocked" in stop_body
-    assert "throw new DisconnectedException(\"BrainClient stopped\")" in send_body
+    assert 'throw new DisconnectedException("BrainClient stopped")' in send_body
 
 
 def test_reconnect_wake_skips_player_turn_without_key_command() -> None:
@@ -93,6 +99,13 @@ def test_reconnect_wake_skips_player_turn_without_key_command() -> None:
     assert "SkipPlayerTurn = true" in apply_body
     assert "Keyboard.PushKey(UnityEngine.KeyCode.None)" not in reconnect_body
     assert "Keyboard.PushKey(UnityEngine.KeyCode.None)" not in apply_body
+
+
+def test_reconnect_wake_game_queue_call_cites_decompiled_sources() -> None:
+    source = (ROOT / "mod/LLMOfQud/LLMOfQudSystem.cs").read_text()
+
+    assert "decompiled/GameManager.cs:144" in source
+    assert "decompiled/QupKit/ThreadTaskQueue.cs:102-103" in source
 
 
 def test_websocket_policy_rejects_unsupported_decision_fields_and_non_integer_turns() -> None:

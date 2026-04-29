@@ -118,6 +118,7 @@ namespace LLMOfQud
                 _requests.Enqueue(pending);
             }
             _requestReady.Set();
+            // decompiled/MetricsManager.cs:407-409 (LogInfo -> Player.log)
             MetricsManager.LogInfo(
                 "[LLMOfQud][decision_request] queued sequence=" + pending.Sequence.ToString());
             return new DecisionRequest(pending.Sequence, pending.Completion.Task);
@@ -141,6 +142,7 @@ namespace LLMOfQud
 
         private void RunLoop()
         {
+            // decompiled/MetricsManager.cs:407-409 (LogInfo -> Player.log)
             MetricsManager.LogInfo(
                 "[LLMOfQud][connection_lifecycle] THREAD_START endpoint=" + _endpoint);
 
@@ -161,6 +163,7 @@ namespace LLMOfQud
                     string response = Receive(socket, pending.TimeoutMs);
                     stopwatch.Stop();
                     pending.Completion.TrySetResult(response);
+                    // decompiled/MetricsManager.cs:407-409 (LogInfo -> Player.log)
                     MetricsManager.LogInfo(
                         "[LLMOfQud][decision_response] received sequence=" +
                         pending.Sequence.ToString() + " elapsed_ms=" +
@@ -169,6 +172,7 @@ namespace LLMOfQud
                 catch (TimeoutException ex)
                 {
                     pending.Completion.TrySetException(ex);
+                    // decompiled/MetricsManager.cs:407-409 (LogInfo -> Player.log)
                     MetricsManager.LogInfo(
                         "[LLMOfQud][decision_response] TIMEOUT sequence=" +
                         pending.Sequence.ToString() + " timeout_ms=" +
@@ -185,6 +189,7 @@ namespace LLMOfQud
                 {
                     pending.Completion.TrySetException(
                         new DisconnectedException("BrainClient transport failure", ex));
+                    // decompiled/MetricsManager.cs:407-409 (LogInfo -> Player.log)
                     MetricsManager.LogInfo(
                         "[LLMOfQud][connection_lifecycle] DISCONNECT error=" +
                         ex.GetType().Name + " message=" + Sanitize(ex.Message));
@@ -197,6 +202,7 @@ namespace LLMOfQud
             {
                 FailPendingRequestsLocked(new OperationCanceledException("BrainClient stopped"));
             }
+            // decompiled/MetricsManager.cs:407-409 (LogInfo -> Player.log)
             MetricsManager.LogInfo("[LLMOfQud][connection_lifecycle] THREAD_STOP");
         }
 
@@ -271,12 +277,14 @@ namespace LLMOfQud
             if (!_hasConnected)
             {
                 _hasConnected = true;
+                // decompiled/MetricsManager.cs:407-409 (LogInfo -> Player.log)
                 MetricsManager.LogInfo(
                     "[LLMOfQud][connection_lifecycle] CONNECT endpoint=" + _endpoint);
             }
             else if (_disconnectedSinceConnect)
             {
                 _disconnectedSinceConnect = false;
+                // decompiled/MetricsManager.cs:407-409 (LogInfo -> Player.log)
                 MetricsManager.LogInfo(
                     "[LLMOfQud][connection_lifecycle] RECONNECT endpoint=" + _endpoint);
                 Action callback = _onReconnect;
@@ -375,6 +383,7 @@ namespace LLMOfQud
             if (_hasConnected && !_disconnectedSinceConnect)
             {
                 _disconnectedSinceConnect = true;
+                // decompiled/MetricsManager.cs:407-409 (LogInfo -> Player.log)
                 MetricsManager.LogInfo(
                     "[LLMOfQud][connection_lifecycle] DISCONNECT endpoint=" + _endpoint);
             }

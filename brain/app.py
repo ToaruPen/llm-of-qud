@@ -30,6 +30,7 @@ PHASE_SCRIPT_PR1_ACCEPTANCE = "phase1-pr1-acceptance"
 PHASE_ACCEPTANCE_ECHO = f"{PHASE_SCRIPT_PR1_ACCEPTANCE}:echo"
 ACCEPTANCE_DISCONNECT_REQUEST = 6
 EXPLORE_DIR_ORDER = ("E", "SE", "NE", "S", "N", "W", "SW", "NW")
+VALID_COMPASS_DIRS = frozenset(EXPLORE_DIR_ORDER)
 SCRIPT_PROBE_1_TURNS = 25
 SCRIPT_PROBE_6_END = 160
 SCRIPT_TIMEOUT_END = 210
@@ -49,6 +50,40 @@ logger = structlog.get_logger(__name__)
 class UnsupportedDecisionInputSchemaError(ValueError):
     def __init__(self, schema: str) -> None:
         super().__init__(f"unsupported decision input schema: {schema}")
+
+
+class ProbeServerNotListeningError(RuntimeError):
+    def __init__(self) -> None:
+        super().__init__("no listening sockets available on RunningProbeServer")
+
+
+class UnsupportedPhaseError(ValueError):
+    def __init__(self, phase: str) -> None:
+        super().__init__(f"unsupported phase: {phase}")
+
+
+class InvalidSleepPhaseError(ValueError):
+    def __init__(self, phase: str) -> None:
+        super().__init__(f"invalid sleep value for phase: {phase}")
+
+
+class NegativeSleepPhaseError(ValueError):
+    def __init__(self, phase: str) -> None:
+        super().__init__(f"negative sleep value for phase: {phase}")
+
+
+class DecisionInputPayloadTypeError(TypeError):
+    def __init__(self, value: object) -> None:
+        super().__init__(
+            f"parse_decision_input: expected JSON object, got {json_type_name(value)}",
+        )
+
+
+class JsonFieldTypeError(TypeError):
+    def __init__(self, helper: str, key: str, expected: str, value: object) -> None:
+        super().__init__(
+            f"{helper}: expected key {key!r} to be {expected}, got {json_type_name(value)}",
+        )
 
 
 class ServerConfig(BaseModel):
@@ -101,7 +136,7 @@ class RunningProbeServer:
     def port(self) -> int:
         sockets = self._server.sockets
         if not sockets:
-            raise RuntimeError
+            raise ProbeServerNotListeningError()
         return int(sockets[0].getsockname()[1])
 
     async def switch_phase(self, phase: str) -> None:
@@ -128,6 +163,7 @@ async def start_probe_server(config: ServerConfig) -> RunningProbeServer:
 async def handle_connection(connection: ServerConnection, controller: PhaseController) -> None:
     logger.info("connection_open")
     close_reason = "normal"
+    close_already_logged = False
     try:
         async for message in connection:
             phase = await controller.current_for_request()
@@ -147,9 +183,11 @@ async def handle_connection(connection: ServerConnection, controller: PhaseContr
     except Exception as exc:
         close_reason = type(exc).__name__
         logger.warning("connection_close", reason=close_reason)
+        close_already_logged = True
         raise
     finally:
-        logger.info("connection_close", reason=close_reason)
+        if not close_already_logged:
+            logger.info("connection_close", reason=close_reason)
 
 
 class DecisionRequest(BaseModel):
@@ -187,14 +225,17 @@ def delay_for_phase(phase: str) -> int:
         return 0
     if phase.startswith("sleep:"):
         return parse_delay_ms(phase)
-    raise ValueError
+    raise UnsupportedPhaseError(phase)
 
 
 def parse_delay_ms(phase: str) -> int:
     value = phase.removeprefix("sleep:")
-    delay_ms = int(value)
+    try:
+        delay_ms = int(value)
+    except ValueError as exc:
+        raise InvalidSleepPhaseError(phase) from exc
     if delay_ms < 0:
-        raise ValueError
+        raise NegativeSleepPhaseError(phase)
     return delay_ms
 
 
@@ -213,10 +254,11 @@ def phase_for_phase1_acceptance(request_count: int) -> str:
 
 def canned_decision(request: DecisionRequest, phase: str = "echo") -> dict[str, JsonValue]:
     summary = request.summary
-    if summary.adjacent_hostile_dir is not None:
+    hostile_dir = normalize_hostile_dir(summary.adjacent_hostile_dir)
+    if hostile_dir is not None:
         intent = "attack"
         action = "AttackDirection"
-        direction = summary.adjacent_hostile_dir
+        direction = hostile_dir
         reason_code = "canned_adjacent_hostile"
     else:
         intent = "explore"
@@ -233,7 +275,7 @@ def canned_decision(request: DecisionRequest, phase: str = "echo") -> dict[str, 
         "input_summary": {
             "hp": summary.hp,
             "max_hp": summary.max_hp,
-            "adjacent_hostile_dir": summary.adjacent_hostile_dir,
+            "adjacent_hostile_dir": hostile_dir,
             "blocked_dirs_count": summary.blocked_dirs_count,
         },
         "intent": intent,
@@ -259,11 +301,17 @@ def acceptance_dir(turn: int, blocked_dirs: tuple[str, ...]) -> str:
     return first_unblocked_dir(blocked_dirs)
 
 
+def normalize_hostile_dir(direction: str | None) -> str | None:
+    if direction in VALID_COMPASS_DIRS:
+        return direction
+    return None
+
+
 def parse_decision_input(message: str | bytes) -> DecisionRequest:
     text = message.decode("utf-8") if isinstance(message, bytes) else message
     parsed = json.loads(text)
     if not is_json_object(parsed):
-        raise TypeError
+        raise DecisionInputPayloadTypeError(parsed)
 
     schema = require_string(parsed, "schema")
     if schema != "decision_input.v1":
@@ -272,14 +320,18 @@ def parse_decision_input(message: str | bytes) -> DecisionRequest:
     player = require_object(parsed, "player")
     adjacent = require_object(parsed, "adjacent")
     blocked_dirs = require_list(adjacent, "blocked_dirs")
-    blocked_dir_strings = tuple(require_json_string(item) for item in blocked_dirs)
+    blocked_dir_strings = tuple(
+        require_json_string(item, f"blocked_dirs[{index}]")
+        for index, item in enumerate(blocked_dirs)
+    )
+    adjacent_hostile_dir = normalize_hostile_dir(optional_string(adjacent, "hostile_dir"))
     return DecisionRequest(
         turn=turn,
         schema=schema,
         summary=DecisionInputSummary(
             hp=optional_int(player, "hp"),
             max_hp=optional_int(player, "max_hp"),
-            adjacent_hostile_dir=optional_string(adjacent, "hostile_dir"),
+            adjacent_hostile_dir=adjacent_hostile_dir,
             blocked_dirs=blocked_dir_strings,
             blocked_dirs_count=len(blocked_dir_strings),
         ),
@@ -303,28 +355,36 @@ def is_json_value(value: object) -> TypeGuard[JsonValue]:
     return is_json_object(value)
 
 
+def json_type_name(value: object) -> str:
+    if value is None:
+        return "None"
+    return type(value).__name__
+
+
 def require_object(payload: Mapping[str, JsonValue], key: str) -> Mapping[str, JsonValue]:
     value = payload.get(key)
     if not isinstance(value, dict):
-        raise TypeError
+        raise JsonFieldTypeError("require_object", key, "object", value)
     return value
 
 
 def require_list(payload: Mapping[str, JsonValue], key: str) -> list[JsonValue]:
     value = payload.get(key)
     if not isinstance(value, list):
-        raise TypeError
+        raise JsonFieldTypeError("require_list", key, "list", value)
     return value
 
 
 def require_string(payload: Mapping[str, JsonValue], key: str) -> str:
     value = payload.get(key)
-    return require_json_string(value)
-
-
-def require_json_string(value: JsonValue) -> str:
     if not isinstance(value, str):
-        raise TypeError
+        raise JsonFieldTypeError("require_string", key, "string", value)
+    return value
+
+
+def require_json_string(value: JsonValue, key: str = "<value>") -> str:
+    if not isinstance(value, str):
+        raise JsonFieldTypeError("require_json_string", key, "string", value)
     return value
 
 
@@ -332,13 +392,13 @@ def optional_string(payload: Mapping[str, JsonValue], key: str) -> str | None:
     value = payload.get(key)
     if value is None or isinstance(value, str):
         return value
-    raise TypeError
+    raise JsonFieldTypeError("optional_string", key, "string or None", value)
 
 
 def require_int(payload: Mapping[str, JsonValue], key: str) -> int:
     value = payload.get(key)
     if isinstance(value, bool) or not isinstance(value, int):
-        raise TypeError
+        raise JsonFieldTypeError("require_int", key, "int", value)
     return value
 
 
@@ -347,7 +407,7 @@ def optional_int(payload: Mapping[str, JsonValue], key: str) -> int | None:
     if value is None:
         return None
     if isinstance(value, bool) or not isinstance(value, int):
-        raise TypeError
+        raise JsonFieldTypeError("optional_int", key, "int or None", value)
     return value
 
 

@@ -12,7 +12,7 @@ sys.path.insert(0, str(ROOT))
 from brain.db.writer import TelemetryWriter, TelemetryWriterConfig
 
 
-async def table_count(db_path, table: str) -> int:
+async def table_count(db_path: Path, table: str) -> int:
     async with aiosqlite.connect(db_path) as conn:
         cursor = await conn.execute(f"SELECT COUNT(*) FROM {table}")
         row = await cursor.fetchone()
@@ -59,3 +59,11 @@ async def test_telemetry_writer_rejects_double_open(tmp_path) -> None:
             await writer.open()
     finally:
         await writer.close()
+
+
+@pytest.mark.asyncio
+async def test_telemetry_writer_requires_open_connection(tmp_path) -> None:
+    writer = TelemetryWriter(TelemetryWriterConfig(path=tmp_path / "telemetry.db"))
+
+    with pytest.raises(RuntimeError, match="No active DB connection"):
+        await writer.record_connection_lifecycle(event="OPEN", detail=None)

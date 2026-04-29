@@ -87,6 +87,8 @@ namespace LLMOfQud
             {
                 if (GameManager.Instance != null && GameManager.Instance.gameQueue != null)
                 {
+                    // decompiled/GameManager.cs:144 (gameQueue);
+                    // decompiled/QupKit/ThreadTaskQueue.cs:102-103 (queueSingletonTask)
                     GameManager.Instance.gameQueue.queueSingletonTask(
                         "LLMOfQudReconnectWake",
                         ApplyPendingReconnectWake,
