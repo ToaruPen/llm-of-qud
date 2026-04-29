@@ -20,6 +20,10 @@ DEFAULT_PORT = 4040
 DEFAULT_PHASE = "echo"
 PHASE_COMMAND_PREFIX = "PHASE "
 PHASE_SCRIPT_PR1 = "phase1-pr1"
+PHASE_SCRIPT_PR1_ACCEPTANCE = "phase1-pr1-acceptance"
+PHASE_ACCEPTANCE_ECHO = f"{PHASE_SCRIPT_PR1_ACCEPTANCE}:echo"
+ACCEPTANCE_DISCONNECT_REQUEST = 6
+EXPLORE_DIR_ORDER = ("E", "SE", "NE", "S", "N", "W", "SW", "NW")
 SCRIPT_PROBE_1_TURNS = 25
 SCRIPT_PROBE_6_END = 160
 SCRIPT_TIMEOUT_END = 210
@@ -48,6 +52,7 @@ class DecisionInputSummary:
     hp: int | None
     max_hp: int | None
     adjacent_hostile_dir: str | None
+    blocked_dirs: tuple[str, ...]
     blocked_dirs_count: int
 
 
@@ -62,6 +67,8 @@ class PhaseController:
             self._request_count += 1
             if self._phase == f"phase_script:{PHASE_SCRIPT_PR1}":
                 return phase_for_phase1_pr1(self._request_count)
+            if self._phase == f"phase_script:{PHASE_SCRIPT_PR1_ACCEPTANCE}":
+                return phase_for_phase1_acceptance(self._request_count)
             return self._phase
 
     async def switch(self, phase: str) -> None:
@@ -101,7 +108,7 @@ async def start_probe_server(config: ServerConfig) -> RunningProbeServer:
     async def handler(connection: ServerConnection) -> None:
         await handle_connection(connection, controller)
 
-    server = await serve(handler, config.host, config.port)
+    server = await serve(handler, config.host, config.port, ping_interval=None)
     return RunningProbeServer(server, controller, config.host)
 
 
@@ -156,13 +163,13 @@ async def respond_for_phase(
     if delay_ms > 0:
         await asyncio.sleep(delay_ms / 1000)
 
-    await connection.send(json.dumps(canned_decision(request), separators=(",", ":")))
+    await connection.send(json.dumps(canned_decision(request, phase), separators=(",", ":")))
     logger.info("decision_response", turn=request.turn, delay_ms=delay_ms)
     return "normal"
 
 
 def delay_for_phase(phase: str) -> int:
-    if phase == "echo":
+    if phase in {"echo", PHASE_ACCEPTANCE_ECHO}:
         return 0
     if phase.startswith("sleep:"):
         return parse_delay_ms(phase)
@@ -184,8 +191,28 @@ def phase_for_phase1_pr1(request_count: int) -> str:
     return "disconnect"
 
 
-def canned_decision(request: DecisionRequest) -> dict[str, JsonValue]:
+def phase_for_phase1_acceptance(request_count: int) -> str:
+    if request_count == ACCEPTANCE_DISCONNECT_REQUEST:
+        return "disconnect"
+    return PHASE_ACCEPTANCE_ECHO
+
+
+def canned_decision(request: DecisionRequest, phase: str = "echo") -> dict[str, JsonValue]:
     summary = request.summary
+    if summary.adjacent_hostile_dir is not None:
+        intent = "attack"
+        action = "AttackDirection"
+        direction = summary.adjacent_hostile_dir
+        reason_code = "canned_adjacent_hostile"
+    else:
+        intent = "explore"
+        action = "Move"
+        direction = (
+            acceptance_dir(request.turn, summary.blocked_dirs)
+            if phase == PHASE_ACCEPTANCE_ECHO
+            else first_unblocked_dir(summary.blocked_dirs)
+        )
+        reason_code = "canned_no_llm"
     return {
         "turn": request.turn,
         "schema": "decision.v1",
@@ -195,12 +222,27 @@ def canned_decision(request: DecisionRequest) -> dict[str, JsonValue]:
             "adjacent_hostile_dir": summary.adjacent_hostile_dir,
             "blocked_dirs_count": summary.blocked_dirs_count,
         },
-        "intent": "explore",
-        "action": "Move",
-        "dir": "E",
-        "reason_code": "canned_no_llm",
+        "intent": intent,
+        "action": action,
+        "dir": direction,
+        "reason_code": reason_code,
         "error": None,
     }
+
+
+def first_unblocked_dir(blocked_dirs: tuple[str, ...]) -> str:
+    blocked = set(blocked_dirs)
+    for direction in EXPLORE_DIR_ORDER:
+        if direction not in blocked:
+            return direction
+    return EXPLORE_DIR_ORDER[0]
+
+
+def acceptance_dir(turn: int, blocked_dirs: tuple[str, ...]) -> str:
+    desired = "E" if turn % 2 else "W"
+    if desired not in blocked_dirs:
+        return desired
+    return first_unblocked_dir(blocked_dirs)
 
 
 def parse_decision_input(message: str | bytes) -> DecisionRequest:
@@ -214,6 +256,7 @@ def parse_decision_input(message: str | bytes) -> DecisionRequest:
     player = require_object(parsed, "player")
     adjacent = require_object(parsed, "adjacent")
     blocked_dirs = require_list(adjacent, "blocked_dirs")
+    blocked_dir_strings = tuple(require_json_string(item) for item in blocked_dirs)
     return DecisionRequest(
         turn=turn,
         schema=schema,
@@ -221,7 +264,8 @@ def parse_decision_input(message: str | bytes) -> DecisionRequest:
             hp=optional_int(player, "hp"),
             max_hp=optional_int(player, "max_hp"),
             adjacent_hostile_dir=optional_string(adjacent, "hostile_dir"),
-            blocked_dirs_count=len(blocked_dirs),
+            blocked_dirs=blocked_dir_strings,
+            blocked_dirs_count=len(blocked_dir_strings),
         ),
     )
 
@@ -259,6 +303,10 @@ def require_list(payload: Mapping[str, JsonValue], key: str) -> list[JsonValue]:
 
 def require_string(payload: Mapping[str, JsonValue], key: str) -> str:
     value = payload.get(key)
+    return require_json_string(value)
+
+
+def require_json_string(value: JsonValue) -> str:
     if not isinstance(value, str):
         raise TypeError
     return value

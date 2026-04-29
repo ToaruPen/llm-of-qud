@@ -74,15 +74,17 @@ namespace LLMOfQud
 
         private static void OnBrainReconnected()
         {
-            // Probe 8 default: wake native PlayerTurn keyboard idle by injecting
-            // the most inert key. Keyboard.PushKey enqueues and signals KeyEvent at
-            // decompiled/ConsoleLib.Console/Keyboard.cs:763-781; PlayerTurn idles
-            // on Keyboard.IdleWait at decompiled/XRL.Core/XRLCore.cs:2307-2315.
-            //
-            // Probe 8 fallback (not active): drain one turn via PassTurn if PushKey
-            // is empirically falsified. Do not use PreventAction-without-drain.
-            Keyboard.PushKey(KeyCode.None);
-            MetricsManager.LogInfo("[LLMOfQud][wake] PushKey injected key=None");
+            // Probe 8 default: wake native PlayerTurn idle without adding a
+            // key command. PlayerTurn breaks after Keyboard.IdleWait when
+            // SkipPlayerTurn is true (decompiled/XRL.Core/XRLCore.cs:2307-2315);
+            // Keyboard.KeyEvent.Set wakes the wait without making kbhit() true
+            // through a queued key (decompiled/ConsoleLib.Console/Keyboard.cs:911-939).
+            if (The.Game != null && The.Game.ActionManager != null)
+            {
+                The.Game.ActionManager.SkipPlayerTurn = true;
+            }
+            Keyboard.KeyEvent.Set();
+            MetricsManager.LogInfo("[LLMOfQud][wake] SkipPlayerTurn signaled");
         }
 
         // Cell key for _blockedDirsByCell. Stable string form so the dictionary
@@ -597,16 +599,19 @@ namespace LLMOfQud
             catch (DisconnectedException ex)
             {
                 // ADR 0011 Q3: disconnect means pause, not runtime HeuristicPolicy
-                // fallback. Emit a non-decision.v1 sentinel-style line only; no
-                // [cmd], no terminal action, no energy mutation, and no
-                // PreventAction. Keeping Energy.Value >= 1000 lets ActionManager
-                // enter PlayerTurn at decompiled/XRL.Core/ActionManager.cs:838,
-                // :1797-1799; reconnect wake uses Keyboard.PushKey.
+                // fallback. Emit no [decision] and no [cmd]; use a separate
+                // diagnostic channel so Probe 3b can prove no terminal decision
+                // happened. Keeping Energy.Value >= 1000 lets ActionManager enter
+                // PlayerTurn at decompiled/XRL.Core/ActionManager.cs:838,
+                // :1797-1799; reconnect wake uses SkipPlayerTurn + KeyEvent.
                 disconnectPause = true;
-                decisionEmitted = true;
+                StringBuilder pauseSb = new StringBuilder(128);
+                pauseSb.Append("{\"turn\":").Append(turn.ToString(CultureInfo.InvariantCulture))
+                    .Append(",\"posture\":\"pause\",\"message\":");
+                SnapshotState.AppendJsonString(pauseSb, ex.Message ?? "");
+                pauseSb.Append("}");
                 MetricsManager.LogInfo(
-                    "[LLMOfQud][decision] DISCONNECTED turn=" + turn +
-                    " posture=pause message=" + SanitizeForLog(ex.Message));
+                    "[LLMOfQud][disconnect_pause] " + pauseSb.ToString());
             }
             catch (Exception ex)
             {
@@ -666,15 +671,6 @@ namespace LLMOfQud
             }
 
             return true;
-        }
-
-        private static string SanitizeForLog(string value)
-        {
-            if (value == null)
-            {
-                return "";
-            }
-            return value.Replace('\n', ' ').Replace('\r', ' ');
         }
 
         // Render a ScreenBuffer as an ASCII grid. Tile-mode cells hold the

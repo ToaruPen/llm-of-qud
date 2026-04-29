@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Net.WebSockets;
 using System.Text;
@@ -120,13 +121,16 @@ namespace LLMOfQud
 
                 try
                 {
+                    Stopwatch stopwatch = Stopwatch.StartNew();
                     ClientWebSocket socket = EnsureConnected();
                     Send(socket, pending.RequestJson, pending.TimeoutMs);
                     string response = Receive(socket, pending.TimeoutMs);
+                    stopwatch.Stop();
                     pending.Completion.TrySetResult(response);
                     MetricsManager.LogInfo(
                         "[LLMOfQud][decision_response] received sequence=" +
-                        pending.Sequence.ToString());
+                        pending.Sequence.ToString() + " elapsed_ms=" +
+                        stopwatch.ElapsedMilliseconds.ToString());
                 }
                 catch (TimeoutException ex)
                 {
