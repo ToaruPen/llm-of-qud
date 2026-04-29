@@ -191,6 +191,37 @@ def test_provider_specific_ids_are_not_top_level_protocol_fields() -> None:
         )
 
 
+def test_tool_call_rejects_legacy_top_level_tid() -> None:
+    with pytest.raises(ValidationError, match="tid"):
+        ToolCallMessage.model_validate(
+            {
+                "type": "tool_call",
+                "call_id": "turn-7-call-1",
+                "tool": "inspect_surroundings",
+                "args": {},
+                "message_id": "msg-7-call-1",
+                "session_epoch": 3,
+                "tid": 142,
+            },
+        )
+
+
+def test_tool_result_rejects_legacy_top_level_tid() -> None:
+    with pytest.raises(ValidationError, match="tid"):
+        ToolResultMessage.model_validate(
+            {
+                "type": "tool_result",
+                "call_id": "turn-7-call-1",
+                "tool": "inspect_surroundings",
+                "result": {"status": "ok", "output": None},
+                "message_id": "msg-7-result-1",
+                "in_reply_to": "msg-7-call-1",
+                "session_epoch": 3,
+                "tid": 142,
+            },
+        )
+
+
 def test_multiple_tool_calls_are_structurally_representable_as_a_list() -> None:
     calls = [
         ToolCallMessage.model_validate(

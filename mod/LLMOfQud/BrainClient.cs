@@ -145,6 +145,7 @@ namespace LLMOfQud
             // decompiled/MetricsManager.cs:407-409 (LogInfo -> Player.log)
             MetricsManager.LogInfo(
                 "[LLMOfQud][connection_lifecycle] THREAD_START endpoint=" + _endpoint);
+            ToolRouter toolRouter = new ToolRouter();
 
             while (_stop == null || !_stop.IsCancellationRequested)
             {
@@ -160,7 +161,7 @@ namespace LLMOfQud
                     Stopwatch stopwatch = Stopwatch.StartNew();
                     ClientWebSocket socket = EnsureConnected();
                     Send(socket, pending.RequestJson, pending.TimeoutMs);
-                    string response = ReceiveDecision(socket, pending.TimeoutMs);
+                    string response = ReceiveDecision(socket, pending.TimeoutMs, toolRouter);
                     stopwatch.Stop();
                     pending.Completion.TrySetResult(response);
                     // decompiled/MetricsManager.cs:407-409 (LogInfo -> Player.log)
@@ -307,7 +308,7 @@ namespace LLMOfQud
             }
         }
 
-        private static string ReceiveDecision(ClientWebSocket socket, int timeoutMs)
+        private static string ReceiveDecision(ClientWebSocket socket, int timeoutMs, ToolRouter toolRouter)
         {
             while (true)
             {
@@ -323,7 +324,7 @@ namespace LLMOfQud
                 if (ToolRouter.IsToolCallMessage(responseJson))
                 {
                     ToolCallEnvelope call = ToolRouter.ParseToolCallEnvelope(responseJson);
-                    ToolResultEnvelope result = new ToolRouter().Dispatch(call);
+                    ToolResultEnvelope result = toolRouter.Dispatch(call);
                     string resultJson = ToolRouter.BuildToolResultJson(result);
                     Send(socket, resultJson, timeoutMs);
                     continue;

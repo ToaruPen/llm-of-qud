@@ -81,10 +81,11 @@ namespace LLMOfQud
 
         public static ToolCallEnvelope ParseToolCallEnvelope(string json)
         {
+            RejectTopLevelField(json, ToolProtocolFields.FieldLegacyTid);
             return new ToolCallEnvelope
             {
                 Type = ReadStringOrNull(json, ToolProtocolFields.FieldType),
-                CallId = ReadStringOrNull(json, ToolProtocolFields.FieldCallId),
+                CallId = ReadRequiredString(json, ToolProtocolFields.FieldCallId),
                 Tool = ReadStringOrNull(json, ToolProtocolFields.FieldTool),
                 Args = ReadArgs(json),
                 MessageId = ReadStringOrNull(json, ToolProtocolFields.FieldMessageId),
@@ -325,6 +326,33 @@ namespace LLMOfQud
             }
             int end = FindStringEnd(json, index + 1);
             return UnescapeSimple(json.Substring(index + 1, end - index - 1));
+        }
+
+        private static string ReadRequiredString(string json, string name)
+        {
+            string value = ReadStringOrNull(json, name);
+            if (value == null)
+            {
+                throw new DisconnectedException("JSON field is required: " + name);
+            }
+            return value;
+        }
+
+        private static void RejectTopLevelField(string json, string name)
+        {
+            try
+            {
+                FindTopLevelValue(json, name);
+            }
+            catch (DisconnectedException ex)
+            {
+                if (ex.Message == "JSON field missing: " + name)
+                {
+                    return;
+                }
+                throw;
+            }
+            throw new DisconnectedException("Unsupported legacy tool_call field: " + name);
         }
 
         private static int FindTopLevelValue(string json, string name)
@@ -668,6 +696,7 @@ namespace LLMOfQud
         public const string FieldAction = "action";
         public const string FieldChoiceId = "choice_id";
         public const string FieldReason = "reason";
+        public const string FieldLegacyTid = "tid";
 
         public const string TypeToolCall = "tool_call";
         public const string TypeToolResult = "tool_result";

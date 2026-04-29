@@ -265,20 +265,20 @@ a `function_call_output` with the provider `call_id`
 The C# WebSocket wire, however, is not the OpenAI item shape. v5.9
 requires Python Brain to emit `tool_call` messages to C# MOD, and C# MOD
 to return `tool_result` messages. The `tool_result` has a top-level
-`result` object; terminal-action `exec_result` examples are the content
-of that `result`, not separate top-level fields
+`result` object with normalized `status`, `output`, `error_code`, and
+`error_message` fields; terminal-action domain payloads live under
+`result.output`, not as separate top-level fields
 (`docs/architecture-v5.md:2399-2424`). All tools, including Python-owned
 knowledge tools, travel through this WebSocket envelope for one
 deduplication and telemetry path; for Python-owned notes tools, C# acts
 as a transparent relay back to Python's notes endpoint
 (`docs/architecture-v5.md:2405-2409`).
 
-Implication for PR-2.1: provider-adapter normalization may use internal
-fields such as status, output, error code, and error message, but the
-C# wire must preserve the v5.9 top-level `result` field on
-`tool_result`. Python tests should model a fake C# client/harness that
-receives Python-emitted `tool_call` messages and returns C#-shaped
-`tool_result` messages.
+Implication for PR-2.1: the C# wire must preserve the top-level `result`
+field on `tool_result`, and that object must carry normalized status,
+output, error code, and error message fields. Python tests should model a
+fake C# client/harness that receives Python-emitted `tool_call` messages
+and returns C#-shaped `tool_result` messages.
 
 Sources:
 
@@ -292,8 +292,9 @@ Sources:
    response IDs, raw blocks, and stop reasons preserved only as adapter
    metadata.
 2. `tool_call` should carry at least `type`, `call_id`, `tool`, `args`,
-   `tid`, `message_id`, `session_epoch`, and a provider metadata object
-   that may be empty in PR-2.1.
+   `message_id`, `session_epoch`, and a provider metadata object that may
+   be empty in PR-2.1. `tid` remains turn-level context outside the
+   `tool_call` / `tool_result` envelope identity.
 3. `tool_result` should preserve the v5.9 top-level `result` object:
    carry at least `type`, `call_id`, `tool`, `result`, `message_id`,
    `in_reply_to`, `session_epoch`, and provider metadata. The `result`

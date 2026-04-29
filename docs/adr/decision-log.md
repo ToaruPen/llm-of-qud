@@ -44,3 +44,4 @@ individual decision artifact under `docs/adr/decisions/`.
 - 2026-04-27T12:50:59Z | adr_required=false | PR #18 Devin follow-up: ADR 0011 section ordering (Supersedes before Related Artifacts) | [details](decisions/2026-04-27-pr-18-devin-follow-up-adr-0011-section-ordering-supersedes-before-related-artifacts.md)
 - 2026-04-27T13:41:15Z | adr_required=true | Add ADR 0012 — Phase 1 PR-1 plan hotfix probe-set revision | [details](decisions/2026-04-27-add-adr-0012-phase-1-pr-1-plan-hotfix-probe-set-revision.md)
 - 2026-04-29T03:03:57Z | adr_required=true | Add Phase 1 PR-2 readiness scope | [details](decisions/2026-04-29-add-phase-1-pr-2-readiness-scope.md)
+- 2026-04-29T05:16:27Z | adr_required=true | Add ADR 0016 for PR-2.1 tool envelope call_id identity | [details](decisions/2026-04-29-add-adr-0016-for-pr-2-1-tool-envelope-call-id-identity.md)

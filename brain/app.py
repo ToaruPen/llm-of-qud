@@ -328,8 +328,9 @@ def build_tool_call_messages(
         raise MultipleTerminalActionsError(terminal_tools)
 
     messages: list[ToolCallMessage] = []
-    for index, call in enumerate(provider_tool_calls, start=1):
-        tool = tool_names[index - 1]
+    for index, (call, tool) in enumerate(
+        zip(provider_tool_calls, tool_names, strict=True), start=1
+    ):
         call_id = optional_provider_string(call, "call_id") or f"turn-{turn}-call-{index}"
         messages.append(
             ToolCallMessage(

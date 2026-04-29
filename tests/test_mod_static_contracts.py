@@ -71,11 +71,13 @@ def test_brainclient_receive_path_round_trips_tool_call_before_decision() -> Non
     run_loop_body = method_body(source, "private void RunLoop()")
     receive_decision_body = method_body(source, "private static string ReceiveDecision")
 
-    assert "ReceiveDecision(socket, pending.TimeoutMs)" in run_loop_body
+    assert "ToolRouter toolRouter = new ToolRouter()" in run_loop_body
+    assert "ReceiveDecision(socket, pending.TimeoutMs, toolRouter)" in run_loop_body
     assert "Receive(socket, timeoutMs)" in receive_decision_body
     assert "ToolRouter.IsToolCallMessage(responseJson)" in receive_decision_body
     assert "ToolRouter.ParseToolCallEnvelope(responseJson)" in receive_decision_body
-    assert "new ToolRouter().Dispatch(call)" in receive_decision_body
+    assert "toolRouter.Dispatch(call)" in receive_decision_body
+    assert "new ToolRouter().Dispatch(call)" not in receive_decision_body
     assert "ToolRouter.BuildToolResultJson(result)" in receive_decision_body
     assert "Send(socket, resultJson, timeoutMs)" in receive_decision_body
     assert "continue;" in receive_decision_body
@@ -197,6 +199,20 @@ def test_tool_call_envelope_declares_required_wire_fields() -> None:
     assert "public int SessionEpoch;" in source
 
 
+def test_tool_call_envelope_rejects_legacy_top_level_tid() -> None:
+    source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
+    parse_body = method_body(source, "public static ToolCallEnvelope ParseToolCallEnvelope")
+    tool_call_body = method_body(source, "public sealed class ToolCallEnvelope")
+    tool_result_body = method_body(source, "public sealed class ToolResultEnvelope")
+
+    assert 'FieldLegacyTid = "tid"' in source
+    assert "RejectTopLevelField(json, ToolProtocolFields.FieldLegacyTid)" in parse_body
+    assert '"Unsupported legacy tool_call field: "' in source
+    assert "SupervisorRequestEnvelope" in source
+    assert "public int Tid;" not in tool_call_body
+    assert "public int Tid;" not in tool_result_body
+
+
 def test_tool_result_envelope_declares_required_wire_fields() -> None:
     source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
 
@@ -305,7 +321,8 @@ def test_toolrouter_parse_and_send_helpers_preserve_round_trip_fields() -> None:
         "ReadStringOrNull(json, ToolProtocolFields.FieldType) == ToolProtocolFields.TypeToolCall"
         in source
     )
-    assert "CallId = ReadStringOrNull(json, ToolProtocolFields.FieldCallId)" in parse_body
+    assert "CallId = ReadRequiredString(json, ToolProtocolFields.FieldCallId)" in parse_body
+    assert "CallId = ReadStringOrNull(json, ToolProtocolFields.FieldCallId)" not in parse_body
     assert "Tool = ReadStringOrNull(json, ToolProtocolFields.FieldTool)" in parse_body
     assert "Args = ReadArgs(json)" in parse_body
     assert "MessageId = ReadStringOrNull(json, ToolProtocolFields.FieldMessageId)" in parse_body

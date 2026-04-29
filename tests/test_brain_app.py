@@ -175,6 +175,7 @@ async def test_fake_csharp_harness_emit_tool_call_round_trips_tool_result() -> N
     assert tool_call["call_id"] == "turn-7-call-1"
     assert tool_call["message_id"] == "msg-7-tool-call-1"
     assert tool_call["session_epoch"] == 1
+    assert "tid" not in tool_call
     assert response["tool_result"] == {
         "status": "ok",
         "output": {"visible_tiles": 8},
