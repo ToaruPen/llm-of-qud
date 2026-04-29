@@ -2,10 +2,10 @@
 
 ## Scope
 
-This memo records the current PR-1.1 acceptance progress. Four accepted
-runtime runs were collected. The original five-run target was a conservative
-operator goal, but the fourth run did not reveal new failure modes; the
-evidence is sufficient to proceed to PR review.
+This memo records PR-1.1 acceptance progress. Four accepted runtime runs
+were collected. The original five-run target was a conservative operator
+goal, but the fourth run did not reveal new failure modes; the evidence was
+accepted for PR review and PR #20 merged on 2026-04-29T02:28:27Z.
 
 ## Code Changes Under Test
 
@@ -123,9 +123,9 @@ Results:
 - `uv run pytest tests/`: 26 passed.
 - `pre-commit run --all-files`: all hooks passed.
 
-## PR Readiness
+## PR Outcome
 
-The runtime acceptance evidence is sufficient for PR-1 review:
+The runtime acceptance evidence was sufficient for PR-1 review:
 
 - Four accepted runtime runs.
 - Disconnect pause emitted no decision or command.
@@ -136,9 +136,17 @@ The runtime acceptance evidence is sufficient for PR-1 review:
 - No `ERR_`, `ERROR`, `MODERROR`, or `Traceback` markers were observed in
   accepted artifacts.
 
-Before opening the PR, rerun the local gate:
+PR #20 (`Phase 1 PR-1 disconnect acceptance hardening`) was approved and
+squash-merged into `main` as commit `43c86a5`.
+
+Post-merge commands passed on `main`:
 
 ```bash
 uv run pytest tests/
 pre-commit run --all-files
 ```
+
+Results:
+
+- `uv run pytest tests/`: 39 passed.
+- `pre-commit run --all-files`: all hooks passed.
