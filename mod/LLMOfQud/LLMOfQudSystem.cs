@@ -19,6 +19,7 @@ namespace LLMOfQud
 
         private static bool _loadMarkerLogged;
         private static bool _afterRenderRegistered;
+        private static int _pendingReconnectWake;
 
         // Snapshot request handshake between HandleEvent (game thread) and
         // AfterRenderCallback (render thread). null = no pending request.
@@ -30,9 +31,11 @@ namespace LLMOfQud
 
         private int _beginTurnCount;
 
-        // Phase 0-G: IDecisionPolicy boundary. HeuristicPolicy is stateless;
-        // readonly field is safe for the [Serializable] class.
-        private readonly IDecisionPolicy _policy = new HeuristicPolicy();
+        // Phase 1 PR-1: IDecisionPolicy boundary now crosses the WebSocket bridge.
+        // Runtime bridge state is rehydrated from RegisterPlayer / AfterLoad because
+        // IGameSystem is serialized and load calls AfterLoad
+        // (decompiled/XRL/IGameSystem.cs:11-12; decompiled/XRL/XRLGame.cs:1818-1821).
+        [NonSerialized] private IDecisionPolicy _policy;
 
         // Phase 0-G: memory for DecisionInput.Adjacent.BlockedDirs and .Recent.
         // Updated after each action dispatch, read by BuildDecisionInput on the
@@ -58,6 +61,64 @@ namespace LLMOfQud
         private string _lastDir;
         private bool _lastResult;
 
+        private void EnsureRuntimePolicy()
+        {
+            WebSocketPolicy webSocketPolicy = _policy as WebSocketPolicy;
+            if (webSocketPolicy == null)
+            {
+                webSocketPolicy = new WebSocketPolicy(BrainClient.DefaultEndpoint, OnBrainReconnected);
+                _policy = webSocketPolicy;
+                return;
+            }
+            webSocketPolicy.EnsureClient(OnBrainReconnected);
+        }
+
+        private static void OnBrainReconnected()
+        {
+            // Probe 8 default: wake native PlayerTurn idle without adding a
+            // key command. The websocket worker thread only records a pending
+            // wake and signals Keyboard.KeyEvent; game state is mutated later
+            // on the game thread. PlayerTurn breaks after Keyboard.IdleWait
+            // when SkipPlayerTurn is true (decompiled/XRL.Core/XRLCore.cs:2307-2315);
+            // Keyboard.KeyEvent.Set wakes the wait without making kbhit() true
+            // through a queued key (decompiled/ConsoleLib.Console/Keyboard.cs:911-939).
+            Interlocked.Exchange(ref _pendingReconnectWake, 1);
+            try
+            {
+                if (GameManager.Instance != null && GameManager.Instance.gameQueue != null)
+                {
+                    // decompiled/GameManager.cs:144 (gameQueue);
+                    // decompiled/QupKit/ThreadTaskQueue.cs:102-103 (queueSingletonTask)
+                    GameManager.Instance.gameQueue.queueSingletonTask(
+                        "LLMOfQudReconnectWake",
+                        ApplyPendingReconnectWake,
+                        OverwritePrevious: true);
+                }
+            }
+            catch
+            {
+                // If the queue is unavailable during shutdown/load, the pending
+                // flag remains set and the next game-thread event will consume it.
+            }
+            Keyboard.KeyEvent.Set();
+            MetricsManager.LogInfo("[LLMOfQud][wake] SkipPlayerTurn pending");
+        }
+
+        private static void ApplyPendingReconnectWake()
+        {
+            if (Interlocked.Exchange(ref _pendingReconnectWake, 0) == 0)
+            {
+                return;
+            }
+            if (The.Game != null && The.Game.ActionManager != null)
+            {
+                The.Game.ActionManager.SkipPlayerTurn = true;
+                MetricsManager.LogInfo("[LLMOfQud][wake] SkipPlayerTurn signaled");
+                return;
+            }
+            Interlocked.Exchange(ref _pendingReconnectWake, 1);
+        }
+
         // Cell key for _blockedDirsByCell. Stable string form so the dictionary
         // does not depend on Cell object identity (Cell instances are
         // re-created when zones unload / reload). Format mirrors the [cmd]
@@ -78,6 +139,10 @@ namespace LLMOfQud
                 Logger.buildLog.Info(
                     "[LLMOfQud] loaded v" + VERSION +
                     " at " + DateTime.UtcNow.ToString("o"));
+            }
+            if (!Registrar.IsUnregister)
+            {
+                EnsureRuntimePolicy();
             }
             if (!Registrar.IsUnregister && !_afterRenderRegistered)
             {
@@ -100,8 +165,15 @@ namespace LLMOfQud
             base.RegisterPlayer(Player, Registrar);
         }
 
+        public override void AfterLoad(XRLGame game)
+        {
+            base.AfterLoad(game);
+            EnsureRuntimePolicy();
+        }
+
         public override bool HandleEvent(BeginTakeActionEvent E)
         {
+            ApplyPendingReconnectWake();
             _beginTurnCount++;
 
             // Build the structured state JSON on the game thread. This MUST run
@@ -392,6 +464,7 @@ namespace LLMOfQud
             // the outer catch can decide whether to emit a [decision] sentinel itself
             // (needed when BuildDecisionInput or Execute throws before Decide runs).
             bool decisionEmitted = false;
+            bool disconnectPause = false;
             int energyBefore = 0;
             try
             {
@@ -412,7 +485,12 @@ namespace LLMOfQud
                 Decision decision;
                 try
                 {
+                    EnsureRuntimePolicy();
                     decision = _policy.Decide(input);
+                }
+                catch (DisconnectedException)
+                {
+                    throw;
                 }
                 catch (Exception policyEx)
                 {
@@ -551,6 +629,23 @@ namespace LLMOfQud
 
                 MetricsManager.LogInfo("[LLMOfQud][cmd] " + SnapshotState.BuildCmdJson(rec));
             }
+            catch (DisconnectedException ex)
+            {
+                // ADR 0011 Q3: disconnect means pause, not runtime HeuristicPolicy
+                // fallback. Emit no [decision] and no [cmd]; use a separate
+                // diagnostic channel so Probe 3b can prove no terminal decision
+                // happened. Keeping Energy.Value >= 1000 lets ActionManager enter
+                // PlayerTurn at decompiled/XRL.Core/ActionManager.cs:838,
+                // :1797-1799; reconnect wake uses SkipPlayerTurn + KeyEvent.
+                disconnectPause = true;
+                StringBuilder pauseSb = new StringBuilder(128);
+                pauseSb.Append("{\"turn\":").Append(turn.ToString(CultureInfo.InvariantCulture))
+                    .Append(",\"posture\":\"pause\",\"message\":");
+                SnapshotState.AppendJsonString(pauseSb, ex.Message ?? "");
+                pauseSb.Append("}");
+                MetricsManager.LogInfo(
+                    "[LLMOfQud][disconnect_pause] " + pauseSb.ToString());
+            }
             catch (Exception ex)
             {
                 // If [decision] was not yet emitted (BuildDecisionInput or pre-Decide
@@ -602,7 +697,7 @@ namespace LLMOfQud
                 // Reach this defense ONLY when post-recovery energy is still
                 // >= 1000 (i.e., Layers 1/2/3 all failed to drain). One render
                 // cadence is sacrificed to preserve autonomy.
-                if (player?.Energy != null && player.Energy.Value >= 1000)
+                if (!disconnectPause && player?.Energy != null && player.Energy.Value >= 1000)
                 {
                     E.PreventAction = true;
                 }
