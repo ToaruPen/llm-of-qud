@@ -7,6 +7,11 @@ if TYPE_CHECKING:
     from brain.auth.token_store import TokenRecord
 
 
+class Phase2aAuthUnavailableError(RuntimeError):
+    def __init__(self) -> None:
+        super().__init__("Phase 2a")
+
+
 @dataclass(frozen=True)
 class DeviceCodeResponse:
     device_code: str
@@ -17,9 +22,9 @@ class DeviceCodeResponse:
 
 
 async def request_device_code() -> DeviceCodeResponse:
-    raise NotImplementedError("Phase 2a")
+    raise Phase2aAuthUnavailableError
 
 
 async def poll_token(device_code: DeviceCodeResponse) -> TokenRecord:
     _ = device_code
-    raise NotImplementedError("Phase 2a")
+    raise Phase2aAuthUnavailableError

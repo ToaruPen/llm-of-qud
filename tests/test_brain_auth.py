@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from brain.auth.broker import refresh_if_expired
-from brain.auth.device_flow import DeviceCodeResponse, poll_token, request_device_code
+from brain.auth.device_flow import DeviceCodeResponse, Phase2aAuthUnavailableError, poll_token, request_device_code
 from brain.auth.token_store import TokenRecord, read_token_record, write_token_record
 
 
@@ -42,9 +42,9 @@ async def test_device_flow_network_functions_are_phase_2a_placeholders() -> None
     )
 
     assert device_code.interval == 5
-    with pytest.raises(NotImplementedError, match="Phase 2a"):
+    with pytest.raises(Phase2aAuthUnavailableError, match="Phase 2a"):
         await request_device_code()
-    with pytest.raises(NotImplementedError, match="Phase 2a"):
+    with pytest.raises(Phase2aAuthUnavailableError, match="Phase 2a"):
         await poll_token(device_code)
 
 
@@ -57,5 +57,5 @@ def test_broker_passes_through_unexpired_record() -> None:
 def test_broker_raises_for_expired_record() -> None:
     record = synthetic_record(datetime.now(UTC) - timedelta(seconds=1))
 
-    with pytest.raises(NotImplementedError, match="Phase 2a"):
+    with pytest.raises(Phase2aAuthUnavailableError, match="Phase 2a"):
         refresh_if_expired(record)
