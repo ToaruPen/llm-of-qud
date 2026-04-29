@@ -48,3 +48,14 @@ async def test_telemetry_writer_creates_schema_and_records_all_pr1_events(tmp_pa
     assert await table_count(db_path, "decision_response") == 1
     assert await table_count(db_path, "disconnect_pause") == 1
     assert await table_count(db_path, "reconnect_wake") == 1
+
+
+@pytest.mark.asyncio
+async def test_telemetry_writer_rejects_double_open(tmp_path) -> None:
+    writer = TelemetryWriter(TelemetryWriterConfig(path=tmp_path / "telemetry.db"))
+    await writer.open()
+    try:
+        with pytest.raises(RuntimeError, match="already open"):
+            await writer.open()
+    finally:
+        await writer.close()

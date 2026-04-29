@@ -19,6 +19,7 @@ namespace LLMOfQud
 
         private static bool _loadMarkerLogged;
         private static bool _afterRenderRegistered;
+        private static int _pendingReconnectWake;
 
         // Snapshot request handshake between HandleEvent (game thread) and
         // AfterRenderCallback (render thread). null = no pending request.
@@ -75,16 +76,45 @@ namespace LLMOfQud
         private static void OnBrainReconnected()
         {
             // Probe 8 default: wake native PlayerTurn idle without adding a
-            // key command. PlayerTurn breaks after Keyboard.IdleWait when
-            // SkipPlayerTurn is true (decompiled/XRL.Core/XRLCore.cs:2307-2315);
+            // key command. The websocket worker thread only records a pending
+            // wake and signals Keyboard.KeyEvent; game state is mutated later
+            // on the game thread. PlayerTurn breaks after Keyboard.IdleWait
+            // when SkipPlayerTurn is true (decompiled/XRL.Core/XRLCore.cs:2307-2315);
             // Keyboard.KeyEvent.Set wakes the wait without making kbhit() true
             // through a queued key (decompiled/ConsoleLib.Console/Keyboard.cs:911-939).
+            Interlocked.Exchange(ref _pendingReconnectWake, 1);
+            try
+            {
+                if (GameManager.Instance != null && GameManager.Instance.gameQueue != null)
+                {
+                    GameManager.Instance.gameQueue.queueSingletonTask(
+                        "LLMOfQudReconnectWake",
+                        ApplyPendingReconnectWake,
+                        OverwritePrevious: true);
+                }
+            }
+            catch
+            {
+                // If the queue is unavailable during shutdown/load, the pending
+                // flag remains set and the next game-thread event will consume it.
+            }
+            Keyboard.KeyEvent.Set();
+            MetricsManager.LogInfo("[LLMOfQud][wake] SkipPlayerTurn pending");
+        }
+
+        private static void ApplyPendingReconnectWake()
+        {
+            if (Interlocked.Exchange(ref _pendingReconnectWake, 0) == 0)
+            {
+                return;
+            }
             if (The.Game != null && The.Game.ActionManager != null)
             {
                 The.Game.ActionManager.SkipPlayerTurn = true;
+                MetricsManager.LogInfo("[LLMOfQud][wake] SkipPlayerTurn signaled");
+                return;
             }
-            Keyboard.KeyEvent.Set();
-            MetricsManager.LogInfo("[LLMOfQud][wake] SkipPlayerTurn signaled");
+            Interlocked.Exchange(ref _pendingReconnectWake, 1);
         }
 
         // Cell key for _blockedDirsByCell. Stable string form so the dictionary
@@ -141,6 +171,7 @@ namespace LLMOfQud
 
         public override bool HandleEvent(BeginTakeActionEvent E)
         {
+            ApplyPendingReconnectWake();
             _beginTurnCount++;
 
             // Build the structured state JSON on the game thread. This MUST run

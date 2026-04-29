@@ -187,14 +187,53 @@ namespace LLMOfQud
                     " got " + turn.ToString(CultureInfo.InvariantCulture));
             }
 
+            string intent = ReadStringOrNull(json, "intent");
+            string action = ReadStringOrNull(json, "action");
+            string dir = ReadStringOrNull(json, "dir");
+            ValidateDecisionFields(intent, action, dir);
+
             return new Decision
             {
-                Intent = ReadStringOrNull(json, "intent"),
-                Action = ReadStringOrNull(json, "action"),
-                Dir = ReadStringOrNull(json, "dir"),
+                Intent = intent,
+                Action = action,
+                Dir = dir,
                 ReasonCode = ReadStringOrNull(json, "reason_code"),
                 Error = ReadStringOrNull(json, "error"),
             };
+        }
+
+        private static void ValidateDecisionFields(string intent, string action, string dir)
+        {
+            if (intent != "attack" && intent != "escape" && intent != "explore")
+            {
+                throw new DisconnectedException("Unsupported decision intent: " + (intent ?? "<null>"));
+            }
+            if (action != "Move" && action != "AttackDirection")
+            {
+                throw new DisconnectedException("Unsupported decision action: " + (action ?? "<null>"));
+            }
+            if (!IsDirection(dir))
+            {
+                throw new DisconnectedException("Unsupported decision dir: " + (dir ?? "<null>"));
+            }
+        }
+
+        private static bool IsDirection(string dir)
+        {
+            switch (dir)
+            {
+                case "N":
+                case "NE":
+                case "E":
+                case "SE":
+                case "S":
+                case "SW":
+                case "W":
+                case "NW":
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         private static void RequireTopLevelProperty(string json, string name)
@@ -221,6 +260,17 @@ namespace LLMOfQud
             if (index == start)
             {
                 throw new DisconnectedException("JSON field is not an integer: " + name);
+            }
+            while (index < json.Length && char.IsWhiteSpace(json[index]))
+            {
+                index++;
+            }
+            if (index < json.Length &&
+                json[index] != ',' &&
+                json[index] != '}' &&
+                json[index] != ']')
+            {
+                throw new DisconnectedException("JSON field is not a strict integer: " + name);
             }
             return value * sign;
         }

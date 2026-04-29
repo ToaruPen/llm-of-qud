@@ -1,3 +1,8 @@
+"""Token refresh gate for Phase 1 auth scaffolding.
+
+See docs/architecture-v5.md:1838-1864.
+"""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime

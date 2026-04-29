@@ -1,18 +1,30 @@
+"""Async SQLite telemetry writer for Phase 1.
+
+See docs/architecture-v5.md:1838-1864.
+"""
+
+# mypy: disable-error-code=explicit-any
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from pathlib import Path
 
 import aiosqlite
+from pydantic import BaseModel, ConfigDict, Field
 
 from brain.db.schema import create_all
 
 DEFAULT_DB_PATH = Path("~/.local/share/llm-of-qud/phase-1-pr-1.db")
 
 
-@dataclass(frozen=True)
-class TelemetryWriterConfig:
-    path: Path = field(default=DEFAULT_DB_PATH)
+class TelemetryWriterAlreadyOpenError(RuntimeError):
+    def __init__(self) -> None:
+        super().__init__("TelemetryWriter is already open")
+
+
+class TelemetryWriterConfig(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    path: Path = Field(default=DEFAULT_DB_PATH)
 
 
 class TelemetryWriter:
@@ -21,6 +33,8 @@ class TelemetryWriter:
         self._conn: aiosqlite.Connection | None = None
 
     async def open(self) -> None:
+        if self._conn is not None:
+            raise TelemetryWriterAlreadyOpenError
         db_path = self._config.path.expanduser()
         db_path.parent.mkdir(parents=True, exist_ok=True)
         self._conn = await aiosqlite.connect(db_path)

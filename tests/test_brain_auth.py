@@ -29,6 +29,16 @@ def test_token_store_round_trips_synthetic_record(tmp_path) -> None:
     write_token_record(path, record)
 
     assert read_token_record(path) == record
+    assert path.stat().st_mode & 0o777 == 0o600
+
+
+def test_token_record_rejects_naive_expiry() -> None:
+    with pytest.raises(ValueError, match="timezone-aware"):
+        TokenRecord(
+            access_token="synthetic-access-token",
+            refresh_token="synthetic-refresh-token",
+            expires_at=datetime(2026, 1, 1),
+        )
 
 
 @pytest.mark.asyncio

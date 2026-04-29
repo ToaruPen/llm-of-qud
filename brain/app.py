@@ -1,3 +1,9 @@
+"""Phase 1 PR-1 WebSocket probe server.
+
+See docs/architecture-v5.md:1838-1864.
+"""
+
+# mypy: disable-error-code=explicit-any
 from __future__ import annotations
 
 import argparse
@@ -5,10 +11,10 @@ import asyncio
 import json
 import signal
 import sys
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, TypeGuard, cast
 
 import structlog
+from pydantic import BaseModel, ConfigDict, Field
 from websockets.asyncio.server import Server, ServerConnection, serve
 
 if TYPE_CHECKING:
@@ -40,15 +46,22 @@ JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "Jso
 logger = structlog.get_logger(__name__)
 
 
-@dataclass(frozen=True)
-class ServerConfig:
+class UnsupportedDecisionInputSchemaError(ValueError):
+    def __init__(self, schema: str) -> None:
+        super().__init__(f"unsupported decision input schema: {schema}")
+
+
+class ServerConfig(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     host: str = DEFAULT_HOST
     port: int = DEFAULT_PORT
     initial_phase: str = DEFAULT_PHASE
 
 
-@dataclass(frozen=True)
-class DecisionInputSummary:
+class DecisionInputSummary(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     hp: int | None
     max_hp: int | None
     adjacent_hostile_dir: str | None
@@ -122,7 +135,7 @@ async def handle_connection(connection: ServerConnection, controller: PhaseContr
             logger.info(
                 "decision_request",
                 turn=request.turn,
-                schema=request.schema,
+                schema=request.request_schema,
                 phase=phase,
             )
             close_reason = await respond_for_phase(connection, request, phase)
@@ -139,10 +152,11 @@ async def handle_connection(connection: ServerConnection, controller: PhaseContr
         logger.info("connection_close", reason=close_reason)
 
 
-@dataclass(frozen=True)
-class DecisionRequest:
+class DecisionRequest(BaseModel):
+    model_config = ConfigDict(frozen=True, populate_by_name=True)
+
     turn: int
-    schema: str
+    request_schema: str = Field(alias="schema")
     summary: DecisionInputSummary
 
 
@@ -252,6 +266,8 @@ def parse_decision_input(message: str | bytes) -> DecisionRequest:
         raise TypeError
 
     schema = require_string(parsed, "schema")
+    if schema != "decision_input.v1":
+        raise UnsupportedDecisionInputSchemaError(schema)
     turn = require_int(parsed, "turn")
     player = require_object(parsed, "player")
     adjacent = require_object(parsed, "adjacent")

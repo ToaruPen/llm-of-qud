@@ -12,7 +12,13 @@ from websockets.exceptions import ConnectionClosed
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from brain.app import PHASE_ACCEPTANCE_ECHO, ServerConfig, phase_for_phase1_acceptance, start_probe_server
+from brain.app import (
+    PHASE_ACCEPTANCE_ECHO,
+    ServerConfig,
+    parse_decision_input,
+    phase_for_phase1_acceptance,
+    start_probe_server,
+)
 
 
 def minimal_decision_input(turn: int = 7) -> dict[str, object]:
@@ -47,6 +53,14 @@ def with_blocked_dirs(payload: dict[str, object], blocked_dirs: list[str]) -> di
     assert isinstance(adjacent, dict)
     adjacent["blocked_dirs"] = blocked_dirs
     return payload
+
+
+def test_parse_decision_input_rejects_unexpected_schema() -> None:
+    payload = minimal_decision_input()
+    payload["schema"] = "decision_input.v2"
+
+    with pytest.raises(ValueError, match="unsupported decision input schema"):
+        parse_decision_input(json.dumps(payload))
 
 
 @pytest.mark.asyncio

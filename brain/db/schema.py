@@ -1,3 +1,8 @@
+"""SQLite schema for Phase 1 telemetry.
+
+See docs/architecture-v5.md:1838-1864.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

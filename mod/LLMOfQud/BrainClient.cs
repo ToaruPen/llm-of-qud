@@ -19,8 +19,8 @@ namespace LLMOfQud
         private const int ReconnectPollMs = 250;
         private const int ReceiveBufferBytes = 8192;
 
-        [NonSerialized] private readonly object _gate = new object();
-        [NonSerialized] private readonly Queue<PendingRequest> _requests = new Queue<PendingRequest>();
+        [NonSerialized] private object _gate;
+        [NonSerialized] private Queue<PendingRequest> _requests;
         [NonSerialized] private AutoResetEvent _requestReady;
         [NonSerialized] private Thread _workerThread;
         [NonSerialized] private ClientWebSocket _socket;
@@ -29,6 +29,7 @@ namespace LLMOfQud
         [NonSerialized] private long _nextSequence;
         [NonSerialized] private bool _hasConnected;
         [NonSerialized] private bool _disconnectedSinceConnect;
+        [NonSerialized] private bool _stopped;
 
         private readonly Uri _endpoint;
 
@@ -53,6 +54,7 @@ namespace LLMOfQud
                 {
                     return;
                 }
+                _stopped = false;
                 _stop = new CancellationTokenSource();
                 _workerThread = new Thread(RunLoop);
                 _workerThread.IsBackground = true;
@@ -63,6 +65,15 @@ namespace LLMOfQud
 
         public void Stop()
         {
+            InitializeRuntimeFields();
+            Thread workerThread;
+            lock (_gate)
+            {
+                _stopped = true;
+                workerThread = _workerThread;
+                FailPendingRequestsLocked(new OperationCanceledException("BrainClient stopped"));
+            }
+
             CancellationTokenSource stop = _stop;
             if (stop != null)
             {
@@ -74,6 +85,17 @@ namespace LLMOfQud
                 requestReady.Set();
             }
             ResetSocket();
+            if (workerThread != null && workerThread != Thread.CurrentThread)
+            {
+                workerThread.Join(ConnectTimeoutMs + IdlePollMs + ReconnectPollMs);
+            }
+            lock (_gate)
+            {
+                if (_workerThread != null && !_workerThread.IsAlive)
+                {
+                    _workerThread = null;
+                }
+            }
         }
 
         public DecisionRequest SendDecisionInput(string requestJson, int timeoutMs)
@@ -89,6 +111,10 @@ namespace LLMOfQud
 
             lock (_gate)
             {
+                if (_stopped)
+                {
+                    throw new DisconnectedException("BrainClient stopped");
+                }
                 _requests.Enqueue(pending);
             }
             _requestReady.Set();
@@ -99,6 +125,14 @@ namespace LLMOfQud
 
         private void InitializeRuntimeFields()
         {
+            if (_gate == null)
+            {
+                _gate = new object();
+            }
+            if (_requests == null)
+            {
+                _requests = new Queue<PendingRequest>();
+            }
             if (_requestReady == null)
             {
                 _requestReady = new AutoResetEvent(false);
@@ -159,6 +193,10 @@ namespace LLMOfQud
                 }
             }
 
+            lock (_gate)
+            {
+                FailPendingRequestsLocked(new OperationCanceledException("BrainClient stopped"));
+            }
             MetricsManager.LogInfo("[LLMOfQud][connection_lifecycle] THREAD_STOP");
         }
 
@@ -180,6 +218,18 @@ namespace LLMOfQud
                 }
             }
             return null;
+        }
+
+        private void FailPendingRequestsLocked(Exception ex)
+        {
+            while (_requests != null && _requests.Count > 0)
+            {
+                PendingRequest pending = _requests.Dequeue();
+                if (pending != null && pending.Completion != null)
+                {
+                    pending.Completion.TrySetException(ex);
+                }
+            }
         }
 
         private void TryConnectForReadiness()
