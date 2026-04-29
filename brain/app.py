@@ -85,8 +85,13 @@ class MultipleTerminalActionsError(ValueError):
         super().__init__(f"multiple terminal actions cannot be emitted in parallel: {tools}")
 
 
+class DuplicateToolCallIdError(ValueError):
+    def __init__(self, call_id: str) -> None:
+        super().__init__(f"duplicate tool call_id in emission batch: {call_id}")
+
+
 class ToolResultMismatchError(ValueError):
-    def __init__(self, field: str, expected: str | None, actual: str | None) -> None:
+    def __init__(self, field: str, expected: object, actual: object) -> None:
         super().__init__(f"tool_result {field} mismatch: expected {expected!r}, got {actual!r}")
 
 
@@ -311,6 +316,12 @@ def require_matching_tool_result(
         raise ToolResultMismatchError("tool", tool_call.tool, tool_result.tool)
     if tool_result.in_reply_to != tool_call.message_id:
         raise ToolResultMismatchError("in_reply_to", tool_call.message_id, tool_result.in_reply_to)
+    if tool_result.session_epoch != tool_call.session_epoch:
+        raise ToolResultMismatchError(
+            "session_epoch",
+            tool_call.session_epoch,
+            tool_result.session_epoch,
+        )
 
 
 def build_tool_call_messages(
@@ -328,10 +339,14 @@ def build_tool_call_messages(
         raise MultipleTerminalActionsError(terminal_tools)
 
     messages: list[ToolCallMessage] = []
+    seen_call_ids: set[str] = set()
     for index, (call, tool) in enumerate(
         zip(provider_tool_calls, tool_names, strict=True), start=1
     ):
         call_id = optional_provider_string(call, "call_id") or f"turn-{turn}-call-{index}"
+        if call_id in seen_call_ids:
+            raise DuplicateToolCallIdError(call_id)
+        seen_call_ids.add(call_id)
         messages.append(
             ToolCallMessage(
                 call_id=call_id,

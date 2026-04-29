@@ -17,16 +17,20 @@ sys.path.insert(0, str(ROOT))
 from brain.app import (
     MALFORMED_TOOL_ARGS_ERROR_CODE,
     PHASE_ACCEPTANCE_ECHO,
+    DuplicateToolCallIdError,
     ServerConfig,
+    ToolResultMismatchError,
     build_tool_call_messages,
     delay_for_phase,
     parse_decision_input,
     parse_delay_ms,
     phase_for_phase1_acceptance,
     require_int,
+    require_matching_tool_result,
     require_object,
     start_probe_server,
 )
+from brain.protocol import ToolResultMessage, ToolResultPayload, ToolResultStatus
 
 if TYPE_CHECKING:
     from brain.protocol import JsonObject, JsonValue
@@ -247,6 +251,56 @@ def test_cancel_or_back_is_non_terminal_for_parallel_terminal_guard() -> None:
     )
 
     assert [message.tool for message in messages] == ["execute", "cancel_or_back"]
+
+
+def test_tool_result_session_epoch_must_match_tool_call() -> None:
+    (tool_call,) = build_tool_call_messages(
+        [{"tool": "check_status", "args": {}, "call_id": "call-1"}],
+        turn=7,
+        session_epoch=3,
+    )
+    tool_result = ToolResultMessage(
+        call_id=tool_call.call_id,
+        tool=tool_call.tool,
+        result=ToolResultPayload(status=ToolResultStatus.OK),
+        message_id="result-1",
+        in_reply_to=tool_call.message_id,
+        session_epoch=4,
+    )
+
+    with pytest.raises(
+        ToolResultMismatchError,
+        match=r"tool_result session_epoch mismatch: expected 3, got 4",
+    ):
+        require_matching_tool_result(tool_call, tool_result)
+
+
+def test_duplicate_provider_call_id_is_rejected_before_emission() -> None:
+    with pytest.raises(
+        DuplicateToolCallIdError,
+        match="duplicate tool call_id in emission batch: call-1",
+    ):
+        build_tool_call_messages(
+            [
+                {"tool": "check_status", "args": {}, "call_id": "call-1"},
+                {"tool": "inspect_surroundings", "args": {}, "call_id": "call-1"},
+            ],
+            turn=7,
+            session_epoch=3,
+        )
+
+
+def test_missing_provider_call_id_uses_unique_generated_ids() -> None:
+    messages = build_tool_call_messages(
+        [
+            {"tool": "check_status", "args": {}},
+            {"tool": "inspect_surroundings", "args": {}},
+        ],
+        turn=7,
+        session_epoch=3,
+    )
+
+    assert [message.call_id for message in messages] == ["turn-7-call-1", "turn-7-call-2"]
 
 
 @pytest.mark.asyncio

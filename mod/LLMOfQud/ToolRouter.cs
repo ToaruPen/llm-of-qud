@@ -254,7 +254,11 @@ namespace LLMOfQud
         private static object ReadSimpleJsonValue(string raw)
         {
             raw = raw.Trim();
-            if (raw.Length == 0 || raw == "null")
+            if (raw.Length == 0)
+            {
+                throw new DisconnectedException("JSON args value type is unsupported: <empty>");
+            }
+            if (raw == "null")
             {
                 return null;
             }
@@ -268,14 +272,22 @@ namespace LLMOfQud
             }
             if (raw[0] == '"')
             {
+                if (raw.Length < 2 || raw[raw.Length - 1] != '"')
+                {
+                    throw new DisconnectedException("JSON string value is unterminated");
+                }
                 return UnescapeSimple(raw.Substring(1, raw.Length - 2));
+            }
+            if (raw[0] == '{' || raw[0] == '[')
+            {
+                throw new DisconnectedException("JSON args value type is unsupported: " + raw);
             }
             int integer;
             if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out integer))
             {
                 return integer;
             }
-            return raw;
+            throw new DisconnectedException("JSON args value type is unsupported: " + raw);
         }
 
         private static int ReadInt(string json, string name)
@@ -288,10 +300,15 @@ namespace LLMOfQud
                 index++;
             }
             int start = index;
-            int value = 0;
+            long value = 0;
+            long maxMagnitude = sign == -1 ? -(long)int.MinValue : int.MaxValue;
             while (index < json.Length && json[index] >= '0' && json[index] <= '9')
             {
                 value = (value * 10) + (json[index] - '0');
+                if (value > maxMagnitude)
+                {
+                    throw new DisconnectedException("JSON field integer is out of Int32 range: " + name);
+                }
                 index++;
             }
             if (index == start)
@@ -309,7 +326,7 @@ namespace LLMOfQud
             {
                 throw new DisconnectedException("JSON field is not a strict integer: " + name);
             }
-            return value * sign;
+            return (int)(value * sign);
         }
 
         private static string ReadStringOrNull(string json, string name)

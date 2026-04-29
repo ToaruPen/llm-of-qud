@@ -41,7 +41,11 @@ def method_body(source: str, signature: str) -> str:
 
 
 def csharp_mod_sources() -> dict[str, str]:
-    return {path.name: path.read_text() for path in (ROOT / "mod/LLMOfQud").glob("*.cs")}
+    source_root = ROOT / "mod/LLMOfQud"
+    return {
+        path.relative_to(source_root).as_posix(): path.read_text()
+        for path in sorted(source_root.rglob("*.cs"))
+    }
 
 
 def test_disconnect_pause_does_not_emit_decision_channel() -> None:
@@ -167,6 +171,15 @@ def test_websocket_policy_rejects_unsupported_decision_fields_and_non_integer_tu
     assert "ValidateDecisionFields(intent, action, dir)" in parse_body
     assert "Unsupported decision action" in validate_body
     assert "JSON field is not a strict integer" in read_int_body
+
+
+def test_csharp_mod_sources_are_keyed_by_relative_path() -> None:
+    sources = csharp_mod_sources()
+    source_keys = [Path(key) for key in sources]
+
+    assert "ToolRouter.cs" in sources
+    assert all(not key.is_absolute() for key in source_keys)
+    assert all(key.suffix == ".cs" for key in source_keys)
 
 
 def test_toolrouter_dispatch_boundary_exists() -> None:
@@ -369,6 +382,29 @@ def test_toolrouter_parse_and_send_helpers_preserve_round_trip_fields() -> None:
     assert "NumberStyles.HexNumber" in unescape_body
     assert "int.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture" in unescape_body
     assert "throw new DisconnectedException(\"JSON unicode escape is invalid: \" + hex)" in unescape_body
+
+
+def test_toolrouter_rejects_unsupported_raw_args_values() -> None:
+    source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
+    body = method_body(source, "private static object ReadSimpleJsonValue")
+
+    assert "return raw;" not in body
+    assert "raw[0] == '{' || raw[0] == '['" in body
+    assert "JSON args value type is unsupported" in body
+    assert "int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture" in body
+    assert "throw new DisconnectedException" in body
+
+
+def test_toolrouter_read_int_rejects_overflow_and_preserves_strict_parsing() -> None:
+    source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
+    body = method_body(source, "private static int ReadInt")
+
+    assert "long maxMagnitude" in body
+    assert "int.MaxValue" in body
+    assert "int.MinValue" in body
+    assert "value > maxMagnitude" in body
+    assert "JSON field integer is out of Int32 range" in body
+    assert "JSON field is not a strict integer" in body
 
 
 def test_tool_call_detection_preserves_direct_decision_messages_without_type() -> None:
