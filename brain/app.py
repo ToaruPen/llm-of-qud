@@ -17,6 +17,9 @@ import structlog
 from pydantic import BaseModel, ConfigDict, Field
 from websockets.asyncio.server import Server, ServerConnection, serve
 
+from brain.protocol import JsonObject as ProtocolJsonObject
+from brain.protocol import ToolCallMessage, ToolResultMessage
+
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
@@ -28,9 +31,14 @@ PHASE_COMMAND_PREFIX = "PHASE "
 PHASE_SCRIPT_PR1 = "phase1-pr1"
 PHASE_SCRIPT_PR1_ACCEPTANCE = "phase1-pr1-acceptance"
 PHASE_ACCEPTANCE_ECHO = f"{PHASE_SCRIPT_PR1_ACCEPTANCE}:echo"
+TOOL_CALL_PROBE_PHASE_PREFIX = "tool_call_probe:"
+TOOL_CALL_PROBE_MALFORMED_ARGS_PHASE_PREFIX = "tool_call_probe_malformed_args:"
+MALFORMED_TOOL_ARGS_ERROR_CODE = "invalid_tool_args"
 ACCEPTANCE_DISCONNECT_REQUEST = 6
 EXPLORE_DIR_ORDER = ("E", "SE", "NE", "S", "N", "W", "SW", "NW")
 VALID_COMPASS_DIRS = frozenset(EXPLORE_DIR_ORDER)
+TERMINAL_ACTIONS = frozenset({"execute", "navigate_to", "choose"})
+PROBE_SESSION_EPOCH = 1
 SCRIPT_PROBE_1_TURNS = 25
 SCRIPT_PROBE_6_END = 160
 SCRIPT_TIMEOUT_END = 210
@@ -70,6 +78,21 @@ class InvalidSleepPhaseError(ValueError):
 class NegativeSleepPhaseError(ValueError):
     def __init__(self, phase: str) -> None:
         super().__init__(f"negative sleep value for phase: {phase}")
+
+
+class MultipleTerminalActionsError(ValueError):
+    def __init__(self, tools: list[str]) -> None:
+        super().__init__(f"multiple terminal actions cannot be emitted in parallel: {tools}")
+
+
+class DuplicateToolCallIdError(ValueError):
+    def __init__(self, call_id: str) -> None:
+        super().__init__(f"duplicate tool call_id in emission batch: {call_id}")
+
+
+class ToolResultMismatchError(ValueError):
+    def __init__(self, field: str, expected: object, actual: object) -> None:
+        super().__init__(f"tool_result {field} mismatch: expected {expected!r}, got {actual!r}")
 
 
 class DecisionInputPayloadTypeError(TypeError):
@@ -210,6 +233,16 @@ async def respond_for_phase(
         await connection.close(reason="probe_late_stale")
         await asyncio.sleep(0.05)
         return "probe_late_stale"
+    if is_tool_call_probe_phase(phase):
+        result = await emit_probe_tool_call(connection, request, phase)
+        response = canned_decision(request, phase)
+        response["tool_result"] = cast(
+            "JsonValue",
+            result.result.model_dump(mode="json", exclude_none=True),
+        )
+        await connection.send(json.dumps(response, separators=(",", ":")))
+        logger.info("decision_response", turn=request.turn, delay_ms=0)
+        return "normal"
 
     delay_ms = delay_for_phase(phase)
     if delay_ms > 0:
@@ -226,6 +259,132 @@ def delay_for_phase(phase: str) -> int:
     if phase.startswith("sleep:"):
         return parse_delay_ms(phase)
     raise UnsupportedPhaseError(phase)
+
+
+def is_tool_call_probe_phase(phase: str) -> bool:
+    return phase.startswith(
+        (TOOL_CALL_PROBE_PHASE_PREFIX, TOOL_CALL_PROBE_MALFORMED_ARGS_PHASE_PREFIX),
+    )
+
+
+async def emit_probe_tool_call(
+    connection: ServerConnection,
+    request: DecisionRequest,
+    phase: str,
+) -> ToolResultMessage:
+    tool = tool_name_for_probe_phase(phase)
+    args: ProtocolJsonObject = (
+        {"candidate_id": 123}
+        if phase.startswith(TOOL_CALL_PROBE_MALFORMED_ARGS_PHASE_PREFIX)
+        else {}
+    )
+    (tool_call,) = build_tool_call_messages(
+        [{"tool": tool, "args": args}],
+        turn=request.turn,
+        session_epoch=PROBE_SESSION_EPOCH,
+    )
+    return await emit_tool_call(connection, tool_call)
+
+
+def tool_name_for_probe_phase(phase: str) -> str:
+    if phase.startswith(TOOL_CALL_PROBE_MALFORMED_ARGS_PHASE_PREFIX):
+        return phase.removeprefix(TOOL_CALL_PROBE_MALFORMED_ARGS_PHASE_PREFIX)
+    if phase.startswith(TOOL_CALL_PROBE_PHASE_PREFIX):
+        return phase.removeprefix(TOOL_CALL_PROBE_PHASE_PREFIX)
+    raise UnsupportedPhaseError(phase)
+
+
+async def emit_tool_call(
+    connection: ServerConnection,
+    tool_call: ToolCallMessage,
+) -> ToolResultMessage:
+    await connection.send(tool_call.model_dump_json(by_alias=True, exclude_none=True))
+    raw_result = await connection.recv()
+    text = raw_result.decode("utf-8") if isinstance(raw_result, bytes) else raw_result
+    result = ToolResultMessage.model_validate(json.loads(text))
+    require_matching_tool_result(tool_call, result)
+    return result
+
+
+def require_matching_tool_result(
+    tool_call: ToolCallMessage,
+    tool_result: ToolResultMessage,
+) -> None:
+    if tool_result.call_id != tool_call.call_id:
+        raise ToolResultMismatchError("call_id", tool_call.call_id, tool_result.call_id)
+    if tool_result.tool != tool_call.tool:
+        raise ToolResultMismatchError("tool", tool_call.tool, tool_result.tool)
+    if tool_result.in_reply_to != tool_call.message_id:
+        raise ToolResultMismatchError("in_reply_to", tool_call.message_id, tool_result.in_reply_to)
+    if tool_result.session_epoch != tool_call.session_epoch:
+        raise ToolResultMismatchError(
+            "session_epoch",
+            tool_call.session_epoch,
+            tool_result.session_epoch,
+        )
+
+
+def build_tool_call_messages(
+    provider_tool_calls: list[dict[str, object]],
+    *,
+    turn: int,
+    session_epoch: int,
+) -> tuple[ToolCallMessage, ...]:
+    tool_names = [
+        require_provider_tool_name(call, index)
+        for index, call in enumerate(provider_tool_calls, start=1)
+    ]
+    terminal_tools = [tool for tool in tool_names if tool in TERMINAL_ACTIONS]
+    if len(terminal_tools) > 1:
+        raise MultipleTerminalActionsError(terminal_tools)
+
+    messages: list[ToolCallMessage] = []
+    seen_call_ids: set[str] = set()
+    for index, (call, tool) in enumerate(
+        zip(provider_tool_calls, tool_names, strict=True), start=1
+    ):
+        call_id = optional_provider_string(call, "call_id") or f"turn-{turn}-call-{index}"
+        if call_id in seen_call_ids:
+            raise DuplicateToolCallIdError(call_id)
+        seen_call_ids.add(call_id)
+        messages.append(
+            ToolCallMessage(
+                call_id=call_id,
+                tool=tool,
+                args=require_protocol_json_object(
+                    call.get("args", {}),
+                    f"provider_tool_calls[{index}].args",
+                ),
+                message_id=f"msg-{turn}-tool-call-{index}",
+                session_epoch=session_epoch,
+            ),
+        )
+    return tuple(messages)
+
+
+def require_provider_tool_name(call: dict[str, object], index: int) -> str:
+    value = call.get("tool", call.get("name"))
+    if not isinstance(value, str):
+        raise JsonFieldTypeError(
+            "require_provider_tool_name",
+            f"provider_tool_calls[{index}].tool",
+            "string",
+            value,
+        )
+    return value
+
+
+def optional_provider_string(payload: dict[str, object], key: str) -> str | None:
+    value = payload.get(key)
+    if value is None or isinstance(value, str):
+        return value
+    raise JsonFieldTypeError("optional_provider_string", key, "string or None", value)
+
+
+def require_protocol_json_object(value: object, key: str) -> ProtocolJsonObject:
+    if is_json_object(value):
+        return value
+    raise JsonFieldTypeError("require_protocol_json_object", key, "JSON object", value)
 
 
 def parse_delay_ms(phase: str) -> int:

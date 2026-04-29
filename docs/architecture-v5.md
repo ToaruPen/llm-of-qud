@@ -2408,20 +2408,26 @@ via the unified WebSocket wire. `write_note` and `read_notes` are handled by Pyt
 and telemetry logging. C# acts as a transparent relay for knowledge tools, forwarding
 args to Python's `notes_manager` endpoint. This ensures a single deduplication path.
 ```
-Python → C#: {"type": "tool_call", "tid": N, "tool": "<name>", "args": {...},
+Python -> C#: {"type": "tool_call", "call_id": "<call_id>", "tool": "<name>", "args": {...},
               "message_id": "...", "session_epoch": N}
-C# → Python: {"type": "tool_result", "tid": N, "tool": "<name>", "result": {...},
+C# -> Python: {"type": "tool_result", "call_id": "<call_id>", "tool": "<name>",
+              "result": {"status": "ok", "output": {...},
+                         "error_code": null, "error_message": null},
               "message_id": "...", "in_reply_to": "...", "session_epoch": N}
 ```
+`call_id` is the required per-tool-call invocation identity for `tool_call` and
+`tool_result`; `message_id` / `in_reply_to` remain transport correlation and
+deduplication fields. `tid` is turn-level context and is not part of
+`tool_call` / `tool_result` envelope identity.
 Terminal actions additionally include `action_nonce` and `state_version` in the **envelope**
-(not inside `args`), and the result includes the unified terminal action contract (`accepted`,
+(not inside `args`), and `result.output` includes the unified terminal action contract (`accepted`,
 `turn_complete`, `action_kind`, `execution_status`, `acceptance_status`, `safety_decision`).
 There is NO separate `execute` / `exec_result` message type at the wire level.
 
 `supervisor_request` and `supervisor_response` are **non-tool messages** — they do not use
 the `tool_call`/`tool_result` envelope. They are standalone message types with their own
 `message_id` and `session_epoch`, used only for human-in-the-loop escalation.
-The `exec_result` examples in §8 show the **content of `result`** within the `tool_result` envelope.
+The `exec_result` examples in §8 show the **content of `result.output`** within the `tool_result` envelope.
 
 **C# → Python: Turn Start** (v3.2: removed `active_plan`, kept `interrupt_reason`; v3.2-lite: added `game_state`)
 ```json
@@ -2459,22 +2465,27 @@ This is the **canonical source** for `state_fallback()` — the LLM may also see
 `inspect_surroundings`, but the fallback path uses `turn_notify.modal` directly.
 When `modal_active == false`, `modal` is `null`.
 
-**Python → C#: Tool Call Request**
+**Python -> C#: Tool Call Request**
 ```json
-{"type": "tool_call", "tid": 142, "tool": "inspect_surroundings", "args": {},
+{"type": "tool_call", "call_id": "call_142_inspect_01", "tool": "inspect_surroundings", "args": {},
  "message_id": "msg_142_tc_01", "session_epoch": 3}
 ```
 
-**C# → Python: Tool Call Response**
+**C# -> Python: Tool Call Response**
 ```json
-{"type": "tool_result", "tid": 142, "tool": "inspect_surroundings",
- "result": {"map": {...}, "entities": [...], ...},
+{"type": "tool_result", "call_id": "call_142_inspect_01", "tool": "inspect_surroundings",
+ "result": {
+   "status": "ok",
+   "output": {"map": {...}, "entities": [...], ...},
+   "error_code": null,
+   "error_message": null
+ },
  "message_id": "msg_142_tr_01", "in_reply_to": "msg_142_tc_01", "session_epoch": 3}
 ```
 
-**Python → C#: Terminal Action (execute example)** — uses standard `tool_call` envelope
+**Python -> C#: Terminal Action (execute example)** - uses standard `tool_call` envelope
 ```json
-{"type": "tool_call", "tid": 142, "tool": "execute",
+{"type": "tool_call", "call_id": "call_142_exec_01", "tool": "execute",
  "args": {
    "candidate_id": "c2",
    "candidate_set_id": "cs_142_01",
@@ -2485,18 +2496,23 @@ When `modal_active == false`, `modal` is `null`.
  "message_id": "msg_142_exec_01", "session_epoch": 3}
 ```
 
-**C# → Python: Terminal Action Result** — uses standard `tool_result` envelope
+**C# -> Python: Terminal Action Result** - uses standard `tool_result` envelope
 ```json
-{"type": "tool_result", "tid": 142, "tool": "execute",
+{"type": "tool_result", "call_id": "call_142_exec_01", "tool": "execute",
  "result": {
-   "accepted": true, "turn_complete": true,
-   "action_kind": "execute",
-   "execution_status": "accepted",
-   "acceptance_status": "accepted",
-   "safety_decision": "pass",
-   "action_summary": "Retreat NW to cover",
-   "outcome": {"hp_delta": 0, "net_value": 2.5, "tags": ["broke_los", "maintained_cover"]},
-   "safety_warning": null
+   "status": "ok",
+   "output": {
+     "accepted": true, "turn_complete": true,
+     "action_kind": "execute",
+     "execution_status": "accepted",
+     "acceptance_status": "accepted",
+     "safety_decision": "pass",
+     "action_summary": "Retreat NW to cover",
+     "outcome": {"hp_delta": 0, "net_value": 2.5, "tags": ["broke_los", "maintained_cover"]},
+     "safety_warning": null
+   },
+   "error_code": null,
+   "error_message": null
  },
  "action_nonce": "f7a1b2c3",
  "message_id": "msg_142_er_01", "in_reply_to": "msg_142_exec_01", "session_epoch": 3}

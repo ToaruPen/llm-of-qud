@@ -35,7 +35,18 @@ CREATE TABLE IF NOT EXISTS decision_response (
     turn INTEGER NOT NULL,
     schema TEXT NOT NULL,
     delay_ms INTEGER NOT NULL,
-    error TEXT
+    error TEXT,
+    provider_name TEXT,
+    provider_response_id TEXT,
+    provider_item_id TEXT,
+    provider_input_tokens INTEGER,
+    provider_output_tokens INTEGER,
+    provider_cached_input_tokens INTEGER,
+    provider_cache_creation_input_tokens INTEGER,
+    provider_cache_read_input_tokens INTEGER,
+    error_class TEXT,
+    retry_class TEXT,
+    retry_attempt INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS disconnect_pause (
@@ -53,8 +64,100 @@ CREATE TABLE IF NOT EXISTS reconnect_wake (
         mechanism IN ('PUSH_KEY_NONE', 'PUSH_KEY_OTHER', 'PASS_TURN')
     )
 );
+
+CREATE TABLE IF NOT EXISTS tool_call_sent (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT NOT NULL DEFAULT ({TIMESTAMP_DEFAULT}),
+    call_id TEXT NOT NULL,
+    tool TEXT NOT NULL,
+    provider_name TEXT,
+    provider_response_id TEXT,
+    provider_item_id TEXT,
+    provider_input_tokens INTEGER,
+    provider_output_tokens INTEGER,
+    provider_cached_input_tokens INTEGER,
+    provider_cache_creation_input_tokens INTEGER,
+    provider_cache_read_input_tokens INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS tool_call_received (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT NOT NULL DEFAULT ({TIMESTAMP_DEFAULT}),
+    call_id TEXT NOT NULL,
+    tool TEXT NOT NULL,
+    result_status TEXT NOT NULL,
+    latency_ms INTEGER NOT NULL,
+    error_class TEXT,
+    retry_class TEXT,
+    retry_attempt INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS supervisor_request (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT NOT NULL DEFAULT ({TIMESTAMP_DEFAULT}),
+    message_id TEXT NOT NULL,
+    turn INTEGER NOT NULL,
+    reason TEXT NOT NULL,
+    game_state TEXT NOT NULL,
+    timeout_s INTEGER,
+    error_class TEXT,
+    retry_class TEXT,
+    retry_attempt INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS supervisor_response (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT NOT NULL DEFAULT ({TIMESTAMP_DEFAULT}),
+    message_id TEXT NOT NULL,
+    in_reply_to TEXT NOT NULL,
+    turn INTEGER NOT NULL,
+    action TEXT NOT NULL,
+    result_status TEXT NOT NULL,
+    latency_ms INTEGER,
+    choice_id TEXT,
+    reason TEXT,
+    error_class TEXT,
+    retry_class TEXT,
+    retry_attempt INTEGER NOT NULL DEFAULT 0
+);
 """
+
+DECISION_RESPONSE_COLUMN_MIGRATIONS = {
+    "provider_name": "ALTER TABLE decision_response ADD COLUMN provider_name TEXT",
+    "provider_response_id": "ALTER TABLE decision_response ADD COLUMN provider_response_id TEXT",
+    "provider_item_id": "ALTER TABLE decision_response ADD COLUMN provider_item_id TEXT",
+    "provider_input_tokens": (
+        "ALTER TABLE decision_response ADD COLUMN provider_input_tokens INTEGER"
+    ),
+    "provider_output_tokens": (
+        "ALTER TABLE decision_response ADD COLUMN provider_output_tokens INTEGER"
+    ),
+    "provider_cached_input_tokens": (
+        "ALTER TABLE decision_response ADD COLUMN provider_cached_input_tokens INTEGER"
+    ),
+    "provider_cache_creation_input_tokens": (
+        "ALTER TABLE decision_response ADD COLUMN provider_cache_creation_input_tokens INTEGER"
+    ),
+    "provider_cache_read_input_tokens": (
+        "ALTER TABLE decision_response ADD COLUMN provider_cache_read_input_tokens INTEGER"
+    ),
+    "error_class": "ALTER TABLE decision_response ADD COLUMN error_class TEXT",
+    "retry_class": "ALTER TABLE decision_response ADD COLUMN retry_class TEXT",
+    "retry_attempt": (
+        "ALTER TABLE decision_response ADD COLUMN retry_attempt INTEGER NOT NULL DEFAULT 0"
+    ),
+}
 
 
 async def create_all(conn: aiosqlite.Connection) -> None:
     await conn.executescript(DDL)
+    await _migrate_decision_response(conn)
+
+
+async def _migrate_decision_response(conn: aiosqlite.Connection) -> None:
+    cursor = await conn.execute("PRAGMA table_info(decision_response)")
+    rows = await cursor.fetchall()
+    existing_columns = {str(row[1]) for row in rows}
+    for column_name, statement in DECISION_RESPONSE_COLUMN_MIGRATIONS.items():
+        if column_name not in existing_columns:
+            await conn.execute(statement)

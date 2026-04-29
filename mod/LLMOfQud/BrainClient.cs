@@ -145,6 +145,7 @@ namespace LLMOfQud
             // decompiled/MetricsManager.cs:407-409 (LogInfo -> Player.log)
             MetricsManager.LogInfo(
                 "[LLMOfQud][connection_lifecycle] THREAD_START endpoint=" + _endpoint);
+            ToolRouter toolRouter = new ToolRouter();
 
             while (_stop == null || !_stop.IsCancellationRequested)
             {
@@ -160,7 +161,7 @@ namespace LLMOfQud
                     Stopwatch stopwatch = Stopwatch.StartNew();
                     ClientWebSocket socket = EnsureConnected();
                     Send(socket, pending.RequestJson, pending.TimeoutMs);
-                    string response = Receive(socket, pending.TimeoutMs);
+                    string response = ReceiveDecision(socket, pending.TimeoutMs, toolRouter);
                     stopwatch.Stop();
                     pending.Completion.TrySetResult(response);
                     // decompiled/MetricsManager.cs:407-409 (LogInfo -> Player.log)
@@ -305,6 +306,44 @@ namespace LLMOfQud
                 Task task = socket.SendAsync(segment, WebSocketMessageType.Text, true, cts.Token);
                 WaitTransportTask(task, cts, "send timed out");
             }
+        }
+
+        private static string ReceiveDecision(ClientWebSocket socket, int timeoutMs, ToolRouter toolRouter)
+        {
+            DateTime deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+            while (true)
+            {
+                int remainingMs = RemainingTimeoutMs(deadline, "decision timed out");
+                string responseJson = Receive(socket, remainingMs);
+                if (ToolRouter.IsSupervisorResponseMessage(responseJson))
+                {
+                    SupervisorResponseEnvelope response =
+                        ToolRouter.ParseSupervisorResponseEnvelope(responseJson);
+                    throw new DisconnectedException(
+                        "Unexpected supervisor_response before final decision: " +
+                        (response.MessageId ?? "<null>"));
+                }
+                if (ToolRouter.IsToolCallMessage(responseJson))
+                {
+                    ToolCallEnvelope call = ToolRouter.ParseToolCallEnvelope(responseJson);
+                    ToolResultEnvelope result = toolRouter.Dispatch(call);
+                    string resultJson = ToolRouter.BuildToolResultJson(result);
+                    remainingMs = RemainingTimeoutMs(deadline, "decision timed out");
+                    Send(socket, resultJson, remainingMs);
+                    continue;
+                }
+                return responseJson;
+            }
+        }
+
+        private static int RemainingTimeoutMs(DateTime deadline, string timeoutMessage)
+        {
+            int remainingMs = (int)Math.Ceiling((deadline - DateTime.UtcNow).TotalMilliseconds);
+            if (remainingMs <= 0)
+            {
+                throw new TimeoutException(timeoutMessage);
+            }
+            return remainingMs;
         }
 
         private static string Receive(ClientWebSocket socket, int timeoutMs)
