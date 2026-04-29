@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -41,6 +40,10 @@ def method_body(source: str, signature: str) -> str:
     raise AssertionError(f"method body not closed: {signature}")
 
 
+def csharp_mod_sources() -> dict[str, str]:
+    return {path.name: path.read_text() for path in (ROOT / "mod/LLMOfQud").glob("*.cs")}
+
+
 def test_disconnect_pause_does_not_emit_decision_channel() -> None:
     source = (ROOT / "mod/LLMOfQud/LLMOfQudSystem.cs").read_text()
     match = re.search(
@@ -61,6 +64,48 @@ def test_brainclient_response_log_includes_round_trip_elapsed_ms() -> None:
 
     assert "Stopwatch.StartNew()" in body
     assert "elapsed_ms=" in body
+
+
+def test_brainclient_receive_path_round_trips_tool_call_before_decision() -> None:
+    source = (ROOT / "mod/LLMOfQud/BrainClient.cs").read_text()
+    run_loop_body = method_body(source, "private void RunLoop()")
+    receive_decision_body = method_body(source, "private static string ReceiveDecision")
+
+    assert "ReceiveDecision(socket, pending.TimeoutMs)" in run_loop_body
+    assert "Receive(socket, timeoutMs)" in receive_decision_body
+    assert "ToolRouter.IsToolCallMessage(responseJson)" in receive_decision_body
+    assert "ToolRouter.ParseToolCallEnvelope(responseJson)" in receive_decision_body
+    assert "new ToolRouter().Dispatch(call)" in receive_decision_body
+    assert "ToolRouter.BuildToolResultJson(result)" in receive_decision_body
+    assert "Send(socket, resultJson, timeoutMs)" in receive_decision_body
+    assert "continue;" in receive_decision_body
+    assert "return responseJson;" in receive_decision_body
+
+
+def test_brainclient_receive_path_does_not_accept_supervisor_request_from_python() -> None:
+    source = (ROOT / "mod/LLMOfQud/BrainClient.cs").read_text()
+    receive_decision_body = method_body(source, "private static string ReceiveDecision")
+
+    assert "ToolRouter.IsSupervisorRequestMessage(responseJson)" not in receive_decision_body
+    assert "ToolRouter.ParseSupervisorRequestEnvelope(responseJson)" not in receive_decision_body
+    assert "ToolRouter.BuildUnsupportedSupervisorResponseJson" not in receive_decision_body
+    assert "supervisorResponseJson" not in receive_decision_body
+
+
+def test_brainclient_receive_path_rejects_supervisor_response_before_parse_decision() -> None:
+    source = (ROOT / "mod/LLMOfQud/BrainClient.cs").read_text()
+    policy_source = (ROOT / "mod/LLMOfQud/WebSocketPolicy.cs").read_text()
+    receive_decision_body = method_body(source, "private static string ReceiveDecision")
+    decide_body = method_body(policy_source, "public Decision Decide")
+
+    assert "ToolRouter.IsSupervisorResponseMessage(responseJson)" in receive_decision_body
+    assert "ToolRouter.ParseSupervisorResponseEnvelope(responseJson)" in receive_decision_body
+    assert "throw new DisconnectedException" in receive_decision_body
+    assert receive_decision_body.index(
+        "ToolRouter.IsSupervisorResponseMessage(responseJson)"
+    ) < receive_decision_body.index("return responseJson;")
+    assert "ParseDecision(responseJson, input.Turn)" in decide_body
+    assert "SupervisorResponse" not in decide_body
 
 
 def test_brainclient_runtime_logs_cite_metrics_manager_source() -> None:
@@ -117,3 +162,213 @@ def test_websocket_policy_rejects_unsupported_decision_fields_and_non_integer_tu
     assert "ValidateDecisionFields(intent, action, dir)" in parse_body
     assert "Unsupported decision action" in validate_body
     assert "JSON field is not a strict integer" in read_int_body
+
+
+def test_toolrouter_dispatch_boundary_exists() -> None:
+    source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
+
+    assert "public sealed class ToolRouter" in source
+    assert "public ToolResultEnvelope Dispatch(ToolCallEnvelope call)" in source
+
+
+def test_mod_protocol_contract_avoids_provider_specific_top_level_fields() -> None:
+    source = "\n".join(csharp_mod_sources().values())
+
+    assert "function_call" not in source
+    assert "FunctionCall" not in source
+    assert "tool_use" not in source
+    assert "ToolUse" not in source
+
+
+def test_tool_call_envelope_declares_required_wire_fields() -> None:
+    source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
+
+    assert 'FieldType = "type"' in source
+    assert 'TypeToolCall = "tool_call"' in source
+    assert 'FieldCallId = "call_id"' in source
+    assert 'FieldTool = "tool"' in source
+    assert 'FieldArgs = "args"' in source
+    assert 'FieldMessageId = "message_id"' in source
+    assert 'FieldSessionEpoch = "session_epoch"' in source
+    assert "public string CallId;" in source
+    assert "public string Tool;" in source
+    assert "public Dictionary<string, object> Args;" in source
+    assert "public string MessageId;" in source
+    assert "public int SessionEpoch;" in source
+
+
+def test_tool_result_envelope_declares_required_wire_fields() -> None:
+    source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
+
+    assert 'TypeToolResult = "tool_result"' in source
+    assert 'FieldResult = "result"' in source
+    assert 'FieldInReplyTo = "in_reply_to"' in source
+    assert "public ToolResult Result;" in source
+    assert "public string InReplyTo;" in source
+
+
+def test_tool_result_error_envelopes_assign_non_null_message_id() -> None:
+    source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
+    envelope_body = method_body(source, "public sealed class ToolResultEnvelope")
+    body = method_body(source, "public static ToolResultEnvelope FromError")
+
+    assert "public string MessageId = CreateMessageId(" in envelope_body
+    assert "MessageId = CreateMessageId(" in body
+    assert "MessageId = null" not in body
+    assert "private static string CreateMessageId(" in source
+
+
+def test_tool_result_declares_normalized_status_output_and_error_fields() -> None:
+    source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
+
+    assert 'StatusOk = "ok"' in source
+    assert 'StatusError = "error"' in source
+    assert 'FieldStatus = "status"' in source
+    assert 'FieldOutput = "output"' in source
+    assert 'FieldErrorCode = "error_code"' in source
+    assert 'FieldErrorMessage = "error_message"' in source
+    assert "public string Status;" in source
+    assert "public object Output;" in source
+    assert "public string ErrorCode;" in source
+    assert "public string ErrorMessage;" in source
+
+
+def test_supervisor_response_helper_declares_top_level_python_to_csharp_contract() -> None:
+    source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
+    build_body = method_body(source, "public static string BuildUnsupportedSupervisorResponseJson")
+
+    assert 'TypeSupervisorRequest = "supervisor_request"' in source
+    assert 'TypeSupervisorResponse = "supervisor_response"' in source
+    assert 'SupervisorActionResume = "resume"' in source
+    assert "public sealed class SupervisorRequestEnvelope" in source
+    assert "public sealed class SupervisorResponseEnvelope" in source
+    assert "public string MessageId;" in source
+    assert "public string InReplyTo;" in source
+    assert "public int SessionEpoch;" in source
+    assert "public string Action;" in source
+    assert "public string ChoiceId;" in source
+    assert "public string Reason;" in source
+    assert "public string Status;" not in method_body(
+        source, "public sealed class SupervisorResponseEnvelope"
+    )
+    assert "public SupervisorResponseResult Result;" not in source
+    assert "AppendJsonProperty(sb, ToolProtocolFields.FieldType, envelope.Type)" in build_body
+    assert (
+        "AppendJsonProperty(sb, ToolProtocolFields.FieldMessageId, envelope.MessageId)"
+        in build_body
+    )
+    assert (
+        "AppendJsonProperty(sb, ToolProtocolFields.FieldInReplyTo, envelope.InReplyTo)"
+        in build_body
+    )
+    assert (
+        "AppendJsonProperty(sb, ToolProtocolFields.FieldSessionEpoch, envelope.SessionEpoch)"
+        in build_body
+    )
+    assert "AppendJsonProperty(sb, ToolProtocolFields.FieldAction, envelope.Action)" in build_body
+    assert (
+        "AppendJsonProperty(sb, ToolProtocolFields.FieldChoiceId, envelope.ChoiceId)" in build_body
+    )
+    assert "AppendJsonProperty(sb, ToolProtocolFields.FieldReason, envelope.Reason)" in build_body
+    assert "AppendJsonProperty(sb, ToolProtocolFields.FieldStatus" not in build_body
+    assert "FieldResult" not in build_body
+    assert "AppendJsonProperty(sb, ToolProtocolFields.FieldTool" not in build_body
+    assert "AppendJsonProperty(sb, ToolProtocolFields.FieldCallId" not in build_body
+
+
+def test_toolrouter_recognizes_supervisor_response_not_request_from_python() -> None:
+    source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
+    recognize_body = method_body(source, "public static bool IsSupervisorResponseMessage")
+    parse_body = method_body(
+        source, "public static SupervisorResponseEnvelope ParseSupervisorResponseEnvelope"
+    )
+
+    assert "public static bool IsSupervisorResponseMessage(string json)" in source
+    assert "public static bool IsSupervisorRequestMessage(string json)" not in source
+    assert "ReadStringOrNull(json, ToolProtocolFields.FieldType)" in recognize_body
+    assert "ToolProtocolFields.TypeSupervisorResponse" in recognize_body
+    assert "MessageId = ReadStringOrNull(json, ToolProtocolFields.FieldMessageId)" in parse_body
+    assert "InReplyTo = ReadStringOrNull(json, ToolProtocolFields.FieldInReplyTo)" in parse_body
+    assert "SessionEpoch = ReadInt(json, ToolProtocolFields.FieldSessionEpoch)" in parse_body
+    assert "Action = ReadStringOrNull(json, ToolProtocolFields.FieldAction)" in parse_body
+    assert "ChoiceId = ReadStringOrNull(json, ToolProtocolFields.FieldChoiceId)" in parse_body
+    assert "Reason = ReadStringOrNull(json, ToolProtocolFields.FieldReason)" in parse_body
+
+
+def test_toolrouter_parse_and_send_helpers_preserve_round_trip_fields() -> None:
+    source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
+    parse_body = method_body(source, "public static ToolCallEnvelope ParseToolCallEnvelope")
+    build_body = method_body(source, "public static string BuildToolResultJson")
+
+    assert "public static bool IsToolCallMessage(string json)" in source
+    assert (
+        "ReadStringOrNull(json, ToolProtocolFields.FieldType) == ToolProtocolFields.TypeToolCall"
+        in source
+    )
+    assert "CallId = ReadStringOrNull(json, ToolProtocolFields.FieldCallId)" in parse_body
+    assert "Tool = ReadStringOrNull(json, ToolProtocolFields.FieldTool)" in parse_body
+    assert "Args = ReadArgs(json)" in parse_body
+    assert "MessageId = ReadStringOrNull(json, ToolProtocolFields.FieldMessageId)" in parse_body
+    assert "SessionEpoch = ReadInt(json, ToolProtocolFields.FieldSessionEpoch)" in parse_body
+    assert "AppendJsonProperty(sb, ToolProtocolFields.FieldCallId, envelope.CallId)" in build_body
+    assert "AppendJsonProperty(sb, ToolProtocolFields.FieldTool, envelope.Tool)" in build_body
+    assert (
+        "AppendJsonProperty(sb, ToolProtocolFields.FieldMessageId, envelope.MessageId)"
+        in build_body
+    )
+    assert (
+        "AppendJsonProperty(sb, ToolProtocolFields.FieldInReplyTo, envelope.InReplyTo)"
+        in build_body
+    )
+    assert (
+        "AppendJsonProperty(sb, ToolProtocolFields.FieldSessionEpoch, envelope.SessionEpoch)"
+        in build_body
+    )
+    assert "AppendJsonPropertyName(sb, ToolProtocolFields.FieldResult)" in build_body
+    assert (
+        "AppendJsonProperty(sb, ToolProtocolFields.FieldStatus, envelope.Result.Status)"
+        in build_body
+    )
+    assert (
+        "AppendJsonProperty(sb, ToolProtocolFields.FieldOutput, envelope.Result.Output)"
+        in build_body
+    )
+    assert (
+        "AppendJsonProperty(sb, ToolProtocolFields.FieldErrorCode, envelope.Result.ErrorCode)"
+        in build_body
+    )
+    assert (
+        "AppendJsonProperty(sb, ToolProtocolFields.FieldErrorMessage, envelope.Result.ErrorMessage)"
+        in build_body
+    )
+
+
+def test_tool_call_detection_preserves_direct_decision_messages_without_type() -> None:
+    source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
+    body = method_body(source, "public static bool IsToolCallMessage")
+
+    assert "catch (DisconnectedException)" in body
+    assert "return false;" in body
+
+
+def test_terminal_action_parallel_dispatch_is_disabled_by_default() -> None:
+    source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
+
+    assert "public const bool TerminalActionParallelDispatchEnabled = false;" in source
+
+
+def test_cancel_or_back_is_terminal_and_not_parallel_dispatchable() -> None:
+    source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
+    terminal_body = method_body(source, "private static bool IsTerminalAction")
+    parallel_body = method_body(source, "public static bool CanDispatchInParallel")
+
+    assert 'case "cancel_or_back":' in terminal_body
+    assert "return TerminalActionParallelDispatchEnabled;" in parallel_body
+
+
+def test_unknown_tool_errors_use_protocol_error_code() -> None:
+    source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
+    dispatch_body = method_body(source, "public ToolResultEnvelope Dispatch")
+
+    assert '"unknown_tool"' in dispatch_body
+    assert '"unsupported_tool"' not in dispatch_body

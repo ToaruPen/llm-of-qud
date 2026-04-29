@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+# ruff: noqa: E402, PLR2004, S101
 import json
 import sys
-from time import perf_counter
 from pathlib import Path
+from time import perf_counter
+from typing import TYPE_CHECKING, cast
 
 import pytest
 from websockets.asyncio.client import connect
@@ -13,19 +15,24 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from brain.app import (
+    MALFORMED_TOOL_ARGS_ERROR_CODE,
     PHASE_ACCEPTANCE_ECHO,
     ServerConfig,
+    build_tool_call_messages,
     delay_for_phase,
-    parse_delay_ms,
     parse_decision_input,
+    parse_delay_ms,
     phase_for_phase1_acceptance,
     require_int,
     require_object,
     start_probe_server,
 )
 
+if TYPE_CHECKING:
+    from brain.protocol import JsonObject, JsonValue
 
-def minimal_decision_input(turn: int = 7) -> dict[str, object]:
+
+def minimal_decision_input(turn: int = 7) -> JsonObject:
     return {
         "schema": "decision_input.v1",
         "turn": turn,
@@ -44,7 +51,7 @@ def minimal_decision_input(turn: int = 7) -> dict[str, object]:
     }
 
 
-def with_adjacent_hostile(payload: dict[str, object], direction: str) -> dict[str, object]:
+def with_adjacent_hostile(payload: JsonObject, direction: str) -> JsonObject:
     adjacent = payload["adjacent"]
     assert isinstance(adjacent, dict)
     adjacent["hostile_dir"] = direction
@@ -52,11 +59,49 @@ def with_adjacent_hostile(payload: dict[str, object], direction: str) -> dict[st
     return payload
 
 
-def with_blocked_dirs(payload: dict[str, object], blocked_dirs: list[str]) -> dict[str, object]:
+def with_blocked_dirs(payload: JsonObject, blocked_dirs: list[str]) -> JsonObject:
     adjacent = payload["adjacent"]
     assert isinstance(adjacent, dict)
-    adjacent["blocked_dirs"] = blocked_dirs
+    blocked_dir_values = cast("list[JsonValue]", list(blocked_dirs))
+    adjacent["blocked_dirs"] = blocked_dir_values
     return payload
+
+
+async def run_fake_csharp_tool_roundtrip(
+    *,
+    phase: str,
+    result_status: str = "ok",
+    error_code: str | None = None,
+    error_message: str | None = None,
+) -> tuple[JsonObject, JsonObject]:
+    server = await start_probe_server(ServerConfig(host="127.0.0.1", port=0, initial_phase=phase))
+    try:
+        async with connect(f"ws://127.0.0.1:{server.port}") as websocket:
+            await websocket.send(json.dumps(minimal_decision_input()))
+            tool_call = cast("JsonObject", json.loads(await websocket.recv()))
+            result: JsonObject = {"status": result_status}
+            if result_status == "ok":
+                result["output"] = {"visible_tiles": 8}
+            else:
+                result["error_code"] = error_code
+                result["error_message"] = error_message
+            await websocket.send(
+                json.dumps(
+                    {
+                        "type": "tool_result",
+                        "call_id": tool_call["call_id"],
+                        "tool": tool_call["tool"],
+                        "result": result,
+                        "message_id": "fake-csharp-result-1",
+                        "in_reply_to": tool_call["message_id"],
+                        "session_epoch": tool_call["session_epoch"],
+                    },
+                ),
+            )
+            response = cast("JsonObject", json.loads(await websocket.recv()))
+            return tool_call, response
+    finally:
+        await server.close()
 
 
 def test_parse_decision_input_rejects_unexpected_schema() -> None:
@@ -116,6 +161,90 @@ async def test_echo_phase_returns_canned_decision_on_random_port() -> None:
         "reason_code": "canned_no_llm",
         "error": None,
     }
+
+
+@pytest.mark.asyncio
+async def test_fake_csharp_harness_emit_tool_call_round_trips_tool_result() -> None:
+    tool_call, response = await run_fake_csharp_tool_roundtrip(
+        phase="tool_call_probe:inspect_surroundings",
+    )
+
+    assert tool_call["type"] == "tool_call"
+    assert tool_call["tool"] == "inspect_surroundings"
+    assert tool_call["args"] == {}
+    assert tool_call["call_id"] == "turn-7-call-1"
+    assert tool_call["message_id"] == "msg-7-tool-call-1"
+    assert tool_call["session_epoch"] == 1
+    assert response["tool_result"] == {
+        "status": "ok",
+        "output": {"visible_tiles": 8},
+    }
+
+
+@pytest.mark.asyncio
+async def test_unknown_tool_result_uses_normalized_error_payload() -> None:
+    tool_call, response = await run_fake_csharp_tool_roundtrip(
+        phase="tool_call_probe:not_a_real_tool",
+        result_status="error",
+        error_code="unknown_tool",
+        error_message="unknown tool: not_a_real_tool",
+    )
+
+    assert tool_call["tool"] == "not_a_real_tool"
+    assert response["tool_result"] == {
+        "status": "error",
+        "error_code": "unknown_tool",
+        "error_message": "unknown tool: not_a_real_tool",
+    }
+
+
+@pytest.mark.asyncio
+async def test_fake_csharp_malformed_args_failure_uses_deterministic_validation_code() -> None:
+    tool_call, response = await run_fake_csharp_tool_roundtrip(
+        phase="tool_call_probe_malformed_args:execute",
+        result_status="error",
+        error_code=MALFORMED_TOOL_ARGS_ERROR_CODE,
+        error_message="candidate_id must be a string",
+    )
+
+    assert tool_call["tool"] == "execute"
+    assert tool_call["args"] == {"candidate_id": 123}
+    tool_result = response["tool_result"]
+    assert isinstance(tool_result, dict)
+    assert tool_result["error_code"] == MALFORMED_TOOL_ARGS_ERROR_CODE
+
+
+@pytest.mark.asyncio
+async def test_python_emits_game_tool_call_instead_of_dispatching_it_locally() -> None:
+    tool_call, response = await run_fake_csharp_tool_roundtrip(phase="tool_call_probe:check_status")
+
+    assert tool_call["type"] == "tool_call"
+    assert tool_call["tool"] == "check_status"
+    assert response["schema"] == "decision.v1"
+
+
+def test_more_than_one_terminal_action_is_rejected_before_emission() -> None:
+    with pytest.raises(ValueError, match="multiple terminal actions"):
+        build_tool_call_messages(
+            [
+                {"tool": "execute", "args": {"candidate_id": "c1"}, "call_id": "call-1"},
+                {"tool": "navigate_to", "args": {"target": "stairs_down"}, "call_id": "call-2"},
+            ],
+            turn=7,
+            session_epoch=3,
+        )
+
+
+def test_cancel_or_back_counts_as_terminal_action_before_emission() -> None:
+    with pytest.raises(ValueError, match="multiple terminal actions"):
+        build_tool_call_messages(
+            [
+                {"tool": "execute", "args": {"candidate_id": "c1"}, "call_id": "call-1"},
+                {"tool": "cancel_or_back", "args": {}, "call_id": "call-2"},
+            ],
+            turn=7,
+            session_epoch=3,
+        )
 
 
 @pytest.mark.asyncio

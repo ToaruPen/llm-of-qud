@@ -160,7 +160,7 @@ namespace LLMOfQud
                     Stopwatch stopwatch = Stopwatch.StartNew();
                     ClientWebSocket socket = EnsureConnected();
                     Send(socket, pending.RequestJson, pending.TimeoutMs);
-                    string response = Receive(socket, pending.TimeoutMs);
+                    string response = ReceiveDecision(socket, pending.TimeoutMs);
                     stopwatch.Stop();
                     pending.Completion.TrySetResult(response);
                     // decompiled/MetricsManager.cs:407-409 (LogInfo -> Player.log)
@@ -304,6 +304,31 @@ namespace LLMOfQud
             {
                 Task task = socket.SendAsync(segment, WebSocketMessageType.Text, true, cts.Token);
                 WaitTransportTask(task, cts, "send timed out");
+            }
+        }
+
+        private static string ReceiveDecision(ClientWebSocket socket, int timeoutMs)
+        {
+            while (true)
+            {
+                string responseJson = Receive(socket, timeoutMs);
+                if (ToolRouter.IsSupervisorResponseMessage(responseJson))
+                {
+                    SupervisorResponseEnvelope response =
+                        ToolRouter.ParseSupervisorResponseEnvelope(responseJson);
+                    throw new DisconnectedException(
+                        "Unexpected supervisor_response before final decision: " +
+                        (response.MessageId ?? "<null>"));
+                }
+                if (ToolRouter.IsToolCallMessage(responseJson))
+                {
+                    ToolCallEnvelope call = ToolRouter.ParseToolCallEnvelope(responseJson);
+                    ToolResultEnvelope result = new ToolRouter().Dispatch(call);
+                    string resultJson = ToolRouter.BuildToolResultJson(result);
+                    Send(socket, resultJson, timeoutMs);
+                    continue;
+                }
+                return responseJson;
             }
         }
 
