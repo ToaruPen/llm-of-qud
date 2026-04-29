@@ -25,6 +25,10 @@ TableName = Literal[
     "decision_response",
     "disconnect_pause",
     "reconnect_wake",
+    "tool_call_sent",
+    "tool_call_received",
+    "supervisor_request",
+    "supervisor_response",
 ]
 
 TABLE_COUNT_QUERIES: dict[TableName, str] = {
@@ -33,6 +37,10 @@ TABLE_COUNT_QUERIES: dict[TableName, str] = {
     "decision_response": "SELECT COUNT(*) FROM decision_response",
     "disconnect_pause": "SELECT COUNT(*) FROM disconnect_pause",
     "reconnect_wake": "SELECT COUNT(*) FROM reconnect_wake",
+    "tool_call_sent": "SELECT COUNT(*) FROM tool_call_sent",
+    "tool_call_received": "SELECT COUNT(*) FROM tool_call_received",
+    "supervisor_request": "SELECT COUNT(*) FROM supervisor_request",
+    "supervisor_response": "SELECT COUNT(*) FROM supervisor_response",
 }
 
 

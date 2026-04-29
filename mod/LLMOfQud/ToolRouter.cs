@@ -47,7 +47,6 @@ namespace LLMOfQud
                 case "execute":
                 case "navigate_to":
                 case "choose":
-                case "cancel_or_back":
                     return true;
                 default:
                     return false;
@@ -543,7 +542,55 @@ namespace LLMOfQud
 
         private static string UnescapeSimple(string value)
         {
-            return value.Replace("\\\"", "\"").Replace("\\\\", "\\");
+            if (value == null || value.Length == 0)
+            {
+                return value;
+            }
+
+            StringBuilder sb = new StringBuilder(value.Length);
+            for (int i = 0; i < value.Length; i++)
+            {
+                char c = value[i];
+                if (c != '\\')
+                {
+                    sb.Append(c);
+                    continue;
+                }
+                if (i + 1 >= value.Length)
+                {
+                    throw new DisconnectedException("JSON string has trailing escape");
+                }
+
+                i++;
+                char escaped = value[i];
+                switch (escaped)
+                {
+                    case '"': sb.Append('"'); break;
+                    case '\\': sb.Append('\\'); break;
+                    case '/': sb.Append('/'); break;
+                    case 'b': sb.Append('\b'); break;
+                    case 'f': sb.Append('\f'); break;
+                    case 'n': sb.Append('\n'); break;
+                    case 'r': sb.Append('\r'); break;
+                    case 't': sb.Append('\t'); break;
+                    case 'u':
+                        if (i + 4 >= value.Length)
+                        {
+                            throw new DisconnectedException("JSON unicode escape is incomplete");
+                        }
+                        string hex = value.Substring(i + 1, 4);
+                        if (!int.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var codepoint))
+                        {
+                            throw new DisconnectedException("JSON unicode escape is invalid: " + hex);
+                        }
+                        sb.Append((char)codepoint);
+                        i += 4;
+                        break;
+                    default:
+                        throw new DisconnectedException("JSON string has unsupported escape: " + escaped);
+                }
+            }
+            return sb.ToString();
         }
 
         private static string CreateSupervisorResponseMessageId(string inReplyTo, int sessionEpoch)

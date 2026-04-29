@@ -310,9 +310,11 @@ namespace LLMOfQud
 
         private static string ReceiveDecision(ClientWebSocket socket, int timeoutMs, ToolRouter toolRouter)
         {
+            DateTime deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
             while (true)
             {
-                string responseJson = Receive(socket, timeoutMs);
+                int remainingMs = RemainingTimeoutMs(deadline, "decision timed out");
+                string responseJson = Receive(socket, remainingMs);
                 if (ToolRouter.IsSupervisorResponseMessage(responseJson))
                 {
                     SupervisorResponseEnvelope response =
@@ -326,11 +328,22 @@ namespace LLMOfQud
                     ToolCallEnvelope call = ToolRouter.ParseToolCallEnvelope(responseJson);
                     ToolResultEnvelope result = toolRouter.Dispatch(call);
                     string resultJson = ToolRouter.BuildToolResultJson(result);
-                    Send(socket, resultJson, timeoutMs);
+                    remainingMs = RemainingTimeoutMs(deadline, "decision timed out");
+                    Send(socket, resultJson, remainingMs);
                     continue;
                 }
                 return responseJson;
             }
+        }
+
+        private static int RemainingTimeoutMs(DateTime deadline, string timeoutMessage)
+        {
+            int remainingMs = (int)Math.Ceiling((deadline - DateTime.UtcNow).TotalMilliseconds);
+            if (remainingMs <= 0)
+            {
+                throw new TimeoutException(timeoutMessage);
+            }
+            return remainingMs;
         }
 
         private static string Receive(ClientWebSocket socket, int timeoutMs)

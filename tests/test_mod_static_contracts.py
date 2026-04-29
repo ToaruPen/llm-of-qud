@@ -73,13 +73,16 @@ def test_brainclient_receive_path_round_trips_tool_call_before_decision() -> Non
 
     assert "ToolRouter toolRouter = new ToolRouter()" in run_loop_body
     assert "ReceiveDecision(socket, pending.TimeoutMs, toolRouter)" in run_loop_body
-    assert "Receive(socket, timeoutMs)" in receive_decision_body
     assert "ToolRouter.IsToolCallMessage(responseJson)" in receive_decision_body
     assert "ToolRouter.ParseToolCallEnvelope(responseJson)" in receive_decision_body
     assert "toolRouter.Dispatch(call)" in receive_decision_body
     assert "new ToolRouter().Dispatch(call)" not in receive_decision_body
     assert "ToolRouter.BuildToolResultJson(result)" in receive_decision_body
-    assert "Send(socket, resultJson, timeoutMs)" in receive_decision_body
+    assert 'RemainingTimeoutMs(deadline, "decision timed out")' in receive_decision_body
+    assert "Receive(socket, remainingMs)" in receive_decision_body
+    assert "Send(socket, resultJson, remainingMs)" in receive_decision_body
+    assert "Receive(socket, timeoutMs)" not in receive_decision_body
+    assert "Send(socket, resultJson, timeoutMs)" not in receive_decision_body
     assert "continue;" in receive_decision_body
     assert "return responseJson;" in receive_decision_body
 
@@ -315,6 +318,7 @@ def test_toolrouter_parse_and_send_helpers_preserve_round_trip_fields() -> None:
     source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
     parse_body = method_body(source, "public static ToolCallEnvelope ParseToolCallEnvelope")
     build_body = method_body(source, "public static string BuildToolResultJson")
+    unescape_body = method_body(source, "private static string UnescapeSimple")
 
     assert "public static bool IsToolCallMessage(string json)" in source
     assert (
@@ -358,6 +362,13 @@ def test_toolrouter_parse_and_send_helpers_preserve_round_trip_fields() -> None:
         "AppendJsonProperty(sb, ToolProtocolFields.FieldErrorMessage, envelope.Result.ErrorMessage)"
         in build_body
     )
+    assert "case 'n': sb.Append('\\n'); break;" in unescape_body
+    assert "case 'r': sb.Append('\\r'); break;" in unescape_body
+    assert "case 't': sb.Append('\\t'); break;" in unescape_body
+    assert "case 'u':" in unescape_body
+    assert "NumberStyles.HexNumber" in unescape_body
+    assert "int.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture" in unescape_body
+    assert "throw new DisconnectedException(\"JSON unicode escape is invalid: \" + hex)" in unescape_body
 
 
 def test_tool_call_detection_preserves_direct_decision_messages_without_type() -> None:
@@ -374,12 +385,15 @@ def test_terminal_action_parallel_dispatch_is_disabled_by_default() -> None:
     assert "public const bool TerminalActionParallelDispatchEnabled = false;" in source
 
 
-def test_cancel_or_back_is_terminal_and_not_parallel_dispatchable() -> None:
+def test_only_execute_navigate_to_and_choose_are_terminal_actions() -> None:
     source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
     terminal_body = method_body(source, "private static bool IsTerminalAction")
     parallel_body = method_body(source, "public static bool CanDispatchInParallel")
 
-    assert 'case "cancel_or_back":' in terminal_body
+    assert 'case "execute":' in terminal_body
+    assert 'case "navigate_to":' in terminal_body
+    assert 'case "choose":' in terminal_body
+    assert 'case "cancel_or_back":' not in terminal_body
     assert "return TerminalActionParallelDispatchEnabled;" in parallel_body
 
 

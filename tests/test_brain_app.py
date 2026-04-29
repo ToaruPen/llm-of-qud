@@ -236,16 +236,17 @@ def test_more_than_one_terminal_action_is_rejected_before_emission() -> None:
         )
 
 
-def test_cancel_or_back_counts_as_terminal_action_before_emission() -> None:
-    with pytest.raises(ValueError, match="multiple terminal actions"):
-        build_tool_call_messages(
-            [
-                {"tool": "execute", "args": {"candidate_id": "c1"}, "call_id": "call-1"},
-                {"tool": "cancel_or_back", "args": {}, "call_id": "call-2"},
-            ],
-            turn=7,
-            session_epoch=3,
-        )
+def test_cancel_or_back_is_non_terminal_for_parallel_terminal_guard() -> None:
+    messages = build_tool_call_messages(
+        [
+            {"tool": "execute", "args": {"candidate_id": "c1"}, "call_id": "call-1"},
+            {"tool": "cancel_or_back", "args": {}, "call_id": "call-2"},
+        ],
+        turn=7,
+        session_epoch=3,
+    )
+
+    assert [message.tool for message in messages] == ["execute", "cancel_or_back"]
 
 
 @pytest.mark.asyncio
