@@ -9,6 +9,32 @@ namespace LLMOfQud
     {
         public const bool TerminalActionParallelDispatchEnabled = false;
 
+        private readonly Func<int> _sessionEpochProvider;
+        private readonly Dictionary<string, ToolResultEnvelope> _terminalActionCache =
+            new Dictionary<string, ToolResultEnvelope>();
+        private readonly Dictionary<string, ToolResultEnvelope> _terminalMessageCache =
+            new Dictionary<string, ToolResultEnvelope>();
+        private readonly HashSet<int> _completedTerminalStateVersions = new HashSet<int>();
+        private int _expectedStateVersion;
+        private string _expectedSnapshotHash;
+
+        public ToolRouter() : this(() => 1)
+        {
+        }
+
+        public ToolRouter(Func<int> sessionEpochProvider)
+        {
+            _sessionEpochProvider = sessionEpochProvider ?? (() => 1);
+            _expectedStateVersion = 0;
+            _expectedSnapshotHash = null;
+        }
+
+        public void SetExpectedTurnContext(int stateVersion, string snapshotHash)
+        {
+            _expectedStateVersion = stateVersion;
+            _expectedSnapshotHash = snapshotHash;
+        }
+
         public ToolResultEnvelope Dispatch(ToolCallEnvelope call)
         {
             if (call == null)
@@ -20,6 +46,70 @@ namespace LLMOfQud
                     0,
                     "invalid_tool_call",
                     "Tool call envelope is required");
+            }
+
+            if (IsTerminalAction(call.Tool))
+            {
+                if (call.ActionNonce == null || !call.StateVersion.HasValue)
+                {
+                    return TerminalActionResult(
+                        call,
+                        TerminalActionOutput.Stale("stale"),
+                        "terminal action requires action_nonce and state_version");
+                }
+
+                if (call.SessionEpoch != _sessionEpochProvider())
+                {
+                    return TerminalActionResult(
+                        call,
+                        TerminalActionOutput.Stale("stale_epoch"),
+                        "terminal action belongs to a stale session epoch");
+                }
+
+                ToolResultEnvelope cached;
+                if (_terminalMessageCache.TryGetValue(call.MessageId, out cached))
+                {
+                    return CloneForDuplicateRequest(cached, call);
+                }
+
+                string cacheKey = TerminalActionCacheKey(call.SessionEpoch, call.ActionNonce);
+                if (_terminalActionCache.TryGetValue(cacheKey, out cached))
+                {
+                    return CloneForDuplicateRequest(cached, call);
+                }
+
+                if (call.StateVersion.Value != _expectedStateVersion)
+                {
+                    return TerminalActionResult(
+                        call,
+                        TerminalActionOutput.Stale("stale"),
+                        "terminal action belongs to a stale state version");
+                }
+
+                if (ReadStringArgOrNull(call.Args, "snapshot_hash") != _expectedSnapshotHash)
+                {
+                    return TerminalActionResult(
+                        call,
+                        TerminalActionOutput.Stale("stale"),
+                        "terminal action snapshot_hash does not match current state");
+                }
+
+                if (_completedTerminalStateVersions.Contains(call.StateVersion.Value))
+                {
+                    return TerminalActionResult(
+                        call,
+                        TerminalActionOutput.Stale("duplicate"),
+                        "terminal action already completed for this state version");
+                }
+
+                ToolResultEnvelope result = TerminalActionResult(
+                    call,
+                    TerminalActionOutput.Accepted(call.Tool),
+                    null);
+                _terminalActionCache[cacheKey] = CloneForCache(result);
+                _terminalMessageCache[call.MessageId] = CloneForCache(result);
+                _completedTerminalStateVersions.Add(call.StateVersion.Value);
+                return result;
             }
 
             return ToolResultEnvelope.FromError(
@@ -38,6 +128,53 @@ namespace LLMOfQud
                 return true;
             }
             return TerminalActionParallelDispatchEnabled;
+        }
+
+        private static ToolResultEnvelope TerminalActionResult(
+            ToolCallEnvelope call,
+            Dictionary<string, object> output,
+            string errorMessage)
+        {
+            return new ToolResultEnvelope
+            {
+                CallId = call.CallId,
+                Tool = call.Tool,
+                Result = ToolResult.Ok(output),
+                MessageId = ToolResultEnvelope.CreateMessageId(call.CallId, call.Tool, call.SessionEpoch),
+                InReplyTo = call.MessageId,
+                SessionEpoch = call.SessionEpoch,
+                ActionNonce = call.ActionNonce,
+            };
+        }
+
+        private static ToolResultEnvelope CloneForDuplicateRequest(
+            ToolResultEnvelope cached,
+            ToolCallEnvelope call)
+        {
+            return new ToolResultEnvelope
+            {
+                CallId = call.CallId,
+                Tool = call.Tool,
+                Result = cached.Result,
+                MessageId = ToolResultEnvelope.CreateMessageId(call.CallId, call.Tool, call.SessionEpoch),
+                InReplyTo = call.MessageId,
+                SessionEpoch = call.SessionEpoch,
+                ActionNonce = cached.ActionNonce,
+            };
+        }
+
+        private static ToolResultEnvelope CloneForCache(ToolResultEnvelope result)
+        {
+            return new ToolResultEnvelope
+            {
+                CallId = result.CallId,
+                Tool = result.Tool,
+                Result = result.Result,
+                MessageId = result.MessageId,
+                InReplyTo = result.InReplyTo,
+                SessionEpoch = result.SessionEpoch,
+                ActionNonce = result.ActionNonce,
+            };
         }
 
         private static bool IsTerminalAction(string tool)
@@ -89,7 +226,14 @@ namespace LLMOfQud
                 Args = ReadArgs(json),
                 MessageId = ReadStringOrNull(json, ToolProtocolFields.FieldMessageId),
                 SessionEpoch = ReadInt(json, ToolProtocolFields.FieldSessionEpoch),
+                ActionNonce = ReadOptionalString(json, ToolProtocolFields.FieldActionNonce),
+                StateVersion = ReadNullableInt(json, ToolProtocolFields.FieldStateVersion),
             };
+        }
+
+        public static int ReadTopLevelIntForTransport(string json, string name)
+        {
+            return ReadInt(json, name);
         }
 
         public static SupervisorResponseEnvelope ParseSupervisorResponseEnvelope(string json)
@@ -180,6 +324,11 @@ namespace LLMOfQud
             AppendJsonProperty(sb, ToolProtocolFields.FieldInReplyTo, envelope.InReplyTo);
             sb.Append(',');
             AppendJsonProperty(sb, ToolProtocolFields.FieldSessionEpoch, envelope.SessionEpoch);
+            if (envelope.ActionNonce != null)
+            {
+                sb.Append(',');
+                AppendJsonProperty(sb, ToolProtocolFields.FieldActionNonce, envelope.ActionNonce);
+            }
             sb.Append(',');
             AppendJsonPropertyName(sb, ToolProtocolFields.FieldResult);
             sb.Append('{');
@@ -344,6 +493,38 @@ namespace LLMOfQud
             return UnescapeSimple(json.Substring(index + 1, end - index - 1));
         }
 
+        private static string ReadOptionalString(string json, string name)
+        {
+            try
+            {
+                return ReadStringOrNull(json, name);
+            }
+            catch (DisconnectedException ex)
+            {
+                if (ex.Message == "JSON field missing: " + name)
+                {
+                    return null;
+                }
+                throw;
+            }
+        }
+
+        private static int? ReadNullableInt(string json, string name)
+        {
+            try
+            {
+                return ReadInt(json, name);
+            }
+            catch (DisconnectedException ex)
+            {
+                if (ex.Message == "JSON field missing: " + name)
+                {
+                    return null;
+                }
+                throw;
+            }
+        }
+
         private static string ReadRequiredString(string json, string name)
         {
             string value = ReadStringOrNull(json, name);
@@ -369,6 +550,20 @@ namespace LLMOfQud
                 throw;
             }
             throw new DisconnectedException("Unsupported legacy tool_call field: " + name);
+        }
+
+        private static string TerminalActionCacheKey(int sessionEpoch, string actionNonce)
+        {
+            return sessionEpoch.ToString(CultureInfo.InvariantCulture) + ":" + actionNonce;
+        }
+
+        private static string ReadStringArgOrNull(Dictionary<string, object> args, string name)
+        {
+            if (args == null || !args.ContainsKey(name))
+            {
+                return null;
+            }
+            return args[name] as string;
         }
 
         private static int FindTopLevelValue(string json, string name)
@@ -753,6 +948,8 @@ namespace LLMOfQud
         public const string FieldMessageId = "message_id";
         public const string FieldInReplyTo = "in_reply_to";
         public const string FieldSessionEpoch = "session_epoch";
+        public const string FieldActionNonce = "action_nonce";
+        public const string FieldStateVersion = "state_version";
         public const string FieldStatus = "status";
         public const string FieldOutput = "output";
         public const string FieldErrorCode = "error_code";
@@ -780,6 +977,8 @@ namespace LLMOfQud
         public Dictionary<string, object> Args;
         public string MessageId;
         public int SessionEpoch;
+        public string ActionNonce;
+        public int? StateVersion;
     }
 
     public sealed class SupervisorRequestEnvelope
@@ -811,6 +1010,7 @@ namespace LLMOfQud
         public string MessageId = CreateMessageId(null, null, 0);
         public string InReplyTo;
         public int SessionEpoch;
+        public string ActionNonce;
 
         public static ToolResultEnvelope FromError(
             string callId,
@@ -831,7 +1031,7 @@ namespace LLMOfQud
             };
         }
 
-        private static string CreateMessageId(string callId, string tool, int sessionEpoch)
+        public static string CreateMessageId(string callId, string tool, int sessionEpoch)
         {
             return "tool_result:" +
                 (callId ?? "no_call") + ":" +
@@ -872,6 +1072,38 @@ namespace LLMOfQud
                 Output = null,
                 ErrorCode = errorCode,
                 ErrorMessage = errorMessage,
+            };
+        }
+    }
+
+    public static class TerminalActionOutput
+    {
+        public static Dictionary<string, object> Accepted(string actionKind)
+        {
+            Dictionary<string, object> output = Base(actionKind, true, "accepted");
+            output["execution_status"] = "accepted";
+            return output;
+        }
+
+        public static Dictionary<string, object> Stale(string acceptanceStatus)
+        {
+            Dictionary<string, object> output = Base("terminal_action", false, acceptanceStatus);
+            output["execution_status"] = "rejected";
+            return output;
+        }
+
+        private static Dictionary<string, object> Base(
+            string actionKind,
+            bool accepted,
+            string acceptanceStatus)
+        {
+            return new Dictionary<string, object>
+            {
+                { "accepted", accepted },
+                { "turn_complete", accepted },
+                { "action_kind", actionKind },
+                { "acceptance_status", acceptanceStatus },
+                { "safety_decision", accepted ? "pass" : "block" },
             };
         }
     }

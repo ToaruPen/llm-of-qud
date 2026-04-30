@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import json
 import signal
 import sys
@@ -17,8 +18,14 @@ import structlog
 from pydantic import BaseModel, ConfigDict, Field
 from websockets.asyncio.server import Server, ServerConnection, serve
 
-from brain.protocol import JsonObject as ProtocolJsonObject
-from brain.protocol import ToolCallMessage, ToolResultMessage
+from brain.protocol import (
+    JsonObject as ProtocolJsonObject,
+)
+from brain.protocol import (
+    ToolCallMessage,
+    ToolResultMessage,
+    is_terminal_action_tool,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -219,6 +226,7 @@ class DecisionRequest(BaseModel):
     turn: int
     request_schema: str = Field(alias="schema")
     summary: DecisionInputSummary
+    snapshot_hash: str
 
 
 async def respond_for_phase(
@@ -236,10 +244,13 @@ async def respond_for_phase(
     if is_tool_call_probe_phase(phase):
         result = await emit_probe_tool_call(connection, request, phase)
         response = canned_decision(request, phase)
-        response["tool_result"] = cast(
-            "JsonValue",
+        tool_result_payload = cast(
+            "ProtocolJsonObject",
             result.result.model_dump(mode="json", exclude_none=True),
         )
+        if result.action_nonce is not None:
+            tool_result_payload["action_nonce"] = result.action_nonce
+        response["tool_result"] = cast("JsonValue", tool_result_payload)
         await connection.send(json.dumps(response, separators=(",", ":")))
         logger.info("decision_response", turn=request.turn, delay_ms=0)
         return "normal"
@@ -282,6 +293,7 @@ async def emit_probe_tool_call(
         [{"tool": tool, "args": args}],
         turn=request.turn,
         session_epoch=PROBE_SESSION_EPOCH,
+        snapshot_hash=request.snapshot_hash,
     )
     return await emit_tool_call(connection, tool_call)
 
@@ -322,6 +334,15 @@ def require_matching_tool_result(
             tool_call.session_epoch,
             tool_result.session_epoch,
         )
+    if (
+        is_terminal_action_tool(tool_call.tool)
+        and tool_result.action_nonce != tool_call.action_nonce
+    ):
+        raise ToolResultMismatchError(
+            "action_nonce",
+            tool_call.action_nonce,
+            tool_result.action_nonce,
+        )
 
 
 def build_tool_call_messages(
@@ -329,6 +350,7 @@ def build_tool_call_messages(
     *,
     turn: int,
     session_epoch: int,
+    snapshot_hash: str | None = None,
 ) -> tuple[ToolCallMessage, ...]:
     tool_names = [
         require_provider_tool_name(call, index)
@@ -347,16 +369,22 @@ def build_tool_call_messages(
         if call_id in seen_call_ids:
             raise DuplicateToolCallIdError(call_id)
         seen_call_ids.add(call_id)
+        terminal_action = is_terminal_action_tool(tool)
+        args = require_protocol_json_object(
+            call.get("args", {}),
+            f"provider_tool_calls[{index}].args",
+        )
+        if terminal_action and snapshot_hash is not None:
+            args = args | {"snapshot_hash": snapshot_hash}
         messages.append(
             ToolCallMessage(
                 call_id=call_id,
                 tool=tool,
-                args=require_protocol_json_object(
-                    call.get("args", {}),
-                    f"provider_tool_calls[{index}].args",
-                ),
+                args=args,
                 message_id=f"msg-{turn}-tool-call-{index}",
                 session_epoch=session_epoch,
+                action_nonce=f"turn-{turn}-{tool}-nonce" if terminal_action else None,
+                state_version=turn if terminal_action else None,
             ),
         )
     return tuple(messages)
@@ -487,6 +515,7 @@ def parse_decision_input(message: str | bytes) -> DecisionRequest:
     return DecisionRequest(
         turn=turn,
         schema=schema,
+        snapshot_hash=decision_input_snapshot_hash(message),
         summary=DecisionInputSummary(
             hp=optional_int(player, "hp"),
             max_hp=optional_int(player, "max_hp"),
@@ -495,6 +524,11 @@ def parse_decision_input(message: str | bytes) -> DecisionRequest:
             blocked_dirs_count=len(blocked_dir_strings),
         ),
     )
+
+
+def decision_input_snapshot_hash(message: str | bytes) -> str:
+    data = message.encode("utf-8") if isinstance(message, str) else message
+    return hashlib.sha256(data).hexdigest()
 
 
 def is_json_object(value: object) -> TypeGuard[dict[str, JsonValue]]:

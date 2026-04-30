@@ -149,6 +149,9 @@ class TelemetryWriter:
         call_id: str,
         tool: str,
         provider: ProviderTelemetry | None = None,
+        action_nonce: str | None = None,
+        state_version: int | None = None,
+        session_epoch: int | None = None,
     ) -> None:
         conn = self._require_conn()
         provider = provider or ProviderTelemetry()
@@ -159,9 +162,10 @@ class TelemetryWriter:
                 provider_item_id, provider_input_tokens, provider_output_tokens,
                 provider_cached_input_tokens,
                 provider_cache_creation_input_tokens,
-                provider_cache_read_input_tokens
+                provider_cache_read_input_tokens, action_nonce, state_version,
+                session_epoch
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 call_id,
@@ -174,6 +178,9 @@ class TelemetryWriter:
                 provider.provider_cached_input_tokens,
                 provider.provider_cache_creation_input_tokens,
                 provider.provider_cache_read_input_tokens,
+                action_nonce,
+                state_version,
+                session_epoch,
             ),
         )
         await conn.commit()
@@ -186,22 +193,31 @@ class TelemetryWriter:
         result_status: str,
         latency_ms: int,
         classification: ErrorRetryTelemetry | None = None,
+        action_nonce: str | None = None,
+        state_version: int | None = None,
+        session_epoch: int | None = None,
+        acceptance_status: str | None = None,
     ) -> None:
         conn = self._require_conn()
         classification = classification or ErrorRetryTelemetry()
         await conn.execute(
             """
             INSERT INTO tool_call_received (
-                call_id, tool, result_status, latency_ms, error_class,
+                call_id, tool, result_status, latency_ms, action_nonce,
+                state_version, session_epoch, acceptance_status, error_class,
                 retry_class, retry_attempt
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 call_id,
                 tool,
                 result_status,
                 latency_ms,
+                action_nonce,
+                state_version,
+                session_epoch,
+                acceptance_status,
                 classification.error_class,
                 classification.retry_class,
                 classification.retry_attempt,
