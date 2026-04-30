@@ -14,6 +14,12 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 type JsonValue = None | bool | int | float | str | list[JsonValue] | dict[str, JsonValue]
 type JsonObject = dict[str, JsonValue]
 
+TERMINAL_ACTION_TOOLS = frozenset({"execute", "navigate_to", "choose"})
+
+
+def is_terminal_action_tool(tool: str) -> bool:
+    return tool in TERMINAL_ACTION_TOOLS
+
 
 class ToolResultStatus(StrEnum):
     OK = "ok"
@@ -28,6 +34,16 @@ class ToolResultMissingErrorCodeError(ValueError):
 class ToolResultMissingErrorMessageError(ValueError):
     def __init__(self) -> None:
         super().__init__("error status requires result.error_message")
+
+
+class TerminalToolCallMissingActionNonceError(ValueError):
+    def __init__(self) -> None:
+        super().__init__("terminal tool_call requires action_nonce")
+
+
+class TerminalToolCallMissingStateVersionError(ValueError):
+    def __init__(self) -> None:
+        super().__init__("terminal tool_call requires state_version")
 
 
 class ProviderMetadata(BaseModel):
@@ -67,7 +83,19 @@ class ToolCallMessage(BaseModel):
     args: JsonObject
     message_id: str
     session_epoch: int
+    action_nonce: str | None = None
+    state_version: int | None = None
     metadata: ProviderMetadata | None = None
+
+    @model_validator(mode="after")
+    def require_terminal_idempotency_fields(self) -> Self:
+        if not is_terminal_action_tool(self.tool):
+            return self
+        if self.action_nonce is None:
+            raise TerminalToolCallMissingActionNonceError
+        if self.state_version is None:
+            raise TerminalToolCallMissingStateVersionError
+        return self
 
 
 class ToolResultMessage(BaseModel):
@@ -80,6 +108,7 @@ class ToolResultMessage(BaseModel):
     message_id: str
     in_reply_to: str
     session_epoch: int
+    action_nonce: str | None = None
     metadata: ProviderMetadata | None = None
 
 

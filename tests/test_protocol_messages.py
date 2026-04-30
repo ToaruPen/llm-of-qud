@@ -191,6 +191,62 @@ def test_provider_specific_ids_are_not_top_level_protocol_fields() -> None:
         )
 
 
+def test_terminal_tool_call_requires_action_nonce_and_state_version() -> None:
+    base_message: JsonObject = {
+        "type": "tool_call",
+        "call_id": "turn-7-call-1",
+        "tool": "execute",
+        "args": {"candidate_id": "c1"},
+        "message_id": "msg-7-call-1",
+        "session_epoch": 3,
+    }
+
+    with pytest.raises(ValidationError, match="action_nonce"):
+        ToolCallMessage.model_validate(base_message)
+    with pytest.raises(ValidationError, match="state_version"):
+        ToolCallMessage.model_validate(base_message | {"action_nonce": "nonce-7"})
+
+    message = ToolCallMessage.model_validate(
+        base_message | {"action_nonce": "nonce-7", "state_version": 284},
+    )
+
+    assert message.action_nonce == "nonce-7"
+    assert message.state_version == 284
+
+
+def test_non_terminal_tool_call_does_not_require_terminal_idempotency_fields() -> None:
+    message = ToolCallMessage.model_validate(
+        {
+            "type": "tool_call",
+            "call_id": "turn-7-call-1",
+            "tool": "inspect_surroundings",
+            "args": {},
+            "message_id": "msg-7-call-1",
+            "session_epoch": 3,
+        },
+    )
+
+    assert message.action_nonce is None
+    assert message.state_version is None
+
+
+def test_terminal_tool_result_can_echo_action_nonce() -> None:
+    message = ToolResultMessage.model_validate(
+        {
+            "type": "tool_result",
+            "call_id": "turn-7-call-1",
+            "tool": "execute",
+            "result": {"status": "ok", "output": {"acceptance_status": "accepted"}},
+            "message_id": "msg-7-result-1",
+            "in_reply_to": "msg-7-call-1",
+            "session_epoch": 3,
+            "action_nonce": "nonce-7",
+        },
+    )
+
+    assert message.action_nonce == "nonce-7"
+
+
 def test_tool_call_rejects_legacy_top_level_tid() -> None:
     with pytest.raises(ValidationError, match="tid"):
         ToolCallMessage.model_validate(

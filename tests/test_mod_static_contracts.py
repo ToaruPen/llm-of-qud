@@ -215,6 +215,41 @@ def test_tool_call_envelope_declares_required_wire_fields() -> None:
     assert "public int SessionEpoch;" in source
 
 
+def test_tool_call_envelope_declares_terminal_idempotency_fields() -> None:
+    source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
+    parse_body = method_body(source, "public static ToolCallEnvelope ParseToolCallEnvelope")
+    build_body = method_body(source, "public static string BuildToolResultJson")
+
+    assert 'FieldActionNonce = "action_nonce"' in source
+    assert 'FieldStateVersion = "state_version"' in source
+    assert "ActionNonce = ReadOptionalString(json, ToolProtocolFields.FieldActionNonce)" in parse_body
+    assert "StateVersion = ReadNullableInt(json, ToolProtocolFields.FieldStateVersion)" in parse_body
+    assert "AppendJsonProperty(sb, ToolProtocolFields.FieldActionNonce, envelope.ActionNonce)" in build_body
+    assert "public string ActionNonce;" in source
+    assert "public int? StateVersion;" in source
+    assert "private static string ReadOptionalString" in source
+
+
+def test_toolrouter_parses_non_terminal_tool_call_without_idempotency_fields() -> None:
+    source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
+    parse_body = method_body(source, "public static ToolCallEnvelope ParseToolCallEnvelope")
+
+    assert "ActionNonce = ReadOptionalString(json, ToolProtocolFields.FieldActionNonce)" in parse_body
+    assert "StateVersion = ReadNullableInt(json, ToolProtocolFields.FieldStateVersion)" in parse_body
+    assert "JSON field missing: \" + name" in source
+
+
+def test_terminal_idempotency_cache_key_is_session_epoch_and_action_nonce() -> None:
+    source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
+
+    assert "private readonly Dictionary<string, ToolResultEnvelope> _terminalActionCache" in source
+    assert "TerminalActionCacheKey(call.SessionEpoch, call.ActionNonce)" in source
+    assert (
+        'return sessionEpoch.ToString(CultureInfo.InvariantCulture) + ":" + actionNonce;'
+        in source
+    )
+
+
 def test_tool_call_envelope_rejects_legacy_top_level_tid() -> None:
     source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
     parse_body = method_body(source, "public static ToolCallEnvelope ParseToolCallEnvelope")
@@ -247,7 +282,7 @@ def test_tool_result_error_envelopes_assign_non_null_message_id() -> None:
     assert "public string MessageId = CreateMessageId(" in envelope_body
     assert "MessageId = CreateMessageId(" in body
     assert "MessageId = null" not in body
-    assert "private static string CreateMessageId(" in source
+    assert "public static string CreateMessageId(" in source
 
 
 def test_tool_result_declares_normalized_status_output_and_error_fields() -> None:
@@ -431,6 +466,56 @@ def test_only_execute_navigate_to_and_choose_are_terminal_actions() -> None:
     assert 'case "choose":' in terminal_body
     assert 'case "cancel_or_back":' not in terminal_body
     assert "return TerminalActionParallelDispatchEnabled;" in parallel_body
+
+
+def test_toolrouter_rejects_stale_terminal_actions_before_dispatch() -> None:
+    source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
+    dispatch_body = method_body(source, "public ToolResultEnvelope Dispatch")
+
+    assert "_sessionEpochProvider" in source
+    assert 'TerminalActionOutput.Stale("stale_epoch")' in dispatch_body
+    assert 'TerminalActionOutput.Stale("stale")' in dispatch_body
+    assert "call.SessionEpoch != _sessionEpochProvider()" in dispatch_body
+    assert "call.StateVersion.Value != _expectedStateVersion" in dispatch_body
+
+
+def test_toolrouter_returns_cached_duplicate_terminal_action_result() -> None:
+    source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
+    dispatch_body = method_body(source, "public ToolResultEnvelope Dispatch")
+
+    assert "_terminalActionCache.TryGetValue(cacheKey, out cached)" in dispatch_body
+    assert "_terminalMessageCache.TryGetValue(call.MessageId, out cached)" in dispatch_body
+    assert "CloneForDuplicateRequest(cached, call)" in dispatch_body
+    assert "_terminalActionCache[cacheKey] = CloneForCache(result)" in dispatch_body
+    assert "_terminalMessageCache[call.MessageId] = CloneForCache(result)" in dispatch_body
+    assert "TerminalActionOutput.Accepted(call.Tool)" in dispatch_body
+
+
+def test_toolrouter_suppresses_duplicate_terminal_turn_and_checks_snapshot_hash() -> None:
+    source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
+    dispatch_body = method_body(source, "public ToolResultEnvelope Dispatch")
+
+    assert "_completedTerminalStateVersions.Contains(call.StateVersion.Value)" in dispatch_body
+    assert 'TerminalActionOutput.Stale("duplicate")' in dispatch_body
+    assert 'ReadStringArgOrNull(call.Args, "snapshot_hash")' in dispatch_body
+    assert "!= _expectedSnapshotHash" in dispatch_body
+    assert "_completedTerminalStateVersions.Add(call.StateVersion.Value)" in dispatch_body
+
+
+def test_brainclient_sets_expected_state_version_and_snapshot_hash_before_receive() -> None:
+    source = (ROOT / "mod/LLMOfQud/BrainClient.cs").read_text()
+    run_loop_body = method_body(source, "private void RunLoop()")
+
+    assert "toolRouter.SetExpectedTurnContext(" in run_loop_body
+    assert "ParseDecisionInputTurn(pending.RequestJson)" in run_loop_body
+    assert "ComputeDecisionInputSnapshotHash(pending.RequestJson)" in run_loop_body
+
+
+def test_tool_result_message_id_factory_is_public_for_cached_terminal_results() -> None:
+    source = (ROOT / "mod/LLMOfQud/ToolRouter.cs").read_text()
+
+    assert "public static string CreateMessageId(" in source
+    assert "private static string CreateMessageId(" not in source
 
 
 def test_unknown_tool_errors_use_protocol_error_code() -> None:
