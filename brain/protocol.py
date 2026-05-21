@@ -14,7 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 type JsonValue = None | bool | int | float | str | list[JsonValue] | dict[str, JsonValue]
 type JsonObject = dict[str, JsonValue]
 
-TERMINAL_ACTION_TOOLS = frozenset({"execute", "navigate_to", "choose"})
+TERMINAL_ACTION_TOOLS: frozenset[str] = frozenset({"execute", "navigate_to", "choose"})
 
 
 def is_terminal_action_tool(tool: str) -> bool:

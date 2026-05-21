@@ -54,7 +54,7 @@ namespace LLMOfQud
                 {
                     return TerminalActionResult(
                         call,
-                        TerminalActionOutput.Stale("stale"),
+                        TerminalActionOutput.Stale(call.Tool, "stale"),
                         "terminal action requires action_nonce and state_version");
                 }
 
@@ -62,7 +62,7 @@ namespace LLMOfQud
                 {
                     return TerminalActionResult(
                         call,
-                        TerminalActionOutput.Stale("stale_epoch"),
+                        TerminalActionOutput.Stale(call.Tool, "stale_epoch"),
                         "terminal action belongs to a stale session epoch");
                 }
 
@@ -82,7 +82,7 @@ namespace LLMOfQud
                 {
                     return TerminalActionResult(
                         call,
-                        TerminalActionOutput.Stale("stale"),
+                        TerminalActionOutput.Stale(call.Tool, "stale"),
                         "terminal action belongs to a stale state version");
                 }
 
@@ -90,7 +90,7 @@ namespace LLMOfQud
                 {
                     return TerminalActionResult(
                         call,
-                        TerminalActionOutput.Stale("stale"),
+                        TerminalActionOutput.Stale(call.Tool, "stale"),
                         "terminal action snapshot_hash does not match current state");
                 }
 
@@ -98,7 +98,7 @@ namespace LLMOfQud
                 {
                     return TerminalActionResult(
                         call,
-                        TerminalActionOutput.Stale("duplicate"),
+                        TerminalActionOutput.Stale(call.Tool, "duplicate"),
                         "terminal action already completed for this state version");
                 }
 
@@ -1085,9 +1085,11 @@ namespace LLMOfQud
             return output;
         }
 
-        public static Dictionary<string, object> Stale(string acceptanceStatus)
+        public static Dictionary<string, object> Stale(
+            string actionKind,
+            string acceptanceStatus)
         {
-            Dictionary<string, object> output = Base("terminal_action", false, acceptanceStatus);
+            Dictionary<string, object> output = Base(actionKind, false, acceptanceStatus);
             output["execution_status"] = "rejected";
             return output;
         }

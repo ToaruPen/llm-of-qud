@@ -473,8 +473,8 @@ def test_toolrouter_rejects_stale_terminal_actions_before_dispatch() -> None:
     dispatch_body = method_body(source, "public ToolResultEnvelope Dispatch")
 
     assert "_sessionEpochProvider" in source
-    assert 'TerminalActionOutput.Stale("stale_epoch")' in dispatch_body
-    assert 'TerminalActionOutput.Stale("stale")' in dispatch_body
+    assert 'TerminalActionOutput.Stale(call.Tool, "stale_epoch")' in dispatch_body
+    assert 'TerminalActionOutput.Stale(call.Tool, "stale")' in dispatch_body
     assert "call.SessionEpoch != _sessionEpochProvider()" in dispatch_body
     assert "call.StateVersion.Value != _expectedStateVersion" in dispatch_body
 
@@ -496,7 +496,7 @@ def test_toolrouter_suppresses_duplicate_terminal_turn_and_checks_snapshot_hash(
     dispatch_body = method_body(source, "public ToolResultEnvelope Dispatch")
 
     assert "_completedTerminalStateVersions.Contains(call.StateVersion.Value)" in dispatch_body
-    assert 'TerminalActionOutput.Stale("duplicate")' in dispatch_body
+    assert 'TerminalActionOutput.Stale(call.Tool, "duplicate")' in dispatch_body
     assert 'ReadStringArgOrNull(call.Args, "snapshot_hash")' in dispatch_body
     assert "!= _expectedSnapshotHash" in dispatch_body
     assert "_completedTerminalStateVersions.Add(call.StateVersion.Value)" in dispatch_body

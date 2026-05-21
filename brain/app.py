@@ -44,7 +44,6 @@ MALFORMED_TOOL_ARGS_ERROR_CODE = "invalid_tool_args"
 ACCEPTANCE_DISCONNECT_REQUEST = 6
 EXPLORE_DIR_ORDER = ("E", "SE", "NE", "S", "N", "W", "SW", "NW")
 VALID_COMPASS_DIRS = frozenset(EXPLORE_DIR_ORDER)
-TERMINAL_ACTIONS = frozenset({"execute", "navigate_to", "choose"})
 PROBE_SESSION_EPOCH = 1
 SCRIPT_PROBE_1_TURNS = 25
 SCRIPT_PROBE_6_END = 160
@@ -356,7 +355,7 @@ def build_tool_call_messages(
         require_provider_tool_name(call, index)
         for index, call in enumerate(provider_tool_calls, start=1)
     ]
-    terminal_tools = [tool for tool in tool_names if tool in TERMINAL_ACTIONS]
+    terminal_tools = [tool for tool in tool_names if is_terminal_action_tool(tool)]
     if len(terminal_tools) > 1:
         raise MultipleTerminalActionsError(terminal_tools)
 
