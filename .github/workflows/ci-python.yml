@@ -1,5 +1,5 @@
 # References:
-#   actions/checkout@v6         (https://github.com/actions/checkout/releases)
+#   actions/checkout@v7         (https://github.com/actions/checkout/releases)
 #   astral-sh/setup-uv@v7       (https://github.com/astral-sh/setup-uv/releases)
 #     Note: task spec said @v5; @v7 is current stable and matches Wooly-Fluffy house style.
 #   actions/cache@v4            (https://github.com/actions/cache/releases)
@@ -17,7 +17,7 @@ jobs:
     name: lint-python
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
@@ -59,7 +59,7 @@ jobs:
     name: typecheck-python
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
@@ -101,7 +101,7 @@ jobs:
     name: test-python
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7

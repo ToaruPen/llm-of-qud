@@ -1,5 +1,5 @@
 # References:
-#   actions/checkout@v6           (https://github.com/actions/checkout/releases)
+#   actions/checkout@v7           (https://github.com/actions/checkout/releases)
 #   actions/setup-dotnet@v5       (https://github.com/actions/setup-dotnet/releases)
 #
 # Phase 0 skip logic: C# MOD is Roslyn-compiled by CoQ at game launch.
@@ -18,7 +18,7 @@ jobs:
     name: lint-cs
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Detect .csproj files
         id: detect
