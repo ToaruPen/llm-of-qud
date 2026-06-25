@@ -16,7 +16,7 @@
 - `docs/architecture-v5.md:2486-2516` shows the terminal action example and the terminal result output contract.
 - `docs/architecture-v5.md:2863-2877` defines Phase 1-G: cache by `(session_epoch, action_nonce)`, reject stale `state_version`, reject stale `session_epoch`, minimum terminal-action `message_id` dedup, duplicate turn suppression, and defer non-terminal deduplication to Phase 2b.
 - `docs/architecture-v5.md:2905-2909` makes Phase 1-G a hard prerequisite before Phase 2a Gate 1.
-- `docs/adr/0011-phase-1-pr-1-scope.md:85-89` says PR-3 requires no new ADR because v5.9 carries the contract.
+- `docs/adr/0017-phase-1-pr-3-terminal-action-idempotency.md:20-53` records the PR-3 terminal action idempotency governance decision.
 - `docs/adr/0015-phase-1-pr-2-readiness-scope.md:94-99` confirms PR-2 intentionally deferred this behavior.
 
 ## File Structure
@@ -1060,4 +1060,4 @@ Expected: Only PR-3 scoped files are changed. Do not commit unless the user expl
 
 - Spec coverage: Tasks 1-2 cover top-level terminal envelope fields and probe `snapshot_hash`; Task 3 covers optional C# parsing that preserves non-terminal PR-2 calls; Task 4 covers stale epoch, nonce cache, minimum terminal `message_id` dedup, duplicate turn suppression, snapshot hash checking, and terminal output; Task 5 covers telemetry; Task 6 covers no-LLM WebSocket exposure; Task 7 covers verification.
 - Explicit deferrals: Non-terminal deduplication, Phase 2a provider execution, real game action handlers, pathfinding, reconnect hardening beyond stale epoch rejection, and `cancel_or_back` terminalization are out of scope.
-- ADR status: No ADR is created because ADR 0011 states PR-3 needs no new ADR; this plan follows the frozen v5.9 contract.
+- ADR status: ADR 0017 records the PR-3 terminal action idempotency governance decision and links this plan to the frozen v5.9 contract.
