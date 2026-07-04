@@ -192,6 +192,64 @@ async def test_telemetry_writer_records_tool_call_sent_and_received(tmp_path: Pa
 
 
 @pytest.mark.asyncio
+async def test_telemetry_writer_records_terminal_idempotency_fields(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / "telemetry.db"
+    writer = TelemetryWriter(TelemetryWriterConfig(path=db_path))
+    await writer.open()
+    try:
+        await writer.record_tool_call_sent(
+            call_id="call-exec-1",
+            tool="execute",
+            action_nonce="nonce-1",
+            state_version=284,
+            session_epoch=3,
+        )
+        await writer.record_tool_call_received(
+            call_id="call-exec-1",
+            tool="execute",
+            result_status="ok",
+            latency_ms=9,
+            action_nonce="nonce-1",
+            state_version=284,
+            session_epoch=3,
+            acceptance_status="stale",
+        )
+    finally:
+        await writer.close()
+
+    sent = await fetch_one(
+        db_path,
+        """
+        SELECT action_nonce, state_version, session_epoch
+        FROM tool_call_sent
+        WHERE call_id = 'call-exec-1'
+        """,
+    )
+    received = await fetch_one(
+        db_path,
+        """
+        SELECT action_nonce, state_version, session_epoch, acceptance_status
+        FROM tool_call_received
+        WHERE call_id = 'call-exec-1'
+        """,
+    )
+
+    assert dict(sent) == {
+        "action_nonce": "nonce-1",
+        "state_version": 284,
+        "session_epoch": 3,
+    }
+    assert dict(received) == {
+        "action_nonce": "nonce-1",
+        "state_version": 284,
+        "session_epoch": 3,
+        "acceptance_status": "stale",
+    }
+
+
+@pytest.mark.asyncio
 async def test_decision_response_records_optional_provider_and_retry_metadata(
     tmp_path: Path,
 ) -> None:

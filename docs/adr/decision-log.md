@@ -46,3 +46,4 @@ individual decision artifact under `docs/adr/decisions/`.
 - 2026-04-29T03:03:57Z | adr_required=true | Add Phase 1 PR-2 readiness scope | [details](decisions/2026-04-29-add-phase-1-pr-2-readiness-scope.md)
 - 2026-04-29T05:16:27Z | adr_required=true | Add ADR 0016 for PR-2.1 tool envelope call_id identity | [details](decisions/2026-04-29-add-adr-0016-for-pr-2-1-tool-envelope-call-id-identity.md)
 - 2026-04-29T05:28:25Z | adr_required=true | Cover Phase 1 PR-2 branch ADR changes | [details](decisions/2026-04-29-cover-phase-1-pr-2-branch-adr-changes.md)
+- 2026-05-21T12:34:57Z | adr_required=true | Add ADR 0017 for Phase 1 PR-3 terminal action idempotency | [details](decisions/2026-05-21-add-adr-0017-for-phase-1-pr-3-terminal-action-idempotency.md)

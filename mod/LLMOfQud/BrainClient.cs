@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Net.WebSockets;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -161,6 +163,9 @@ namespace LLMOfQud
                     Stopwatch stopwatch = Stopwatch.StartNew();
                     ClientWebSocket socket = EnsureConnected();
                     Send(socket, pending.RequestJson, pending.TimeoutMs);
+                    toolRouter.SetExpectedTurnContext(
+                        ParseDecisionInputTurn(pending.RequestJson),
+                        ComputeDecisionInputSnapshotHash(pending.RequestJson));
                     string response = ReceiveDecision(socket, pending.TimeoutMs, toolRouter);
                     stopwatch.Stop();
                     pending.Completion.TrySetResult(response);
@@ -333,6 +338,25 @@ namespace LLMOfQud
                     continue;
                 }
                 return responseJson;
+            }
+        }
+
+        private static int ParseDecisionInputTurn(string requestJson)
+        {
+            return ToolRouter.ReadTopLevelIntForTransport(requestJson, "turn");
+        }
+
+        private static string ComputeDecisionInputSnapshotHash(string requestJson)
+        {
+            using (SHA256 sha = SHA256.Create())
+            {
+                byte[] bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(requestJson ?? ""));
+                StringBuilder sb = new StringBuilder(bytes.Length * 2);
+                for (int i = 0; i < bytes.Length; i++)
+                {
+                    sb.Append(bytes[i].ToString("x2", CultureInfo.InvariantCulture));
+                }
+                return sb.ToString();
             }
         }
 

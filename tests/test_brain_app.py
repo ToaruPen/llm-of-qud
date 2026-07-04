@@ -36,6 +36,11 @@ if TYPE_CHECKING:
     from brain.protocol import JsonObject, JsonValue
 
 
+def require_test_json_object(value: JsonValue) -> JsonObject:
+    assert isinstance(value, dict)
+    return value
+
+
 def minimal_decision_input(turn: int = 7) -> JsonObject:
     return {
         "schema": "decision_input.v1",
@@ -84,7 +89,21 @@ async def run_fake_csharp_tool_roundtrip(
             await websocket.send(json.dumps(minimal_decision_input()))
             tool_call = cast("JsonObject", json.loads(await websocket.recv()))
             result: JsonObject = {"status": result_status}
-            if result_status == "ok":
+            terminal_tool = tool_call["tool"] in {"execute", "navigate_to", "choose"}
+            if terminal_tool:
+                tool_result_action_nonce = tool_call["action_nonce"]
+            else:
+                tool_result_action_nonce = None
+            if result_status == "ok" and terminal_tool:
+                result["output"] = {
+                    "accepted": True,
+                    "turn_complete": True,
+                    "action_kind": tool_call["tool"],
+                    "execution_status": "accepted",
+                    "acceptance_status": "accepted",
+                    "safety_decision": "pass",
+                }
+            elif result_status == "ok":
                 result["output"] = {"visible_tiles": 8}
             else:
                 result["error_code"] = error_code
@@ -99,6 +118,7 @@ async def run_fake_csharp_tool_roundtrip(
                         "message_id": "fake-csharp-result-1",
                         "in_reply_to": tool_call["message_id"],
                         "session_epoch": tool_call["session_epoch"],
+                        "action_nonce": tool_result_action_nonce,
                     },
                 ),
             )
@@ -213,9 +233,10 @@ async def test_fake_csharp_malformed_args_failure_uses_deterministic_validation_
     )
 
     assert tool_call["tool"] == "execute"
-    assert tool_call["args"] == {"candidate_id": 123}
-    tool_result = response["tool_result"]
-    assert isinstance(tool_result, dict)
+    tool_args = require_test_json_object(tool_call["args"])
+    assert tool_args["candidate_id"] == 123
+    assert isinstance(tool_args["snapshot_hash"], str)
+    tool_result = require_test_json_object(response["tool_result"])
     assert tool_result["error_code"] == MALFORMED_TOOL_ARGS_ERROR_CODE
 
 
@@ -226,6 +247,47 @@ async def test_python_emits_game_tool_call_instead_of_dispatching_it_locally() -
     assert tool_call["type"] == "tool_call"
     assert tool_call["tool"] == "check_status"
     assert response["schema"] == "decision.v1"
+
+
+@pytest.mark.asyncio
+async def test_terminal_tool_call_probe_includes_action_nonce_and_state_version() -> None:
+    tool_call, response = await run_fake_csharp_tool_roundtrip(
+        phase="tool_call_probe:execute",
+    )
+
+    assert tool_call["tool"] == "execute"
+    assert tool_call["action_nonce"] == "turn-7-execute-nonce"
+    assert tool_call["state_version"] == 7
+    tool_args = require_test_json_object(tool_call["args"])
+    assert isinstance(tool_args["snapshot_hash"], str)
+    assert response["schema"] == "decision.v1"
+
+
+def test_terminal_tool_call_batch_uses_deterministic_nonce_and_state_version() -> None:
+    (message,) = build_tool_call_messages(
+        [{"tool": "execute", "args": {"candidate_id": "c1"}, "call_id": "call-1"}],
+        turn=7,
+        session_epoch=3,
+        snapshot_hash="snapshot-7",
+    )
+
+    assert message.action_nonce == "turn-7-execute-nonce"
+    assert message.state_version == 7
+    assert message.args["snapshot_hash"] == "snapshot-7"
+
+
+@pytest.mark.asyncio
+async def test_terminal_tool_call_result_is_exposed_to_decision_response() -> None:
+    tool_call, response = await run_fake_csharp_tool_roundtrip(
+        phase="tool_call_probe:execute",
+        result_status="ok",
+    )
+
+    assert tool_call["tool"] == "execute"
+    tool_result = require_test_json_object(response["tool_result"])
+    tool_result_output = require_test_json_object(tool_result["output"])
+    assert tool_result["action_nonce"] == tool_call["action_nonce"]
+    assert tool_result_output["acceptance_status"] == "accepted"
 
 
 def test_more_than_one_terminal_action_is_rejected_before_emission() -> None:
@@ -271,6 +333,35 @@ def test_tool_result_session_epoch_must_match_tool_call() -> None:
     with pytest.raises(
         ToolResultMismatchError,
         match=r"tool_result session_epoch mismatch: expected 3, got 4",
+    ):
+        require_matching_tool_result(tool_call, tool_result)
+
+
+@pytest.mark.parametrize("action_nonce", [None, "wrong-nonce"])
+def test_terminal_tool_result_action_nonce_must_match_tool_call(
+    action_nonce: str | None,
+) -> None:
+    (tool_call,) = build_tool_call_messages(
+        [{"tool": "execute", "args": {"candidate_id": "c1"}, "call_id": "call-1"}],
+        turn=7,
+        session_epoch=3,
+    )
+    tool_result = ToolResultMessage(
+        call_id=tool_call.call_id,
+        tool=tool_call.tool,
+        result=ToolResultPayload(status=ToolResultStatus.OK),
+        message_id="result-1",
+        in_reply_to=tool_call.message_id,
+        session_epoch=tool_call.session_epoch,
+        action_nonce=action_nonce,
+    )
+
+    with pytest.raises(
+        ToolResultMismatchError,
+        match=(
+            r"tool_result action_nonce mismatch: "
+            r"expected 'turn-7-execute-nonce', got "
+        ),
     ):
         require_matching_tool_result(tool_call, tool_result)
 

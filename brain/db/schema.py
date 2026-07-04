@@ -77,7 +77,10 @@ CREATE TABLE IF NOT EXISTS tool_call_sent (
     provider_output_tokens INTEGER,
     provider_cached_input_tokens INTEGER,
     provider_cache_creation_input_tokens INTEGER,
-    provider_cache_read_input_tokens INTEGER
+    provider_cache_read_input_tokens INTEGER,
+    action_nonce TEXT,
+    state_version INTEGER,
+    session_epoch INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS tool_call_received (
@@ -87,6 +90,10 @@ CREATE TABLE IF NOT EXISTS tool_call_received (
     tool TEXT NOT NULL,
     result_status TEXT NOT NULL,
     latency_ms INTEGER NOT NULL,
+    action_nonce TEXT,
+    state_version INTEGER,
+    session_epoch INTEGER,
+    acceptance_status TEXT,
     error_class TEXT,
     retry_class TEXT,
     retry_attempt INTEGER NOT NULL DEFAULT 0
@@ -148,16 +155,35 @@ DECISION_RESPONSE_COLUMN_MIGRATIONS = {
     ),
 }
 
+TOOL_CALL_SENT_COLUMN_MIGRATIONS = {
+    "action_nonce": "ALTER TABLE tool_call_sent ADD COLUMN action_nonce TEXT",
+    "state_version": "ALTER TABLE tool_call_sent ADD COLUMN state_version INTEGER",
+    "session_epoch": "ALTER TABLE tool_call_sent ADD COLUMN session_epoch INTEGER",
+}
+
+TOOL_CALL_RECEIVED_COLUMN_MIGRATIONS = {
+    "action_nonce": "ALTER TABLE tool_call_received ADD COLUMN action_nonce TEXT",
+    "state_version": "ALTER TABLE tool_call_received ADD COLUMN state_version INTEGER",
+    "session_epoch": "ALTER TABLE tool_call_received ADD COLUMN session_epoch INTEGER",
+    "acceptance_status": "ALTER TABLE tool_call_received ADD COLUMN acceptance_status TEXT",
+}
+
 
 async def create_all(conn: aiosqlite.Connection) -> None:
     await conn.executescript(DDL)
-    await _migrate_decision_response(conn)
+    await _migrate_table(conn, "decision_response", DECISION_RESPONSE_COLUMN_MIGRATIONS)
+    await _migrate_table(conn, "tool_call_sent", TOOL_CALL_SENT_COLUMN_MIGRATIONS)
+    await _migrate_table(conn, "tool_call_received", TOOL_CALL_RECEIVED_COLUMN_MIGRATIONS)
 
 
-async def _migrate_decision_response(conn: aiosqlite.Connection) -> None:
-    cursor = await conn.execute("PRAGMA table_info(decision_response)")
+async def _migrate_table(
+    conn: aiosqlite.Connection,
+    table_name: str,
+    migrations: dict[str, str],
+) -> None:
+    cursor = await conn.execute(f"PRAGMA table_info({table_name})")
     rows = await cursor.fetchall()
     existing_columns = {str(row[1]) for row in rows}
-    for column_name, statement in DECISION_RESPONSE_COLUMN_MIGRATIONS.items():
+    for column_name, statement in migrations.items():
         if column_name not in existing_columns:
             await conn.execute(statement)
