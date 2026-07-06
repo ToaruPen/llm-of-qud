@@ -1,5 +1,5 @@
 # References:
-#   actions/checkout@v6   (https://github.com/actions/checkout/releases)
+#   actions/checkout@v7   (https://github.com/actions/checkout/releases)
 #   actions/setup-node@v6 (https://github.com/actions/setup-node/releases)
 #
 # Notes:
@@ -22,7 +22,7 @@ jobs:
     name: secret-scan
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           # Fetch all history so secretlint can scan every commit path
           fetch-depth: 0
