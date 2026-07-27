@@ -1,6 +1,6 @@
 # References:
-#   actions/checkout@v6         (https://github.com/actions/checkout/releases)
-#   actions/setup-python@v6     (https://github.com/actions/setup-python/releases)
+#   actions/checkout@v7         (https://github.com/actions/checkout/releases)
+#   actions/setup-python@v7     (https://github.com/actions/setup-python/releases)
 #   pre-commit/action@v3.0.1    (https://github.com/pre-commit/action/releases)
 #   astral-sh/setup-uv@v7       (https://github.com/astral-sh/setup-uv/releases)
 #
@@ -20,7 +20,7 @@ jobs:
     name: pre-commit-meta
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -36,7 +36,7 @@ jobs:
 
       - name: Setup Python
         if: steps.detect.outputs.found == 'true'
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 
