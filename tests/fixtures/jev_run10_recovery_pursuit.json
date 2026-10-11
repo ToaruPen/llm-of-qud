@@ -5293,7 +5293,7 @@
           "sha256": "77cce769abeea5bba0c55347a36f04cc7b5f5e8abe184e5e799c7a63fdac1b73"
         },
         "seq": 2,
-        "token": "2e1064c1-b58a-4a79-9ac8-8295d5b60a89-m3",
+        "token": "run10-m3",
         "dialog_type": "conversation",
         "dialog_text": "Hike there, will you? To Red Rock. Just about two parasangs north of Joppa.\r\n\nKill the vermin and bring one's corpse back, for seein' what it is. Elder will take care to pay you after, waterhand.",
         "offered_choices": [
@@ -10911,7 +10911,7 @@
           "sha256": "77cce769abeea5bba0c55347a36f04cc7b5f5e8abe184e5e799c7a63fdac1b73"
         },
         "seq": 2,
-        "token": "2e1064c1-b58a-4a79-9ac8-8295d5b60a89-m3",
+        "token": "run10-m3",
         "dialog_type": "conversation",
         "dialog_text": "Hike there, will you? To Red Rock. Just about two parasangs north of Joppa.\r\n\nKill the vermin and bring one's corpse back, for seein' what it is. Elder will take care to pay you after, waterhand.",
         "offered_choices": [
