@@ -1,0 +1,8 @@
+{
+  "ID": "LlmOfQud.ProbeR5",
+  "Title": "LLM of Qud - R5 modal driver probe",
+  "Description": "Runtime probe R5: opens Modern-UI modals from wishes on the game thread and answers them from a background thread via GameManager.uiQueue. No Harmony. Development profile only.",
+  "Version": "0.0.1",
+  "Author": "llm-of-qud",
+  "Tags": "Script"
+}

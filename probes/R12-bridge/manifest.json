@@ -1,0 +1,8 @@
+{
+  "ID": "LlmOfQud.ProbeR12",
+  "Title": "LLM of Qud - R1/R2 bridge probe",
+  "Description": "Isolated runtime probes for long CTA waits and ClientWebSocket/Newtonsoft round trips. No Harmony. Development profile only.",
+  "Version": "0.0.1",
+  "Author": "llm-of-qud",
+  "Tags": "Script"
+}

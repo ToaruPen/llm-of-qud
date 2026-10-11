@@ -1,0 +1,70 @@
+{
+  "same_game_process": 35212,
+  "same_item_row": true,
+  "same_native_point_fractions": [
+    0.78,
+    0.24499629624163569
+  ],
+  "dwell_seconds": 5,
+  "runs": {
+    "unfocused": {
+      "run_id": "r3-hover-unfocused-pointer7-20260927",
+      "heartbeat_count": 49,
+      "all_heartbeats_expected_focus": true,
+      "native_focus_matches": true,
+      "uncovered_target": true,
+      "pointer_reached_and_restored": true,
+      "tooltip_observed": false,
+      "queue_insertion_observed": false,
+      "result": {
+        "kind": "result",
+        "id": "r3-hover-unfocused-pointer7-20260927",
+        "mode": "hover",
+        "focus": "unfocused",
+        "reason": "HOVER_NO_TOOLTIP",
+        "elapsedMs": 50008,
+        "turnStart": 0,
+        "turnEnd": 0,
+        "turns": 0,
+        "moves": 0,
+        "ctas": 0,
+        "decisions": 0,
+        "popupAnswers": 0,
+        "playerTurnEntries": 0,
+        "endPlayerTurns": 0,
+        "pass": false
+      },
+      "runtime_ok": true
+    },
+    "focused": {
+      "run_id": "r3-hover-focused-control7-20260927",
+      "heartbeat_count": 49,
+      "all_heartbeats_expected_focus": true,
+      "native_focus_matches": true,
+      "uncovered_target": true,
+      "pointer_reached_and_restored": true,
+      "tooltip_observed": true,
+      "queue_insertion_observed": true,
+      "result": {
+        "kind": "result",
+        "id": "r3-hover-focused-control7-20260927",
+        "mode": "hover",
+        "focus": "focused",
+        "reason": "COMPLETE",
+        "elapsedMs": 50005,
+        "turnStart": 0,
+        "turnEnd": 0,
+        "turns": 0,
+        "moves": 0,
+        "ctas": 0,
+        "decisions": 0,
+        "popupAnswers": 0,
+        "playerTurnEntries": 0,
+        "endPlayerTurns": 0,
+        "pass": true
+      },
+      "runtime_ok": true
+    }
+  },
+  "interpretation": "Focused positive control passed; no tooltip or LookedAt insertion was observed in the unfocused attempt. This is not a universal proof that background pointer input is blocked."
+}

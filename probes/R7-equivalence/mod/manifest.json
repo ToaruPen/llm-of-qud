@@ -1,0 +1,8 @@
+{
+  "ID": "LlmOfQud.ProbeR7",
+  "Title": "LLM of Qud - R7 direct/UI equivalence probe",
+  "Description": "Operator-only development probe. Reads r7-command.json from the save path. No Harmony. Mutates only the loaded disposable save.",
+  "Version": "0.0.1",
+  "Author": "llm-of-qud",
+  "Tags": "Script"
+}
