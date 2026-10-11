@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>9</LangVersion>
+    <Nullable>disable</Nullable>
+    <!-- Disabled so SurfaceCheck.cs must carry its own usings, as in the game's Roslyn compile. -->
+    <ImplicitUsings>disable</ImplicitUsings>
+    <!-- Excludes only the game-typed production table; the parent compiles it against the fixed DLLs. -->
+    <DefineConstants>$(DefineConstants);LLMOFQUD_SURFACE_TESTS</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup><Compile Include="../LlmOfQud/SurfaceCheck.cs" Link="SurfaceCheck.cs" /></ItemGroup>
+</Project>

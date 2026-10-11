@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>9</LangVersion>
+    <Nullable>disable</Nullable>
+    <ManagedDir Condition="'$(ManagedDir)' == ''">/Users/sankenbisha/Games/CavesOfQud-probe-2.0.211.56-build25520692/CoQ.app/Contents/Resources/Data/Managed</ManagedDir>
+  </PropertyGroup>
+  <ItemGroup><Compile Include="../LlmOfQud/ModalPolicy.cs" Link="ModalPolicy.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../LlmOfQud/BackgroundPolicy.cs" Link="BackgroundPolicy.cs" /></ItemGroup>
+  <ItemGroup>
+    <Reference Include="Newtonsoft.Json"><HintPath>$(ManagedDir)/Newtonsoft.Json.dll</HintPath></Reference>
+  </ItemGroup>
+</Project>
