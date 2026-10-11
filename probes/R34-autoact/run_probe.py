@@ -16,7 +16,7 @@ import shutil
 from obs_probe import Obs
 
 
-GAME = "/Users/sankenbisha/Games/CavesOfQud-probe-2.0.211.56-build25520692/CoQ.app"
+GAME = str(Path.home() / "Games/CavesOfQud-probe-2.0.211.56-build25520692/CoQ.app")
 
 
 def activate(app):

@@ -1,6 +1,6 @@
 # F6: スレッド、キュー、フックの仕組み（threads-hooks）
 
-対象ビルド: 2.0.211.56（ILSpy で逆コンパイルしたソース。ソースルートは `/Users/sankenbisha/Dev/coq-decompiled_stable`）。
+対象ビルド: 2.0.211.56（ILSpy で逆コンパイルしたソース。ソースルートは `~/Dev/coq-decompiled_stable`）。
 引用 `path:line` はすべてソースルートからの相対パスで、本作業で `sed -n` / `grep -n` を使って表示し、確認したものに限る。
 Unity 側の挙動（メインスレッド専用 API、UnitySynchronizationContext、runInBackground が Update を止めるかどうか、動的アセンブリの MonoBehaviour）は逆コンパイルに含まれない。これらは「Unity の挙動」と明記し、確度を medium 以下にして実機検証へ回す。
 

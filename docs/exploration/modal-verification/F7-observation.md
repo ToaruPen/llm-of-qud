@@ -1,6 +1,6 @@
 # F7-observation: Modern UI 表示中に legacy 相当テキストを合成する
 
-対象ビルド: 2.0.211.56（ILSpy 逆コンパイル、`/Users/sankenbisha/Dev/coq-decompiled_stable`）。以下の引用 `path:line` は、すべてこのソースルートからの相対パスである。本書の作業中に `sed -n` / `grep -n` で表示した範囲だけを引用している。
+対象ビルド: 2.0.211.56（ILSpy 逆コンパイル、`~/Dev/coq-decompiled_stable`）。以下の引用 `path:line` は、すべてこのソースルートからの相対パスである。本書の作業中に `sed -n` / `grep -n` で表示した範囲だけを引用している。
 
 ## 1. 目的
 

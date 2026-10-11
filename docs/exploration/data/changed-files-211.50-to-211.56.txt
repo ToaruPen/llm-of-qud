@@ -123,4 +123,4 @@ Files XRL.World.ZoneBuilders/Village.cs and XRL.World.ZoneBuilders/Village.cs di
 Files XRL.World.ZoneBuilders/VillageCoda.cs and XRL.World.ZoneBuilders/VillageCoda.cs differ
 Files XRL.World.ZoneBuilders/VillageOutskirts.cs and XRL.World.ZoneBuilders/VillageOutskirts.cs differ
 Files XRL.World.ZoneParts/ScriptCallToArms.cs and XRL.World.ZoneParts/ScriptCallToArms.cs differ
-Only in /Users/sankenbisha/Dev/coq-decompiled_stable: bin
+Only in ~/Dev/coq-decompiled_stable: bin

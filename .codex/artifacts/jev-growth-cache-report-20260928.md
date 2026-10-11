@@ -44,15 +44,15 @@ Claudeの総待ち時間は1,494.9秒で、本試走の97.1%を占めた。1行�
 
 上位への移譲にも無駄があった。装備の血・タールなどの表示変化で4回の装備レビューが起き、合計146.4秒を使った。また進展判定は位置・自分のHP・装備などを見ており、戦闘の経過を十分区別できない。`no_progress`で6回、233.5秒の再計画が発生した。キャッシュの再利用と並行して、こうした移譲条件を絞ることが次の改善点になる。試走中に実装は変更していない。
 
-停止したのはseq80の低確率移譲である。Jevの最大選択確率が0.47だったためClaudeへ送り、120.57秒で応答期限に達した。代わりのゲーム操作は送らず、最後の完了操作seq79の状態を保存した。原因の内訳が通信・サービス側・生成処理のどれだったかは、取得できた記録からは断定できない。タイムアウトを成功や通常の30分終了として扱わない。自動再試行は[ask-claudeのSKILL.md](/Users/sankenbisha/.codex/skills/ask-claude/SKILL.md)の「Do not … retry automatically」という指示に従い行っていない。
+停止したのはseq80の低確率移譲である。Jevの最大選択確率が0.47だったためClaudeへ送り、120.57秒で応答期限に達した。代わりのゲーム操作は送らず、最後の完了操作seq79の状態を保存した。原因の内訳が通信・サービス側・生成処理のどれだったかは、取得できた記録からは断定できない。タイムアウトを成功や通常の30分終了として扱わない。自動再試行はask-claudeのSKILL.md（`~/.codex/skills/ask-claude/SKILL.md`）の「Do not … retry automatically」という指示に従い行っていない。
 
 検証はPython全270件、C#ポリシー118件、モーダル134件、固定ゲーム2.0.211.56のDLLでのコンパイルが成功した。変更したPythonのRuff検査も成功。C#の静的解析は従来の警告6件が残るため、無警告合格とは扱わない。旧API警告2件とコールバック・スレッド状態に関する解析警告4件は保持した。台帳247行・79完了操作の整合性とM1検証が成功し、未完了操作、死亡復帰、game faultはない。ゲーム窓の表示・前面化・外部入力も0だった。セーブのturn682と最後の観測が一致し、今回起動したゲーム・ハーネス・Claudeのプロセス群が終了したことを確認した。
 
-- [本試走の集計](/Users/sankenbisha/Dev/llm-of-qud/.runtime/jev-growth-20260928/run2/metrics.json)
-- [育成結果・Jev入力・失敗操作の照合](/Users/sankenbisha/Dev/llm-of-qud/.runtime/jev-growth-20260928/run2/evidence-evaluation.json)
-- [9種類の記録済み場面と元ログ](/Users/sankenbisha/Dev/llm-of-qud/.runtime/jev-growth-20260928/run2/scenario-index.json)
-- [同じ3場面のキャッシュ比較](/Users/sankenbisha/Dev/llm-of-qud/.runtime/jev-growth-20260928/cache-comparison.json)
-- [台帳・M1検証](/Users/sankenbisha/Dev/llm-of-qud/.runtime/jev-growth-20260928/run2/ledger-m1-verification.json)
-- [保存・プロセス終了・ソース固定の確認](/Users/sankenbisha/Dev/llm-of-qud/.runtime/jev-growth-20260928/run2/shutdown-verification.json)
-- [最終セーブ](/Users/sankenbisha/Dev/llm-of-qud/.runtime/jev-growth-20260928/run2/save-after/e97a2830-79ca-4d94-b363-1ac97f66dd32/Primary.json)
-- [実装の設計記録](/Users/sankenbisha/Dev/llm-of-qud/docs/jev-hybrid.md)
+- [本試走の集計](../../.runtime/jev-growth-20260928/run2/metrics.json)
+- [育成結果・Jev入力・失敗操作の照合](../../.runtime/jev-growth-20260928/run2/evidence-evaluation.json)
+- [9種類の記録済み場面と元ログ](../../.runtime/jev-growth-20260928/run2/scenario-index.json)
+- [同じ3場面のキャッシュ比較](../../.runtime/jev-growth-20260928/cache-comparison.json)
+- [台帳・M1検証](../../.runtime/jev-growth-20260928/run2/ledger-m1-verification.json)
+- [保存・プロセス終了・ソース固定の確認](../../.runtime/jev-growth-20260928/run2/shutdown-verification.json)
+- [最終セーブ](../../.runtime/jev-growth-20260928/run2/save-after/e97a2830-79ca-4d94-b363-1ac97f66dd32/Primary.json)
+- [実装の設計記録](../../docs/jev-hybrid.md)

@@ -6,7 +6,7 @@
     <Nullable>disable</Nullable>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <NoWarn>CS0618;CS1998</NoWarn>
-    <ManagedDir Condition="'$(ManagedDir)' == ''">/Users/sankenbisha/Games/CavesOfQud-probe-2.0.211.56-build25520692/CoQ.app/Contents/Resources/Data/Managed</ManagedDir>
+    <ManagedDir Condition="'$(ManagedDir)' == ''">$(HOME)/Games/CavesOfQud-probe-2.0.211.56-build25520692/CoQ.app/Contents/Resources/Data/Managed</ManagedDir>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../mod/*.cs" />

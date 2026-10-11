@@ -1,6 +1,6 @@
 # F1-popup: PopupMessage 系モーダルの静的検証
 
-対象ビルド: 2.0.211.56（ILSpy 逆コンパイル、`/Users/sankenbisha/Dev/coq-decompiled_stable`）。
+対象ビルド: 2.0.211.56（ILSpy 逆コンパイル、`~/Dev/coq-decompiled_stable`）。
 引用はすべてソースルートからの `path:line`。本書の作業中に `sed -n` / `grep -n` で表示した行だけを引く。
 
 ## 1. 目的

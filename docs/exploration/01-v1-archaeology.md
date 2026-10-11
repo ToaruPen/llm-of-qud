@@ -7,7 +7,7 @@
 
 ## 0. 引用の凡例
 
-v1 は CoQ **BUILD_2_0_210** の decompile を根拠に書かれている（`v1/docs/memo/phase-0-a-exit-2026-04-23.md`）。現行の `/Users/sankenbisha/Dev/coq-decompiled_stable` は `AssemblyVersion("2.0.211.50")` である（`coq-decompiled_stable/Properties/AssemblyInfo.cs:8`）。scratchpad の `decomp-new` はさらに新しく、`2.0.211.56` である（`decomp-new/Properties/AssemblyInfo.cs:8`）。**行番号はほぼすべてずれている**ため、引用は次の 3 種類に分けて書く。
+v1 は CoQ **BUILD_2_0_210** の decompile を根拠に書かれている（`v1/docs/memo/phase-0-a-exit-2026-04-23.md`）。現行の `~/Dev/coq-decompiled_stable` は `AssemblyVersion("2.0.211.50")` である（`coq-decompiled_stable/Properties/AssemblyInfo.cs:8`）。scratchpad の `decomp-new` はさらに新しく、`2.0.211.56` である（`decomp-new/Properties/AssemblyInfo.cs:8`）。**行番号はほぼすべてずれている**ため、引用は次の 3 種類に分けて書く。
 
 | 表記 | 意味 |
 |---|---|

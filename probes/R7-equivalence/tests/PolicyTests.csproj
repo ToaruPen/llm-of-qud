@@ -4,7 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <LangVersion>9</LangVersion>
     <Nullable>disable</Nullable>
-    <ManagedDir Condition="'$(ManagedDir)' == ''">/Users/sankenbisha/Games/CavesOfQud-probe-2.0.211.56-build25520692/CoQ.app/Contents/Resources/Data/Managed</ManagedDir>
+    <ManagedDir Condition="'$(ManagedDir)' == ''">$(HOME)/Games/CavesOfQud-probe-2.0.211.56-build25520692/CoQ.app/Contents/Resources/Data/Managed</ManagedDir>
   </PropertyGroup>
   <ItemGroup><Compile Include="../mod/R7Policy.cs" Link="R7Policy.cs" /></ItemGroup>
   <ItemGroup>

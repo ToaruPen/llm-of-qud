@@ -1,6 +1,6 @@
 # F5: そのほかのブロッキング画面（取引・本・端末・終了画面・Sifrah・チュートリアル・終局・死亡・メインメニュー・キャラクター作成）
 
-対象ビルド: 2.0.211.56（ILSpy 逆コンパイル、`/Users/sankenbisha/Dev/coq-decompiled_stable`）。
+対象ビルド: 2.0.211.56（ILSpy 逆コンパイル、`~/Dev/coq-decompiled_stable`）。
 引用は、ソースルートからの相対パスと行番号（`path:line`）で示す。どれも本調査で `grep -n` / `sed -n` / `nl` を使って表示し、確かめた行である。
 
 ## 1. 目的

@@ -11,7 +11,7 @@
 - [mizchi氏のチューニング記録](https://github.com/mizchi/jev-playground/blob/main/docs/tuning.md)：操作と対象を一体の候補にする。既に試した操作と進展を保持する。確実なAPI制約だけを除外条件にし、地図の推測で正解経路を消さない。
 - [フォールバック実験](https://github.com/mizchi/jev-playground/blob/main/docs/57-confidence-fallback.md)・[訂正を含む追加実験](https://github.com/mizchi/jev-playground/blob/main/docs/62-browser-accuracy.md)：高確率の無効操作もあるため確率だけでは不足する。候補不足、直近の失敗、同じ状態への反復も移譲する。モデルが選ばなかった行動の結果は推測しない。
 
-手元の `/Users/sankenbisha/Dev/jev-playground` はmizchi氏の公開リポジトリとは別のローカル実装である。参照した一次資料の内容とハッシュは `.runtime/jev-hybrid-20260927/research/` に保存した。
+手元の `~/Dev/jev-playground` はmizchi氏の公開リポジトリとは別のローカル実装である。参照した一次資料の内容とハッシュは `.runtime/jev-hybrid-20260927/research/` に保存した。
 
 ## データと制御
 

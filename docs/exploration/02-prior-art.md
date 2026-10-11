@@ -10,7 +10,7 @@
 
 ### 0.1 逆コンパイルソースの版
 
-CoQ 内部に関する引用はすべて **stable 版の逆コンパイルツリー** `/Users/sankenbisha/Dev/coq-decompiled_stable` による。形式は `path:line` で、パスはこのツリーのルートからの相対パスとする。別担当が扱う新しい版のツリー（scratchpad の `decomp-new`）とは行番号が一致しない可能性がある。
+CoQ 内部に関する引用はすべて **stable 版の逆コンパイルツリー** `~/Dev/coq-decompiled_stable` による。形式は `path:line` で、パスはこのツリーのルートからの相対パスとする。別担当が扱う新しい版のツリー（scratchpad の `decomp-new`）とは行番号が一致しない可能性がある。
 
 ### 0.2 証拠グレード
 

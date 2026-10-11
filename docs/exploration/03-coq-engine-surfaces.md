@@ -6,8 +6,8 @@
 
 | 項目 | 内容 |
 |---|---|
-| 主な引用元 | `NEW/` = `/private/tmp/claude-501/-Users-sankenbisha-Library-Application-Support-Claude-scratch-workspaces-73868b90-ade6-4a7c-8600-2e25c6f006a7-17d5bf8e-494c-444b-a362-e09ab68fefa1-scratch-2026-09-25-5c4d49/18975e1a-7f5d-4f8e-8d1d-a06e9aba338b/scratchpad/decomp-new`(`decompile.log` に `exit=0` があることを確認済み) |
-| 比較用 | `STABLE/` = `/Users/sankenbisha/Dev/coq-decompiled_stable`(AssemblyVersion 2.0.211.50) |
+| 主な引用元 | `NEW/` = 一時作業領域（scratchpad）の `decomp-new`(`decompile.log` に `exit=0` があることを確認済み) |
+| 比較用 | `STABLE/` = `~/Dev/coq-decompiled_stable`(AssemblyVersion 2.0.211.50) |
 | NEW のバージョン | `NEW/Properties/AssemblyInfo.cs` は `AssemblyVersion("2.0.211.56")`。想定されていた 2.0.214.x ではなかった。`CoreVersion` は Assembly 名のバージョンそのもの(`NEW/XRL/XRLGame.cs:106`)で、Mod コンパイル時には `BUILD_{Major}_{Minor}_{Build}` シンボルになる(`NEW/XRL/ModManager.cs:127-134`)。そのため NEW でのシンボルは `BUILD_2_0_211`、`MarketingVersion` は `1.0.5`(`NEW/XRL/XRLGame.cs:104`)。インストール先の `Managed/Assembly-CSharp.dll` は 2026-09-25 17:06 に書き換えられている。ここから「今回の Steam 更新後の実体が 2.0.211.56 である」と見るのが自然 **[推論]**。ただし AssemblyVersion がストア上のビルド番号と一致する保証はない。 |
 | v1 の引用 | v1 は `decompiled/...`(2.0.210 系)の行番号を使っていた。本書では NEW の行番号に読み替えたものを §7 にまとめる。 |
 | 外部情報 | URL を併記する。 |

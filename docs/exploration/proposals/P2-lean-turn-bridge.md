@@ -5,7 +5,7 @@
 | 提案 | P2（探索フェーズの設計案の 1 つ。採否は未決定） |
 | 作成 | Opus 5.5 worker、2026-09-25 |
 | レンズ | 「v1 minus the process, plus the LLM」。v1 が実証した CTA 同期の判断境界、WebSocket ブリッジ、ScreenBuffer と状態の取得、wake の仕組みは残す。そのうえで、day 3 に実物の LLM が 1 手を打てる最小構成まで削る |
-| 引用基準 | `stable/` は `/Users/sankenbisha/Dev/coq-decompiled_stable` を指す。**現在の stable は `AssemblyVersion("2.0.211.56")`**（`stable/Properties/AssemblyInfo.cs:8`）。01 と 04 の「stable = 2.0.211.50」は、同日 17:14 に stable が更新される前の記述である。いまの stable の行番号は、03 が `NEW/` として引いた行番号と一致する（付録 A で確認） |
+| 引用基準 | `stable/` は `~/Dev/coq-decompiled_stable` を指す。**現在の stable は `AssemblyVersion("2.0.211.56")`**（`stable/Properties/AssemblyInfo.cs:8`）。01 と 04 の「stable = 2.0.211.50」は、同日 17:14 に stable が更新される前の記述である。いまの stable の行番号は、03 が `NEW/` として引いた行番号と一致する（付録 A で確認） |
 | 表記 | **[推論]** は静的な読解から導いた主張。**[要実測]** はランタイムのプローブで確かめるまで前提として扱わない主張 |
 | 証拠の出典 | 01〜04 の探索レポート（`docs/exploration/0*.md`）。本書で「01 K19」のように書いたものは、そのレポートの項目番号を指す |
 

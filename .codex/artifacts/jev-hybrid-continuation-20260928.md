@@ -14,7 +14,7 @@
 | 台帳 | 264行、86行動完了、未完了なし、M1検証成功、game faultなし |
 | 背景動作 | ゲーム窓・前面化・stray keys・外部回答0。ゲーム終了を観測し、今回起動したプロセスと記録したClaudeプロセス群の残存なし |
 
-実際の選択と結果から、17件の検証事例を[索引](/Users/sankenbisha/Dev/llm-of-qud/.runtime/jev-hybrid-20260928/run1/scenario-index.json)に残した。同じ観測の再評価用データであり、17件の自動テストが新たに成功したという意味ではない。
+実際の選択と結果から、17件の検証事例を[索引](../../.runtime/jev-hybrid-20260928/run1/scenario-index.json)に残した。同じ観測の再評価用データであり、17件の自動テストが新たに成功したという意味ではない。
 
 | 場面 | 観測できたこと |
 |---|---|
@@ -33,11 +33,11 @@ Jevの判断がすべて適切だったとは言えない。seq32では、隣接
 
 Claudeにも誤りがあった。特殊文字を含む地図を表示上の桁で数え、階段の位置を不正確に推定した。また最終メモリにjilted loverを「7体」と記載したが、今回の実結果は3体である。低確率でClaudeへ移譲すれば常に正しいという設計にはできない。実結果とモデルが書いた記憶を分けて検証する必要がある。
 
-座標の問題には小さな補強を入れた。[hybrid_policy.py](/Users/sankenbisha/Dev/llm-of-qud/harness/hybrid_policy.py)で、現在の公開地図にある`<`と`>`を座標・距離付きの`derived.map_markers`として両モデルへ渡す。文字列そのものや操作候補は変更せず、未探索地形・隠れた階段を補完しない。`@`などで記号が隠れる場合があることも明示した。
+座標の問題には小さな補強を入れた。[hybrid_policy.py](../../harness/hybrid_policy.py)で、現在の公開地図にある`<`と`>`を座標・距離付きの`derived.map_markers`として両モデルへ渡す。文字列そのものや操作候補は変更せず、未探索地形・隠れた階段を補完しない。`@`などで記号が隠れる場合があることも明示した。
 
 回帰テストは追加情報が存在しない失敗を確認してから実装し、修正後にPython全249テストと変更ファイルのRuff検査が成功した。今回の90判断すべてについて、元の観測・識別情報・操作候補が変わらず、地図の各行が80文字であることも照合した。C#は変更していない。実プレイのゲーム起動・コンパイル記録の検証も成功している。
 
-この補強は進行中の試走に途中適用していない。別の保存ログ再評価では、元のClaude要求に座標と座標規約だけを加えると、正しい階段位置(58,11)を目標に選んだ。ただし「地図の行が80文字より短い」という誤説明はメモリに残った。1事例の計画改善と回帰テストまでを確認した結果であり、補強版による実プレイの改善量は未測定である。再評価1回は実プレイの呼び出し集計に含めていない。[再評価の詳細](/Users/sankenbisha/Dev/llm-of-qud/.codex/artifacts/claude-map-marker-replay-20260928.md)に要求・結果・実行条件を残した。
+この補強は進行中の試走に途中適用していない。別の保存ログ再評価では、元のClaude要求に座標と座標規約だけを加えると、正しい階段位置(58,11)を目標に選んだ。ただし「地図の行が80文字より短い」という誤説明はメモリに残った。1事例の計画改善と回帰テストまでを確認した結果であり、補強版による実プレイの改善量は未測定である。再評価1回は実プレイの呼び出し集計に含めていない。[再評価の詳細](claude-map-marker-replay-20260928.md)に要求・結果・実行条件を残した。
 
 | 遅延の測定対象 | 中央値 | P95 | 件数 |
 |---|---:|---:|---:|
@@ -51,10 +51,10 @@ Jev採用時の待ちは短い。ただし試走全体では1行動あたり平�
 
 今回未検証なのは、回復薬を必要とする危機、死亡復帰、依頼対象の死体回収と帰還、座標補強版の実プレイ、Claude単独との条件を揃えた比較である。依頼進行は「Travel to Red Rock」完了のまま。地下1階の探索を続けられるセーブを保存した。
 
-- [集計と停止理由](/Users/sankenbisha/Dev/llm-of-qud/.runtime/jev-hybrid-20260928/run1/metrics.json)
-- [台帳・M1検証](/Users/sankenbisha/Dev/llm-of-qud/.runtime/jev-hybrid-20260928/run1/ledger-m1-verification.json)
-- [保存ハッシュ・終了確認](/Users/sankenbisha/Dev/llm-of-qud/.runtime/jev-hybrid-20260928/run1/shutdown-verification.json)
-- [背景動作の記録](/Users/sankenbisha/Dev/llm-of-qud/.runtime/jev-hybrid-20260928/run1/desktop.json)
-- [全90判断の入力互換確認](/Users/sankenbisha/Dev/llm-of-qud/.runtime/jev-hybrid-20260928/run1/map-marker-recorded-validation.json)
-- [最終セーブの情報](/Users/sankenbisha/Dev/llm-of-qud/.runtime/jev-hybrid-20260928/run1/save-after/e97a2830-79ca-4d94-b363-1ac97f66dd32/Primary.json)
-- [再開・終了の監督スクリプト](/Users/sankenbisha/Dev/llm-of-qud/.codex/artifacts/resume-jev-hybrid-20260928.py)
+- [集計と停止理由](../../.runtime/jev-hybrid-20260928/run1/metrics.json)
+- [台帳・M1検証](../../.runtime/jev-hybrid-20260928/run1/ledger-m1-verification.json)
+- [保存ハッシュ・終了確認](../../.runtime/jev-hybrid-20260928/run1/shutdown-verification.json)
+- [背景動作の記録](../../.runtime/jev-hybrid-20260928/run1/desktop.json)
+- [全90判断の入力互換確認](../../.runtime/jev-hybrid-20260928/run1/map-marker-recorded-validation.json)
+- [最終セーブの情報](../../.runtime/jev-hybrid-20260928/run1/save-after/e97a2830-79ca-4d94-b363-1ac97f66dd32/Primary.json)
+- [再開・終了の監督スクリプト](resume-jev-hybrid-20260928.py)

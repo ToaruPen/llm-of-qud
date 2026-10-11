@@ -5,7 +5,7 @@
 
 ## 0. 引用規約とスポットチェック
 
-- `stable/` は `/Users/sankenbisha/Dev/coq-decompiled_stable` を指す。現在の中身は **2.0.211.56** である（`stable/Properties/AssemblyInfo.cs:8` が `AssemblyVersion("2.0.211.56")`）。報告 01 の時点では 2.0.211.50 だったが、その後差し替えられている。したがって報告 03 の `NEW/` の行番号は、`stable/` の行番号として読める。
+- `stable/` は `~/Dev/coq-decompiled_stable` を指す。現在の中身は **2.0.211.56** である（`stable/Properties/AssemblyInfo.cs:8` が `AssemblyVersion("2.0.211.56")`）。報告 01 の時点では 2.0.211.50 だったが、その後差し替えられている。したがって報告 03 の `NEW/` の行番号は、`stable/` の行番号として読める。
 - `Base/` はインストール先の `StreamingAssets/Base` を指す。
 - **[推論]** は推論、**[要実測]** は起動して確かめる必要がある主張を表す。
 

@@ -1,6 +1,6 @@
 # F2-conversation: Modern UI の会話モーダルの検出・読み取り・応答（静的検証）
 
-対象ビルド: 2.0.211.56（ILSpy 逆コンパイル、`/Users/sankenbisha/Dev/coq-decompiled_stable`）。引用はすべてソースルートからの相対パスと行番号である。
+対象ビルド: 2.0.211.56（ILSpy 逆コンパイル、`~/Dev/coq-decompiled_stable`）。引用はすべてソースルートからの相対パスと行番号である。
 
 ## 1. 目的
 

@@ -24,7 +24,7 @@
 
 | 項目 | 内容 |
 |---|---|
-| コード | `/Users/sankenbisha/Dev/coq-decompiled_stable`(`Properties/AssemblyInfo.cs:8` は `AssemblyVersion("2.0.211.56")`)。以下、コードの引用はこのルートからの相対パスで書く |
+| コード | `~/Dev/coq-decompiled_stable`(`Properties/AssemblyInfo.cs:8` は `AssemblyVersion("2.0.211.56")`)。以下、コードの引用はこのルートからの相対パスで書く |
 | データ | `Base/` = `.../CoQ.app/Contents/Resources/Data/StreamingAssets/Base` |
 | 03・06 との対応 | 03 と 06 は `NEW/` の行番号を使っている。本書は stable の行番号だけを使う。例として、06 §3.2 の `GameManager.cs:3178-3182`(ビュー切り替え時の入力消去)は、stable では `GameManager.cs:3172-3182`(`Update` からの呼び出し)と `:1573-1581`(`UpdateView` 本体、`Keyboard.ClearInput()` は `:1580`)に当たる |
 | Harmony | 03 §4.2 のとおり、arm64 ネイティブ起動では使えない前提で書く |

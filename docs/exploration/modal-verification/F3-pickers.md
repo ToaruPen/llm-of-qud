@@ -1,6 +1,6 @@
 # F3: ピッカー系モーダルの静的検証（Modern UI 前提）
 
-対象ビルド: 2.0.211.56（ILSpy 逆コンパイル、`/Users/sankenbisha/Dev/coq-decompiled_stable`）。
+対象ビルド: 2.0.211.56（ILSpy 逆コンパイル、`~/Dev/coq-decompiled_stable`）。
 引用はすべて、ソースルートからの相対パス `path:line` で書く。本書の作業中に `sed -n` / `awk` / `grep -n` で実際に表示した行だけを引く。
 
 ## 1. 目的

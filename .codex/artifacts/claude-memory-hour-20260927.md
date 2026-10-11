@@ -64,6 +64,6 @@ Python全214テスト、記憶・運転器の18テスト、変更PythonのRuff�
 
 Claudeのtransportは `claude-cli`、各呼出しは有限時間のforeground print子プロセス。モデルは継続承認された `claude-opus-5-5`、effortは `xhigh`。全28回の初期化記録で同モデルとゲームMCPの8ツールだけが提示されたことを確認した。OAuthを使い、組込みツール、ローカル設定・hooks・plugins・他のMCPを与えていない。MCPプレイの承認済み手順として `--restricted` と厳格なMCP構成を使用した。一般的なask-claudeの `--safe-mode` はMCPも無効化するため、このプレイでは使用していない。
 
-置換system promptは `play1/system.txt` と `play2/system.txt`。各回のuser promptは `Play episode N. Read persistent memory, then the current game. Execute ten accepted decisions, save the handoff summary, and end.`。プロセスIDは各 `episode-*.json` に保存した。認証付き一時MCP設定は終了後削除済み。保存した出力はツール呼出し・公開最終報告・使用量等で、思考内容や生の全ストリームは保存していない。使用したワークフローは [ask-claude](/Users/sankenbisha/.codex/skills/ask-claude/SKILL.md)。
+置換system promptは `play1/system.txt` と `play2/system.txt`。各回のuser promptは `Play episode N. Read persistent memory, then the current game. Execute ten accepted decisions, save the handoff summary, and end.`。プロセスIDは各 `episode-*.json` に保存した。認証付き一時MCP設定は終了後削除済み。保存した出力はツール呼出し・公開最終報告・使用量等で、思考内容や生の全ストリームは保存していない。使用したワークフローは ask-claude（`~/.codex/skills/ask-claude/SKILL.md`）。
 
 今回の達成はClaude Codeによる無人開発試験と記憶の実機継続である。SDK直接走行、正式なM2/M3の全条件、OBS焼込み、クエスト完了、検索方式の比較評価は未達のまま。

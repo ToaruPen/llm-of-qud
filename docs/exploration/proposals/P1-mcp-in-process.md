@@ -2,7 +2,7 @@
 
 - 立場: アーキテクチャ提案 1 本（探索フェーズ）。比較のための叩き台であり、採用決定ではない。
 - 作成: Opus 5.5 worker、2026-09-25。
-- 根拠: `docs/exploration/01`〜`04`、および `/Users/sankenbisha/Dev/coq-decompiled_stable` の再確認。引用形式は `path:line` で、パスは decompile ルートからの相対パスとする。
+- 根拠: `docs/exploration/01`〜`04`、および `~/Dev/coq-decompiled_stable` の再確認。引用形式は `path:line` で、パスは decompile ルートからの相対パスとする。
 
 ## 0. 引用の基準と今回の再確認（spot-check）
 

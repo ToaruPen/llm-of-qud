@@ -3,7 +3,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-    <ManagedDir Condition="'$(ManagedDir)' == ''">/Users/sankenbisha/Games/CavesOfQud-probe-2.0.211.56-build25520692/CoQ.app/Contents/Resources/Data/Managed</ManagedDir>
+    <ManagedDir Condition="'$(ManagedDir)' == ''">$(HOME)/Games/CavesOfQud-probe-2.0.211.56-build25520692/CoQ.app/Contents/Resources/Data/Managed</ManagedDir>
   </PropertyGroup>
   <ItemGroup><Compile Include="../LlmOfQud/Policy.cs" Link="Policy.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../LlmOfQud/CallbackRegistration.cs" Link="CallbackRegistration.cs" /></ItemGroup>

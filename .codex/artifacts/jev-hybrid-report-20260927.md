@@ -87,7 +87,7 @@ Claudeのタイムアウト1件は120.54秒で、成功応答の表から分離�
 
 ## 停止と残る課題
 
-8回目のClaude呼び出しは `plan_expired` による再計画で、120秒の期限まで結果が返らなかった。プロセスを終了し、停止を確認した。内部生成待ちと通信待ちのどちらが原因かは、今回保存した記録から切り分けられない。認証や隔離条件を変える再試行は行っていない。[ask-claudeスキル](/Users/sankenbisha/.codex/skills/ask-claude/SKILL.md)の次の指示にも従い、同じ失敗要求を再送せず終了した。
+8回目のClaude呼び出しは `plan_expired` による再計画で、120秒の期限まで結果が返らなかった。プロセスを終了し、停止を確認した。内部生成待ちと通信待ちのどちらが原因かは、今回保存した記録から切り分けられない。認証や隔離条件を変える再試行は行っていない。ask-claudeスキル（`~/.codex/skills/ask-claude/SKILL.md`）の次の指示にも従い、同じ失敗要求を再送せず終了した。
 
 > Do not install, update, log in, create a setup token, inject credentials, switch providers, or retry automatically.
 

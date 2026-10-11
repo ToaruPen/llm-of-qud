@@ -1,6 +1,6 @@
 # R5 モーダル駆動プローブ（LlmOfQud.ProbeR5）
 
-> 状態: 下書き。**未配置・未起動**。使った API は逆コンパイル結果（`/Users/sankenbisha/Dev/coq-decompiled_stable`、2.0.211.56）を grep して存在を確かめ、`ModalProbe.cs` のコメントに `file:line` で引いてある。構文は Roslyn（C# 9）の解析だけで確かめた（診断 0 件）。ゲームのアセンブリを参照した意味解析はしていない。最初の起動で出る `build_log.txt` が、実質的なコンパイル検査になる。
+> 状態: 下書き。**未配置・未起動**。使った API は逆コンパイル結果（`~/Dev/coq-decompiled_stable`、2.0.211.56）を grep して存在を確かめ、`ModalProbe.cs` のコメントに `file:line` で引いてある。構文は Roslyn（C# 9）の解析だけで確かめた（診断 0 件）。ゲームのアセンブリを参照した意味解析はしていない。最初の起動で出る `build_log.txt` が、実質的なコンパイル検査になる。
 
 ## 1. 目的
 

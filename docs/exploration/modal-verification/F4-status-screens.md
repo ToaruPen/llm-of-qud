@@ -1,6 +1,6 @@
 # F4: 全画面ステータス系画面（status screens family）の静的検証
 
-- 対象ビルド: 2.0.211.56（ILSpy 逆コンパイル、`/Users/sankenbisha/Dev/coq-decompiled_stable`）
+- 対象ビルド: 2.0.211.56（ILSpy 逆コンパイル、`~/Dev/coq-decompiled_stable`）
 - 引用はすべてソースルートからの相対パス `path:line`。本タスクで `sed -n` / `grep -n` により表示した範囲だけを引用している。
 - 作成日: 2026-09-25
 

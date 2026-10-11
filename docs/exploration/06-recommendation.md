@@ -2,7 +2,7 @@
 
 > 作成: 2026-09-25（探索フェーズの締め）。比較と採点の根拠は `05-architecture-options.md` にある。
 >
-> - **引用**: 05 と同じ規約を使う。`D/` は `/Users/sankenbisha/Dev/coq-decompiled_stable`（2.0.211.56）、`Base/` はゲームの `StreamingAssets/Base` を指す。行番号は、本書の作成時に読み直したものに限って載せた。
+> - **引用**: 05 と同じ規約を使う。`D/` は `~/Dev/coq-decompiled_stable`（2.0.211.56）、`Base/` はゲームの `StreamingAssets/Base` を指す。行番号は、本書の作成時に読み直したものに限って載せた。
 > - **実機での確認**: 本書の主張はすべて静的な読みに基づく。実機での確認は §5 のプローブで行う。
 
 ## 0. 結論

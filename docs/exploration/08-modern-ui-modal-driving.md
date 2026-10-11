@@ -1,6 +1,6 @@
 # 08: Modern UI を画面に残したままモーダルを検出・読取・応答する（方向 2 の静的検証の統合）
 
-- 対象ビルド: 2.0.211.56（ILSpy 逆コンパイル、`/Users/sankenbisha/Dev/coq-decompiled_stable`）。
+- 対象ビルド: 2.0.211.56（ILSpy 逆コンパイル、`~/Dev/coq-decompiled_stable`）。
 - 作成日: 2026-09-25。
 - 入力は次の二つである。
   - 7 ファミリの分析: `docs/exploration/modal-verification/F1-popup.md`、`F2-conversation.md`、`F3-pickers.md`、`F4-status-screens.md`、`F5-other-blocking.md`、`F6-threads-hooks.md`、`F7-observation.md`。

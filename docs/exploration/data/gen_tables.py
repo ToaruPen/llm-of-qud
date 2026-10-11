@@ -1,7 +1,7 @@
-import re, json, sys
+import os, re, json, sys
 S=sys.argv[1]
-B="/Users/sankenbisha/Library/Application Support/Steam/steamapps/common/Caves of Qud/CoQ.app/Contents/Resources/Data/StreamingAssets/Base"
-D="/Users/sankenbisha/Dev/coq-decompiled_stable"
+B=os.path.expanduser("~/Library/Application Support/Steam/steamapps/common/Caves of Qud/CoQ.app/Contents/Resources/Data/StreamingAssets/Base")
+D=os.path.expanduser("~/Dev/coq-decompiled_stable")
 # Keys enum
 keys={}
 for l in open(D+"/ConsoleLib.Console/Keys.cs"):

@@ -1,6 +1,6 @@
 # R9 観測境界の事前監査（2026-09-26）
 
-対象は固定版 2.0.211.56 の逆コンパイル結果と archived v1 の観測コード。以下の「再利用可」は静的な API・データ経路の判断であり、R9 の実機合格ではない。引用中の `coq-decompiled_stable/` は `/Users/sankenbisha/Dev/coq-decompiled_stable/`、略記 `SnapshotState.cs` と `LLMOfQudSystem.cs` は `archives/llm-of-qud-v1/mod/LLMOfQud/` のファイルを指す。現行 R2 の送信体は位置などを含む約 3 KB の**合成**ペイロードで、R9 の観測器ではない（`probes/R12-bridge/BridgeProbe.cs:378-392`）。R9 は 200 ターンの人間に見える述語との照合を要求する（`docs/exploration/06-recommendation.md:83-95,306`）。
+対象は固定版 2.0.211.56 の逆コンパイル結果と archived v1 の観測コード。以下の「再利用可」は静的な API・データ経路の判断であり、R9 の実機合格ではない。引用中の `coq-decompiled_stable/` は `~/Dev/coq-decompiled_stable/`、略記 `SnapshotState.cs` と `LLMOfQudSystem.cs` は `archives/llm-of-qud-v1/mod/LLMOfQud/` のファイルを指す。現行 R2 の送信体は位置などを含む約 3 KB の**合成**ペイロードで、R9 の観測器ではない（`probes/R12-bridge/BridgeProbe.cs:378-392`）。R9 は 200 ターンの人間に見える述語との照合を要求する（`docs/exploration/06-recommendation.md:83-95,306`）。
 
 | 範囲 | 再利用できる部分と境界 | 根拠 |
 |---|---|---|

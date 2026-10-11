@@ -1,7 +1,7 @@
 # P5. Evidence-First: 台帳つきターンブリッジ
 
 > 提案者: Opus 5.5 worker（レンズ: 「主張の防御可能性」と「反復の速さ」）／ 2026-09-25
-> 前提資料: `docs/exploration/01`〜`04`。エンジンの行番号は `/Users/sankenbisha/Dev/coq-decompiled_stable` による（以下 `D/`）。
+> 前提資料: `docs/exploration/01`〜`04`。エンジンの行番号は `~/Dev/coq-decompiled_stable` による（以下 `D/`）。
 > **重要な訂正**: `D/Properties/AssemblyInfo.cs:8` は現在 `AssemblyVersion("2.0.211.56")` である。01/02 は同じツリーを 2.0.211.50 と書いているが、ツリーはその後更新されていた。したがって 03 が `NEW/` として挙げた行番号は、そのまま `D/` に当てはまる。インストール済みの Steam ビルドは `appmanifest_333640.acf` で `buildid 25520692` と確認した。
 > 推論には **[推論]** を付ける。外部の事実のうち WebFetch や検索の要約で得たものは **[C]** とする。
 

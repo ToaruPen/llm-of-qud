@@ -18,7 +18,7 @@
 //   - R5-0 gate probes (cancel / focus / offthread / reload, plus ctl= in "tick alive") run before
 //     the family probes; see README section 10.3 and 08 section 6.1.
 //
-// Source citations are "file:line" in /Users/sankenbisha/Dev/coq-decompiled_stable (2.0.211.56).
+// Source citations are "file:line" in ~/Dev/coq-decompiled_stable (2.0.211.56).
 // Language level: C# 9 (block-scoped namespace, no global usings, no records).
 // No type in this assembly references Harmony, so ModManager does not PatchAll it (C-F6-threads-hooks-23).
 
