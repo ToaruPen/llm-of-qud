@@ -1,0 +1,7 @@
+id: csharp-boolean-ternary
+valid:
+  - 'class C { bool F(bool ready, bool fallback) { return ready ? true : fallback; } }'
+  - 'class C { string s = "ready ? true : false"; }'
+invalid:
+  - 'class C { bool F(bool ready) { return ready ? true : false; } }'
+  - 'class C { bool F(bool ready) { return ready ? false : true; } }'

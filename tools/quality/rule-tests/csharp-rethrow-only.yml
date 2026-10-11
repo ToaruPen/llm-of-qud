@@ -1,0 +1,8 @@
+id: csharp-rethrow-only
+valid:
+  - 'class C { void F() { try { Work(); } catch (Exception e) { Log(e); throw; } } }'
+  - 'class C { void F() { try { Work(); } catch (Exception e) { throw new Wrapped(e); } } }'
+  - 'class C { void F() { try { Work(); } catch (Exception e) when (Report(e)) { throw; } } }'
+invalid:
+  - 'class C { void F() { try { Work(); } catch { throw; } } }'
+  - 'class C { void F() { try { Work(); } catch (Exception e) { throw; } } }'

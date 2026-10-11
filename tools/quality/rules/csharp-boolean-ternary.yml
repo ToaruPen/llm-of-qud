@@ -1,0 +1,8 @@
+id: csharp-boolean-ternary
+language: CSharp
+severity: warning
+message: Review redundant boolean branches; preserve condition evaluation and operator semantics.
+rule:
+  any:
+    - pattern: '$COND ? true : false'
+    - pattern: '$COND ? false : true'

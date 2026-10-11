@@ -1,0 +1,15 @@
+id: csharp-empty-catch
+language: CSharp
+severity: warning
+message: Review swallowed exceptions; retain only when the boundary contract justifies it.
+rule:
+  kind: catch_clause
+  has:
+    field: body
+    kind: block
+    not:
+      has:
+        not:
+          any:
+            - kind: comment
+            - regex: '^[{}]$'

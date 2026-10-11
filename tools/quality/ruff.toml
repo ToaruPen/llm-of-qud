@@ -1,0 +1,14 @@
+target-version = "py312"
+fix = false
+unsafe-fixes = false
+
+[lint]
+# Unused bindings, redundant constructions, and common correctness hazards.
+# No formatting, import sorting, blanket exception, or API modernization rules.
+select = [
+  "F401", "F811", "F841",
+  "B006", "B007", "B018", "B023", "B033",
+  "SIM101", "SIM103", "SIM201", "SIM202", "SIM208",
+  "C400", "C401", "C402", "C403", "C404", "C405", "C406",
+  "C410", "C411", "C413", "C414", "C415", "C416", "C417", "C418", "C419", "C420",
+]

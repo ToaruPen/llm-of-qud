@@ -1,0 +1,19 @@
+[
+  {"name": "mod", "sources": ["mod/LlmOfQud/*.cs"], "framework": "game"},
+  {"name": "r0", "sources": ["probes/R0-runtime/*.cs"], "framework": "game"},
+  {"name": "r5", "sources": ["probes/R5-modal-driver/*.cs"], "framework": "game"},
+  {"name": "r12", "sources": ["probes/R12-bridge/*.cs"], "framework": "game"},
+  {"name": "r34", "sources": ["probes/R34-autoact/mod/*.cs"], "framework": "game"},
+  {"name": "r6", "sources": ["probes/R6-lifecycle/mod/*.cs"], "framework": "game"},
+  {"name": "r7", "sources": ["probes/R7-equivalence/mod/*.cs"], "framework": "game"},
+  {"name": "policy-tests", "sources": ["mod/tests/*.cs"], "framework": "net10.0", "implicit_usings": true,
+   "newtonsoft": true, "support": ["mod/LlmOfQud/Policy.cs", "mod/LlmOfQud/CallbackRegistration.cs", "mod/LlmOfQud/Bridge.cs"]},
+  {"name": "modal-tests", "sources": ["mod/modal-tests/*.cs"], "framework": "net10.0", "newtonsoft": true,
+   "support": ["mod/LlmOfQud/ModalPolicy.cs", "mod/LlmOfQud/BackgroundPolicy.cs"]},
+  {"name": "surface-tests", "sources": ["mod/surface-tests/*.cs"], "framework": "net10.0",
+   "defines": ["LLMOFQUD_SURFACE_TESTS"], "support": ["mod/LlmOfQud/SurfaceCheck.cs"]},
+  {"name": "r34-tests", "sources": ["probes/R34-autoact/tests/*.cs"], "framework": "net10.0", "implicit_usings": true,
+   "support": ["probes/R34-autoact/mod/MacroProgress.cs", "probes/R34-autoact/mod/ProbePolicy.cs"]},
+  {"name": "r7-tests", "sources": ["probes/R7-equivalence/tests/*.cs"], "framework": "net10.0", "newtonsoft": true,
+   "support": ["probes/R7-equivalence/mod/R7Policy.cs"]}
+]

@@ -1,0 +1,17 @@
+is_global = true
+
+# Opt in to reviewed quality rules, not every SDK default or style preference.
+dotnet_analyzer_diagnostic.severity = none
+
+# Data flow / unused results.
+dotnet_diagnostic.CA1508.severity = warning
+dotnet_diagnostic.CA1806.severity = warning
+# Redundant allocation / collection work.
+dotnet_diagnostic.CA1825.severity = warning
+dotnet_diagnostic.CA1827.severity = warning
+dotnet_diagnostic.CA1829.severity = warning
+dotnet_diagnostic.CA1851.severity = warning
+dotnet_diagnostic.CA1854.severity = warning
+# Preserve exception stack traces; consume ValueTask correctly.
+dotnet_diagnostic.CA2200.severity = warning
+dotnet_diagnostic.CA2012.severity = warning

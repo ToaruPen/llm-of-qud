@@ -1,0 +1,10 @@
+# Candidate checks only; no formatting, naming or force-unwrap policy.
+only_rules:
+  - duplicate_conditions
+  - duplicate_imports
+  - identical_operands
+  - redundant_discardable_let
+  - redundant_nil_coalescing
+  - unneeded_override
+  - unused_closure_parameter
+  - unused_optional_binding

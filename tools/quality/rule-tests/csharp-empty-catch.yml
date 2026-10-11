@@ -1,0 +1,10 @@
+id: csharp-empty-catch
+valid:
+  - 'class C { void F() { try { Work(); } catch (Exception e) { Log(e); } } }'
+  - 'class C { void F() { try { Work(); } catch { throw; } } }'
+  - 'class C { string s = "catch {}"; }'
+invalid:
+  - 'class C { void F() { try { Work(); } catch {} } }'
+  - 'class C { void F() { try { Work(); } catch (Exception) {} } }'
+  - 'class C { void F() { try { Work(); } catch (Exception e) { /* boundary rationale needs review */ } } }'
+  - 'class C { void F() { try { Work(); } catch (Exception e) when (Retryable(e)) {} } }'

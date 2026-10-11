@@ -1,0 +1,9 @@
+[project]
+name = "llm-of-qud"
+version = "0.1.0"
+description = "CTA bridge and local MCP harness for Caves of Qud"
+requires-python = ">=3.12,<3.13"
+dependencies = ["mcp==2.2.0", "websockets==16.0", "uvicorn>=0.30,<1"]
+
+[tool.uv]
+package = false

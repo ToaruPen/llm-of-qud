@@ -1,0 +1,12 @@
+id: csharp-rethrow-only
+language: CSharp
+severity: warning
+message: Review this catch-only rethrow; check filters and exception attribution before removal.
+rule:
+  kind: catch_clause
+  has:
+    field: body
+    pattern: '{ throw; }'
+  not:
+    has:
+      kind: catch_filter_clause

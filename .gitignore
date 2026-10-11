@@ -1,0 +1,48 @@
+# OS metadata
+.DS_Store
+
+# Python environments and tool caches
+.venv/
+__pycache__/
+*.py[cod]
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+
+# Local runtime state (ledgers, game logs, screenshots, deployed DLLs)
+.runtime/
+
+# Local bundles and historical clones. These contain decompiled Caves of Qud
+# source (.staging/coq-decompiled-*.tar.gz, archives/llm-of-qud-v1/decompiled),
+# a separate git repository and a Python environment; never publish them.
+.staging/
+archives/
+
+# .NET build outputs (mod tests, modal/surface tests, probe compile checks)
+bin/
+obj/
+
+# Probe evidence stays local except written summaries and linked comparisons.
+# Unity Player.log files record the Steam ID; clips/PNGs are game footage;
+# ModSettings/PlayerOptions are local game configuration.
+probes/*/results/**
+!probes/*/results/**/
+!probes/*/results/**/*.md
+!probes/R34-autoact/results/r3-hover-comparison7-20260927.json
+
+# Agent working files (prompts, system prompts, raw test logs, wiki page copies,
+# benchmark downloads). Keep only the reports that docs/ links to.
+.codex/*
+!.codex/artifacts/
+.codex/artifacts/*
+!.codex/artifacts/claude-m1-interactive-pilot-20260927.md
+!.codex/artifacts/claude-m1-macros-pilot-20260927.md
+!.codex/artifacts/claude-m1-play-20260927.md
+!.codex/artifacts/claude-m1-quest-pilot-20260927.md
+!.codex/artifacts/claude-memory-hour-20260927.md
+!.codex/artifacts/claude-memory-improvement-20260927.md
+!.codex/artifacts/jev-growth-cache-report-20260928.md
+!.codex/artifacts/jev-hazard-floor-replay-20261011.json
+!.codex/artifacts/jev-hybrid-continuation-20260928.md
+!.codex/artifacts/jev-hybrid-report-20260927.md
+!.codex/artifacts/r9-observation-audit-20260926.md
