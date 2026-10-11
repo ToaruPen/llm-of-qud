@@ -74,13 +74,14 @@ public static class Sample { public static void F(Worker worker) { worker.Trim()
     def test_scope_expands_unit_with_dependencies_and_unknown_sources_fail(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            for relative in ("mod/LlmOfQud/Policy.cs", "mod/LlmOfQud/CallbackRegistration.cs", "mod/tests/Program.cs"):
+            for relative in ("mod/LlmOfQud/Policy.cs", "mod/LlmOfQud/CallbackRegistration.cs", "mod/LlmOfQud/Bridge.cs",
+                             "mod/tests/Program.cs"):
                 path = root / relative
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.touch()
             units = roslyn.select_units(root, [root / "mod/tests/Program.cs"])
             self.assertEqual(len(units), 1)
-            self.assertEqual(len(units[0]["files"]), 3)
+            self.assertEqual(len(units[0]["files"]), 4)
             unknown = root / "unknown.cs"
             unknown.touch()
             with self.assertRaises(ValueError):
