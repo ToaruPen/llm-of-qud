@@ -152,6 +152,43 @@ class HazardTests(unittest.TestCase):
         risk = self.assess(['unfamiliar curse'])
         self.assertEqual(risk['unknown_effects'], ['unfamiliar curse'])
 
+    def test_source_suffixed_restraints_use_the_reviewed_base_effect(self):
+        # Grabber applies Stuck with the adjective "grabbed" and preposition "by".
+        for name in ('grabbed by a {{g|jilted lover}}', 'stuck in a web', 'lying on a bed'):
+            with self.subTest(name=name):
+                risk = self.assess([name], enemies=True)
+                self.assertEqual(risk['unknown_effects'], [])
+                self.assertEqual(risk['priority'], 4)
+                restraint = next(r for r in risk['matches'] if r['id'] == 'impaired_action')
+                self.assertEqual(restraint['evidence'][0], name.replace('{{g|', '').replace('}}', ''))
+        self.assertEqual(self.assess(['engulfed by a qudzu'])['unknown_effects'], ['engulfed by a qudzu'])
+
+    def test_grabber_restraint_cites_the_stuck_effect(self):
+        risk = self.assess(['grabbed by a {{g|jilted lover}}'])
+        restraint = next(r for r in risk['matches'] if r['id'] == 'impaired_action')
+        self.assertEqual(restraint['sources'], ['https://wiki.cavesofqud.com/wiki/Stuck'])
+
+    def test_lying_on_furniture_counts_as_prone_in_harmful_liquid(self):
+        here = dict(x=10, y=10, name='pool of black ooze')
+        risk = self.assess(['lying on a bed'], liquids=[here])
+        self.assertIn('prone_harmful_liquid', [r['id'] for r in risk['matches']])
+
+    def test_hazard_key_keeps_each_distinct_non_liquid_match(self):
+        from harness.hybrid_hazards import hazard_key
+        self.assertNotEqual(hazard_key(self.assess(['acid-covered'])),
+                            hazard_key(self.assess(['acid-covered', 'lava-covered'])))
+
+    def test_hazard_key_tracks_liquid_kinds_not_visible_cell_counts(self):
+        from harness.hybrid_hazards import hazard_key
+        slime = [dict(x=11, y=y, name='slimy pool') for y in (9, 10, 11)]
+        one = hazard_key(self.assess([], enemies=True, liquids=slime[:1]))
+        self.assertEqual(one, hazard_key(self.assess([], enemies=True, liquids=slime)))
+        self.assertEqual(one, hazard_key(self.assess([], enemies=True, liquids=[dict(x=9, y=9, name='puddle of slime')])))
+        acid = dict(x=9, y=11, name='pool of acid')
+        self.assertNotEqual(one, hazard_key(self.assess([], enemies=True, liquids=slime + [acid])))
+        self.assertNotEqual(hazard_key(self.assess([], liquids=[acid])),
+                            hazard_key(self.assess([], liquids=[acid | {'x': 10, 'y': 10}])))
+
     def test_hazard_escalates_once_until_actionable_context_changes(self):
         from harness.hybrid_strategy import BuildReview
         from tests.test_hybrid_strategy import growth_state

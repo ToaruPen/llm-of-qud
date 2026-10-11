@@ -116,7 +116,9 @@ Use matched combinations, current effect details and visible local liquid cells.
 Bloody/slimy/stained equipment alone is not bleeding or slipping. Body contact,
 equipped-item contact, open terrain liquid, and carried liquid containers differ.
 Unknown effects are unclassified, not safe. Reassess urgent/changed hazards, but
-do not repeatedly re-plan harmless coating changes as equipment upgrades. Poison
+do not repeatedly re-plan harmless coating changes as equipment upgrades. Terrain
+liquids are compared by kind: more or fewer visible cells of an already reviewed
+liquid is not a changed hazard; a new kind, stepping into it or a coating is. Poison
 can prevent natural HP recovery: do not assume waiting or rest heals it. Native
 wait attempts firefighting when appropriate; rolling may add prone/liquid exposure.
 Only offered actions are executable; cleaning/abilities are not implied by knowledge.
@@ -188,8 +190,13 @@ Use null for either unused position and [] for no route. Set min_hp to the HP at
 or below which to consult again, max_damage to a cumulative observed HP-loss budget
 (healing does not refund it), and max_steps to 1-8. The executor also enforces a
 40% HP floor, a 25% cumulative damage cap and immediate review of any single loss
-of 20% max HP. Unknown/critical effects, changed hazards, new/approaching enemies,
-failed movement, resource use, deviation and expiry revoke permission. Known
+of 20% max HP. A retreat, or a recover with no visible hostile, that you approve
+while HP is already at or below that floor reopens only after further HP loss;
+min_hp still applies. The exception needs the effective mode to stay retreat/recover:
+with a visible enemy use hostile_response:retreat, because fight near it becomes combat
+and avoid/replan change the mode. Unknown/critical effects, changed hazards, new/approaching enemies,
+failed movement, resource use, deviation and expiry revoke permission. A dangerous
+liquid newly visible on a remaining route cell revokes it as continuation_route_hazard. Known
 unchanged confusion alone does not revoke it. Avoid replan as hostile_response
 when authorizing continuation. Give an escape endpoint and a clear completion or
 abandonment condition. Keep retreat directions in this contract, not prose alone.
@@ -289,7 +296,8 @@ and approved single-enemy combat until the objective/target or permission expire
 max_steps (normally 48-96) replaces horizon as the periodic review limit; it counts
 executor operations, not game turns. min_hp and max_damage bound routine autonomy;
 the executor additionally enforces a 40% HP floor, 25% cumulative damage limit and
-20% single-loss review. Damage is cumulative since this review; healing never refunds it.
+20% single-loss review, with the same low-HP retreat/recover exception as continuation.
+Damage is cumulative since this review; healing never refunds it.
 combat_names lists exact public enemy names you approve for single-enemy close combat
 or controlled bypass. Unlisted distant enemies are observed without stopping; a new
 close enemy or multiple close enemies still stop for review. Distances are review

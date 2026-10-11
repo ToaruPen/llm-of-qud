@@ -3,7 +3,8 @@ import math
 import re
 
 from harness.hybrid_hazards import assess_hazards, hazard_key, plain
-from harness.hybrid_strategy import character_summary, effective_tactics, hostile_distance, safe_to_review
+from harness.hybrid_strategy import (character_summary, effective_tactics, hostile_distance, low_hp_acknowledged,
+                                     safe_to_review)
 
 
 SOFT_EVENTS = {
@@ -109,7 +110,8 @@ def autonomy_status(state, plan, history, review):
                   + [max(0, r['before']['hp'] - r['after']['hp']) for r in records], default=0)
     dangerous_loss = (damage > min(policy['max_damage'], math.floor(v['max_hp'] * .25))
                       or largest >= v['max_hp'] * .2 or largest > 0 and v['hp'] <= largest)
-    low_hp = v['hp'] <= max(policy['min_hp'], math.ceil(v['max_hp'] * .4))
+    low_hp = (v['hp'] <= policy['min_hp']
+              or v['hp'] <= math.ceil(v['max_hp'] * .4) and not low_hp_acknowledged(obs, previous, plan))
     healing = _healing_actions(obs, previous, policy)
     if dangerous_loss or low_hp:
         if healing and v['hp'] / max(1, v['max_hp']) <= plan['tactics']['heal_hp_fraction']:

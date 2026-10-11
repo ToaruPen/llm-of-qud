@@ -1,0 +1,225 @@
+{
+  "run": ".runtime/jev-opus-20260928/run11",
+  "decisions": 319,
+  "changed": [
+    {
+      "seq": 93,
+      "hp": "15/15",
+      "recorded_actor": "claude",
+      "recorded_escalation": "continuation_hazard_changed",
+      "recorded_opus_s": 9.8,
+      "before": {
+        "continuation": "continuation_hazard_changed"
+      },
+      "after": {
+        "continuation": "reviewed_continuation"
+      }
+    },
+    {
+      "seq": 94,
+      "hp": "15/15",
+      "recorded_actor": "claude",
+      "recorded_escalation": "continuation_hazard_changed",
+      "recorded_opus_s": 10.0,
+      "before": {
+        "continuation": "continuation_hazard_changed"
+      },
+      "after": {
+        "continuation": "reviewed_continuation"
+      }
+    },
+    {
+      "seq": 96,
+      "hp": "15/15",
+      "recorded_actor": "claude",
+      "recorded_escalation": "continuation_hazard_changed",
+      "recorded_opus_s": 11.9,
+      "before": {
+        "continuation": "continuation_hazard_changed"
+      },
+      "after": {
+        "continuation": "reviewed_continuation"
+      }
+    },
+    {
+      "seq": 97,
+      "hp": "15/15",
+      "recorded_actor": "claude",
+      "recorded_escalation": "continuation_hazard_changed",
+      "recorded_opus_s": 12.0,
+      "before": {
+        "continuation": "continuation_hazard_changed"
+      },
+      "after": {
+        "continuation": "reviewed_continuation"
+      }
+    },
+    {
+      "seq": 98,
+      "hp": "15/15",
+      "recorded_actor": "claude",
+      "recorded_escalation": "continuation_hazard_changed",
+      "recorded_opus_s": 11.8,
+      "before": {
+        "continuation": "continuation_hazard_changed"
+      },
+      "after": {
+        "continuation": "reviewed_continuation"
+      }
+    },
+    {
+      "seq": 99,
+      "hp": "15/15",
+      "recorded_actor": "claude",
+      "recorded_escalation": "continuation_hazard_changed",
+      "recorded_opus_s": 10.5,
+      "before": {
+        "continuation": "continuation_hazard_changed"
+      },
+      "after": {
+        "continuation": "reviewed_continuation"
+      }
+    },
+    {
+      "seq": 262,
+      "hp": "6/15",
+      "recorded_actor": "claude",
+      "recorded_escalation": "continuation_hp_floor",
+      "recorded_opus_s": 18.4,
+      "before": {
+        "continuation": "continuation_hp_floor"
+      },
+      "after": {
+        "continuation": "reviewed_continuation"
+      }
+    },
+    {
+      "seq": 263,
+      "hp": "6/15",
+      "recorded_actor": "claude",
+      "recorded_escalation": "continuation_hp_floor",
+      "recorded_opus_s": 14.1,
+      "before": {
+        "continuation": "continuation_hp_floor"
+      },
+      "after": {
+        "continuation": "reviewed_continuation"
+      }
+    },
+    {
+      "seq": 264,
+      "hp": "6/15",
+      "recorded_actor": "claude",
+      "recorded_escalation": "continuation_hp_floor",
+      "recorded_opus_s": 15.1,
+      "before": {
+        "continuation": "continuation_hp_floor"
+      },
+      "after": {
+        "continuation": "reviewed_continuation"
+      }
+    },
+    {
+      "seq": 266,
+      "hp": "6/15",
+      "recorded_actor": "claude",
+      "recorded_escalation": "autonomy_hp_floor",
+      "recorded_opus_s": 9.9,
+      "before": {
+        "autonomy": "autonomy_hp_floor"
+      },
+      "after": {
+        "autonomy": "mission_recovery"
+      }
+    },
+    {
+      "seq": 303,
+      "hp": "9/15",
+      "recorded_actor": "claude",
+      "recorded_escalation": "hazard_changed",
+      "recorded_opus_s": 15.9,
+      "before": {
+        "unknown_effects": [
+          "grabbed by a jilted lover"
+        ]
+      },
+      "after": {
+        "unknown_effects": []
+      }
+    },
+    {
+      "seq": 304,
+      "hp": "8/15",
+      "recorded_actor": "claude",
+      "recorded_escalation": "continuation_hazard_changed",
+      "recorded_opus_s": 19.8,
+      "before": {
+        "unknown_effects": [
+          "grabbed by a jilted lover"
+        ]
+      },
+      "after": {
+        "unknown_effects": []
+      }
+    },
+    {
+      "seq": 305,
+      "hp": "5/15",
+      "recorded_actor": "claude",
+      "recorded_escalation": "continuation_hazard_changed",
+      "recorded_opus_s": 15.5,
+      "before": {
+        "unknown_effects": [
+          "grabbed by a jilted lover"
+        ]
+      },
+      "after": {
+        "unknown_effects": []
+      }
+    },
+    {
+      "seq": 306,
+      "hp": "12/15",
+      "recorded_actor": "claude",
+      "recorded_escalation": "continuation_hazard_changed",
+      "recorded_opus_s": 16.4,
+      "before": {
+        "unknown_effects": [
+          "grabbed by a jilted lover"
+        ]
+      },
+      "after": {
+        "unknown_effects": []
+      }
+    },
+    {
+      "seq": 307,
+      "hp": "11/15",
+      "recorded_actor": "claude",
+      "recorded_escalation": "continuation_hazard_changed",
+      "recorded_opus_s": 14.1,
+      "before": {
+        "unknown_effects": [
+          "grabbed by a jilted lover"
+        ]
+      },
+      "after": {
+        "unknown_effects": []
+      }
+    }
+  ],
+  "recorded_opus_escalations_released": 10,
+  "recorded_opus_seconds_of_released": 123.5,
+  "scope": "Recorded states only. A released escalation would change the later trajectory, so the seconds are a reference, not a predicted saving. No game, Jev or Claude call was made.",
+  "versus_first_round": {
+    "first_round": {
+      "decisions": 319,
+      "recorded_opus_escalations_released": 10,
+      "recorded_opus_seconds_of_released": 123.5,
+      "changed": 15
+    },
+    "only_in_first_round": [],
+    "only_in_this_round": [],
+    "different_after": []
+  }
+}

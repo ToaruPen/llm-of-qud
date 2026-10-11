@@ -108,6 +108,54 @@ class AutonomyTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(len(calls), 1)
                 self.assertEqual(audit['actor'], 'claude')
 
+    async def test_reviewed_low_hp_recovery_rests_but_exploration_keeps_the_floor(self):
+        for mode, consultations in (('recover', 0), ('explore', 1)):
+            state, plan, review = delegated()
+            state['observation']['vitals']['hp'] = 6
+            plan['autonomy']['min_hp'] = 4
+            plan['target'] = None
+            plan['tactics']['mode'] = mode
+            review.accept(state['observation'], plan['strategy'])
+            with self.subTest(mode=mode):
+                _, _, calls = await self.select(state, plan, review, {'action': 'rest', 'until': 'healed', 'budget': 12})
+                self.assertEqual(len(calls), consultations)
+
+    async def test_low_hp_retreat_converted_to_combat_keeps_the_floor(self):
+        state, plan, review = delegated()
+        obs = state['observation']
+        obs['vitals']['hp'] = 5
+        obs['threats'] = [{'id': 'e1', 'name': 'snapjaw', 'x': 41, 'y': 12, 'hostile': True}]
+        plan['autonomy'].update(min_hp=2, combat_names=['snapjaw'])
+        plan['tactics'].update(mode='retreat', hostile_response='fight')
+        review.accept(obs, plan['strategy'])
+        _, audit, calls = await self.select(state, plan, review, {'action': 'attack', 'dir': 'E'})
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(audit['escalation'], 'autonomy_hp_floor')
+
+    async def test_low_hp_exemption_keeps_hostile_min_hp_and_damage_boundaries(self):
+        for case, expected in (('hostile_appears', 'autonomy_hp_floor'), ('min_hp', 'autonomy_hp_floor'),
+                               ('damage', 'autonomy_damage_limit')):
+            state, plan, review = delegated()
+            obs = state['observation']
+            obs['vitals']['hp'] = 6
+            plan['autonomy']['min_hp'] = 6 if case == 'min_hp' else 4
+            plan['target'] = None
+            plan['tactics']['mode'] = 'recover'
+            review.accept(obs, plan['strategy'])
+            history = History()
+            if case == 'hostile_appears':
+                obs['threats'] = [{'id': 'e9', 'name': 'snapjaw', 'x': 60, 'y': 12, 'hostile': True}]
+            elif case == 'damage':
+                history.events = [{'kind': 'risk_outcome', 'source': {'seq': state['seq'] + 1},
+                    'zone': obs['vitals']['zone'], 'position': {'x': 40, 'y': 12},
+                    'observed_hp_loss': 4, 'action': {'action': 'move', 'dir': 'E'}}]
+                state['seq'] += 2
+            with self.subTest(case=case):
+                _, audit, calls = await self.select(state, plan, review, {'action': 'rest', 'until': 'healed', 'budget': 12},
+                                                    history=history)
+                self.assertEqual(len(calls), 1)
+                self.assertEqual(audit['escalation'], expected)
+
     async def test_rest_does_not_require_a_new_recovery_mode_or_resource_review(self):
         state, plan, review = delegated()
         state['observation']['vitals']['hp'] -= 1

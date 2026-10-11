@@ -147,6 +147,74 @@ class ContinuationTests(unittest.IsolatedAsyncioTestCase):
                 self.assertTrue(calls)
                 self.assertEqual(audit['actor'], 'claude')
 
+    async def test_liquid_cells_shifting_beside_the_route_do_not_revoke_it(self):
+        state, plan, review = encounter()
+        status = state['observation']['status']
+        status['nearby_liquids'] = [{'x': 41, 'y': 13, 'name': 'slimy pool'}]
+        review.accept(state['observation'], plan['strategy'])
+        status['nearby_liquids'] = [{'x': 41, 'y': y, 'name': 'slimy pool'} for y in (11, 13)]
+        _, audit, calls = await self.choose(state, plan, review, {'action': 'move', 'dir': 'W'})
+        self.assertFalse(calls)
+        self.assertEqual(audit['actor'], 'jev')
+
+    async def test_new_dangerous_liquid_on_the_remaining_route_is_reviewed(self):
+        state, plan, review = encounter()
+        status = state['observation']['status']
+        status['nearby_liquids'] = [{'x': 41, 'y': 13, 'name': 'pool of acid'}]
+        review.accept(state['observation'], plan['strategy'])
+        status['nearby_liquids'].append({'x': 39, 'y': 12, 'name': 'pool of acid'})
+        _, audit, calls = await self.choose(state, plan, review, {'action': 'move', 'dir': 'W'}, .99)
+        self.assertTrue(calls)
+        self.assertEqual(audit['escalation'], 'continuation_route_hazard')
+
+    async def test_reviewed_low_hp_retreat_continues_until_more_hp_is_lost(self):
+        for reviewed_hp, current_hp, mode, actor in ((6, 6, 'retreat', 'jev'), (6, 5, 'retreat', 'claude'),
+                                                     (8, 6, 'retreat', 'claude'), (6, 6, 'explore', 'claude')):
+            state, plan, review = encounter()
+            vitals = state['observation']['vitals']
+            vitals['hp'] = reviewed_hp
+            plan['continuation']['min_hp'] = 4
+            plan['tactics']['mode'] = mode
+            review.accept(state['observation'], plan['strategy'])
+            vitals['hp'] = current_hp
+            with self.subTest(reviewed_hp=reviewed_hp, current_hp=current_hp, mode=mode):
+                _, audit, calls = await self.choose(state, plan, review, {'action': 'move', 'dir': 'W'}, .99)
+                self.assertEqual(audit['actor'], actor)
+                if actor == 'claude':
+                    self.assertEqual(audit['escalation'], 'continuation_hp_floor')
+
+    async def test_low_hp_retreat_converted_to_combat_keeps_the_floor(self):
+        state, plan, review = encounter()
+        state['observation']['vitals']['hp'] = 6
+        plan['continuation']['min_hp'] = 4
+        plan['tactics']['hostile_response'] = 'fight'
+        review.accept(state['observation'], plan['strategy'])
+        _, audit, calls = await self.choose(state, plan, review, {'action': 'move', 'dir': 'W'}, .99)
+        self.assertTrue(calls)
+        self.assertEqual(audit['escalation'], 'continuation_hp_floor')
+
+    async def test_low_hp_exemption_keeps_hostile_min_hp_and_damage_boundaries(self):
+        for case, expected in (('recover_with_hostile', 'continuation_hp_floor'), ('min_hp', 'continuation_hp_floor'),
+                               ('damage', 'continuation_damage_budget')):
+            state, plan, review = encounter()
+            vitals = state['observation']['vitals']
+            vitals['hp'] = 6
+            plan['continuation'].update(min_hp=6 if case == 'min_hp' else 4, max_damage=1)
+            if case == 'recover_with_hostile':
+                plan['tactics']['mode'] = 'recover'
+            review.accept(state['observation'], plan['strategy'])
+            history = History()
+            if case == 'damage':
+                before = copy.deepcopy(state)
+                state['seq'] += 1
+                vitals.update(x=39, hp=4)
+                history.record(before, {'action': 'move', 'dir': 'W'}, {'executed': True}, state)
+                vitals['hp'] = 6
+            with self.subTest(case=case):
+                _, audit, calls = await self.choose(state, plan, review, {'action': 'move', 'dir': 'W'}, .99, history)
+                self.assertTrue(calls)
+                self.assertEqual(audit['escalation'], expected)
+
     async def test_adjacent_approved_target_can_be_attacked_during_known_hazard(self):
         state, plan, review = encounter()
         state['observation']['threats'][0].update(x=41)

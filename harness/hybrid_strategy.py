@@ -4,6 +4,7 @@ import copy
 from collections import Counter
 import hashlib
 import json
+import math
 import re
 
 from harness.hybrid_hazards import assess_hazards, hazard_key
@@ -46,6 +47,14 @@ def safe_to_review(obs):
     risk = assess_hazards(obs)
     return risk["priority"] < 2 and not risk["unknown_effects"]
 
+
+def low_hp_acknowledged(obs, previous, plan):
+    """The issuing review already saw HP at the 40% floor and approved disengagement; later loss reopens it."""
+    mode = plan.get("tactics", {}).get("mode")
+    return (previous["vitals"]["hp"] <= math.ceil(previous["vitals"]["max_hp"] * .4)
+            and obs["vitals"]["hp"] >= previous["vitals"]["hp"]
+            and effective_tactics(obs, plan).get("mode") in ("retreat", "recover")
+            and (mode == "retreat" or mode == "recover" and not any(t["hostile"] for t in obs["threats"])))
 
 
 def _gear_context(obs):

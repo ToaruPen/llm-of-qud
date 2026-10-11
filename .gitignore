@@ -43,6 +43,7 @@ probes/*/results/**
 !.codex/artifacts/claude-memory-improvement-20260927.md
 !.codex/artifacts/jev-growth-cache-report-20260928.md
 !.codex/artifacts/jev-hazard-floor-replay-20261011.json
+!.codex/artifacts/jev-hazard-floor-replay-20261011-r2.json
 !.codex/artifacts/jev-hybrid-continuation-20260928.md
 !.codex/artifacts/jev-hybrid-report-20260927.md
 !.codex/artifacts/r9-observation-audit-20260926.md

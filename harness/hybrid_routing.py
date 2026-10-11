@@ -220,7 +220,7 @@ def local_scope(reason, state, plan, review):
     """Update encounter/navigation policy without rewriting an unchanged build."""
     reasons = {"zone_changed", "plan_expired", "continuation_expired", "continuation_new_threat",
                "continuation_threat_approaching", "continuation_action_outside_contract",
-               "continuation_hazard_changed", "continuation_hp_floor", "continuation_damage_budget",
+               "continuation_hazard_changed", "continuation_hp_floor", "continuation_damage_budget", "continuation_route_hazard",
                "continuation_operation_failed", "navigation_danger", "navigation_interrupted",
                "navigation_constraints_changed", "navigation_target_unreachable", "target_reached", "recovery_complete", "hazard_changed", "recent_damage",
                "large_damage", "hostile_requires_replan", "avoidance_context_changed", "threat_context_changed",

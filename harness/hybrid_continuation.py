@@ -3,8 +3,8 @@
 from collections import Counter
 import math
 
-from harness.hybrid_hazards import assess_hazards, hazard_key
-from harness.hybrid_strategy import character_summary, hostile_distance
+from harness.hybrid_hazards import assess_hazards, hazard_key, liquid_hazard_cells
+from harness.hybrid_strategy import character_summary, hostile_distance, low_hp_acknowledged
 
 
 def continuation_status(state, plan, history, review):
@@ -25,12 +25,14 @@ def continuation_status(state, plan, history, review):
     if not 0 <= steps < min(contract["max_steps"], plan["horizon"]):
         return revoked("continuation_expired")
     risk = assess_hazards(obs)
+    reviewed_risk = assess_hazards(previous)
     if (risk["priority"] >= 4 or risk["unknown_effects"]
-            or hazard_key(risk) != hazard_key(assess_hazards(previous))):
+            or hazard_key(risk) != hazard_key(reviewed_risk)):
         return revoked("continuation_hazard_changed")
     if character_summary(obs) != character_summary(previous) or obs.get("goals") != previous.get("goals"):
         return revoked("continuation_context_changed")
-    if v["hp"] <= max(contract["min_hp"], math.ceil(v["max_hp"] * .4)):
+    if (v["hp"] <= contract["min_hp"]
+            or v["hp"] <= math.ceil(v["max_hp"] * .4) and not low_hp_acknowledged(obs, previous, plan)):
         return revoked("continuation_hp_floor")
     records = [r for r in history.records if r["seq"] >= issued]
     damage = sum(max(0, r["before"]["hp"] - r["after"]["hp"]) for r in records)
@@ -71,6 +73,9 @@ def continuation_status(state, plan, history, review):
     if position not in route:
         return revoked("continuation_route_deviation")
     index = route.index(position)
+    ahead = {(c["x"], c["y"]) for c in route[index+1:]}
+    if any((x, y) in ahead for x, y, _ in liquid_hazard_cells(risk) - liquid_hazard_cells(reviewed_risk)):
+        return revoked("continuation_route_hazard")
     return {"active": True, "reason": "reviewed_continuation", "steps_used": steps,
             "damage_used": damage, "next_position": route[index+1] if index+1 < len(route) else None}
 

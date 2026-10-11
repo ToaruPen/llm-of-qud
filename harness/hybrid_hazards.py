@@ -14,6 +14,11 @@ EFFECTS = CATALOG['effects']
 LIQUIDS = CATALOG['liquids']
 LIQUID_WORDS = {word for liquid in LIQUIDS for alias in liquid['aliases']
                 for word in re.findall(r'[a-z]+', alias)}
+# Fixed-game display names that append the visible source to a reviewed base effect:
+# Sitting, Enclosed, Prone ("lying on"), Stuck ("stuck in") and Grabber's Stuck ("grabbed by").
+# The catalogue's "grabbed" is a Latched onto alias, so Grabber maps to Stuck itself.
+SOURCE_PREFIXES = (('sitting on ', 'sitting'), ('enclosed in ', 'enclosed'), ('lying on ', 'prone'),
+                   ('stuck in ', 'stuck'), ('grabbed by ', 'stuck'))
 
 
 def plain(text):
@@ -29,11 +34,15 @@ def has(text, pattern):
     return re.search(r'\b(?:' + pattern + r')\b', text) is not None
 
 
-def effect_entry(name):
-    for prefix, canonical in (('sitting on ', 'sitting'), ('enclosed in ', 'enclosed')):
+def canonical_effect(name):
+    for prefix, canonical in SOURCE_PREFIXES:
         if name.startswith(prefix):
-            return EFFECTS[canonical]
-    return EFFECTS.get(name)
+            return canonical
+    return name
+
+
+def effect_entry(name):
+    return EFFECTS.get(canonical_effect(name))
 
 
 def liquid_entries(text):
@@ -195,7 +204,7 @@ def assess_hazards(obs):
                 add('plasma_and_temperature', 4, 'Plasma vulnerability overlaps current lava contact.', [liquid], 'Coated_in_plasma', 'Lava')
         elif 'exposure' in liquid_tags:
             add('harmful_liquid_terrain', 2, 'Prone contact or ingestion may cause disease, poison or corrosion.', [liquid], sources=sources)
-            if here and 'prone' in effects:
+            if here and 'prone' in {canonical_effect(name) for name in effects}:
                 add('prone_harmful_liquid', 4, 'Prone in harmful liquid permits additional exposure; verify the actual resulting effect.', [liquid], 'Prone')
         elif liquid_tags.intersection(('slippery', 'sticky')):
             add('movement_liquid', 2 if hostile else 1, 'Open liquid terrain can impair movement; depth and immunity remain contextual.', [liquid], sources=sources)
@@ -211,8 +220,35 @@ def assess_hazards(obs):
             'consumable_cautions': tonic_cautions(obs), 'coverage': CATALOG['coverage']}
 
 
+def _terrain(match):
+    return bool(match['evidence']) and isinstance(match['evidence'][0], dict)
+
+
+def _label(match):
+    first = match['evidence'][0] if match['evidence'] else ''
+    if _terrain(match):
+        name = plain(first['name'])
+        return ' + '.join(sorted(entry['name'] for entry in liquid_entries(name))) or name
+    return first if isinstance(first, str) else ''
+
+
 def hazard_key(risk):
-    """Acknowledge named conditions, not every changing dram, duration or message."""
-    return sorted((m['id'], m['priority'], m['evidence'][0] if m['evidence'] and
-                   isinstance(m['evidence'][0], str) else '')
-                  for m in risk['matches'] if m['priority'] >= 2), sorted(risk['unknown_effects'])
+    """Acknowledge named conditions, not every changing dram, duration, message or visible liquid cell."""
+    rules, cells = [], set()
+    for m in risk['matches']:
+        if m['priority'] < 2:
+            continue
+        key = (m['id'], m['priority'], _label(m))
+        if _terrain(m):
+            cells.add(key)
+        else:
+            rules.append(key)
+    terrain = {u for u in risk['unknown_effects'] if u.startswith('terrain: ')}
+    unknown = [u for u in risk['unknown_effects'] if u not in terrain]
+    return sorted(rules + list(cells)), sorted(unknown + list(terrain))
+
+
+def liquid_hazard_cells(risk):
+    """Visible terrain-liquid cells at caution or above, as (x, y, liquid kind)."""
+    return {(m['evidence'][0]['x'], m['evidence'][0]['y'], _label(m)) for m in risk['matches']
+            if m['priority'] >= 2 and _terrain(m)}
