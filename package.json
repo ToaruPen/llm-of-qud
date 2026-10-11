@@ -1,0 +1,13 @@
+{
+  "name": "llm-of-qud-tooling",
+  "private": true,
+  "description": "Repository secret and machine-path scan (secretlint)",
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@secretlint/secretlint-rule-pattern": "13.0.7",
+    "@secretlint/secretlint-rule-preset-recommend": "13.0.7",
+    "secretlint": "13.0.7"
+  }
+}

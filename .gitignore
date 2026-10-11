@@ -9,6 +9,9 @@ __pycache__/
 .mypy_cache/
 .pytest_cache/
 
+# Node tooling (secretlint); restore with npm ci
+node_modules/
+
 # Local runtime state (ledgers, game logs, screenshots, deployed DLLs)
 .runtime/
 

@@ -33,6 +33,15 @@ anti-slop-test:
     python3 -B -m unittest discover -s tools/quality -p 'test_*.py' -v
     ast-grep test -c tools/quality/sgconfig.yml --skip-snapshot-tests
 
+# Scan exactly the tracked files for credentials and machine-specific home paths.
+secretlint:
+    @test -x node_modules/.bin/secretlint || { echo "secretlint is not installed; run: npm ci" >&2; exit 2; }
+    git ls-files -z | xargs -0 npx --no-install secretlint --no-glob --no-gitignore
+
+# Verify the home-path rule with positive/negative fixtures and the missing-dependency failure.
+secretlint-test:
+    python3 -B -m unittest discover -s tools/secretlint -p 'test_*.py' -v
+
 # Print local tool versions (does not install or upgrade tools).
 quality-tools:
     python3 --version

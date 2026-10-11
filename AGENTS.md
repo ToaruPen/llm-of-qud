@@ -23,5 +23,6 @@ This project connects Caves of Qud to an external LLM harness. The game-side C# 
 - Test and fixed-game compile commands are listed in [TOOLS.md](TOOLS.md#behavior-and-compatibility-checks).
 - Static candidate scans do not establish runtime correctness. Preserve the distinction between fixture tests, scripted probes, and autonomous LLM play.
 - Preserve concurrent changes and experiment evidence. Scope checks to owned files or an isolated snapshot when another task is editing source. Do not launch games, hover helpers, or live probes as part of anti-slop checks.
+- Never write absolute home-directory paths or machine-specific usernames into tracked files. Use repo-relative paths, or `~` for locations outside the repository; derive runtime locations from `__file__`, `Path.home()`, `$(HOME)`, or an environment variable. Run `just secretlint` before committing or pushing.
 
 Respond and write specifications in Japanese unless requested otherwise. Write AI-facing instructions in English.

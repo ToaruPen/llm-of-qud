@@ -21,9 +21,17 @@ Use the primary tool's existing rules first. Use ast-grep for supplementary synt
 | `just anti-slop-structural [paths...]` | Optional C# AST hints; no semantic or compile validation |
 | `just anti-slop-test` | Test real analyzers, fixtures, scope, and failure handling |
 | `just quality-tools` | Show installed tool versions |
+| `just secretlint` | Scan tracked files for credentials and home-directory paths |
+| `just secretlint-test` | Test the home-path rule and the missing-dependency failure |
 | `just` | List recipes |
 
 Paths are relative to the repository root. Omit paths for all current source, including untracked files. Detections are review candidates; classify them before changing code. Main checks never silently fall back from Roslyn to ast-grep.
+
+## Secret and path scan
+
+Run `just secretlint` before committing or pushing. It passes exactly `git ls-files` to secretlint (literal paths, `.gitignore` not applied) and fails on any finding. Setup is local and explicit: `npm ci` installs the pinned versions from [package-lock.json](package-lock.json) into ignored `node_modules/`. When they are missing, the recipe exits 2 instead of installing.
+
+[.secretlintrc.json](.secretlintrc.json) uses `@secretlint/secretlint-rule-preset-recommend` plus a pattern rule for absolute home paths: macOS `/Users/<name>`, Linux `/home/<name>`, Windows `C:\Users\<name>`, and encoded forms such as `-Users-<name>-`. Placeholders containing `<`, `~/...`, and `$(HOME)` do not match. The only allowance is the leak-test sentinel `/Users/someone` in `tests/test_overlay.py`. No git hook or CI job runs this scan.
 
 ## C# setup and scope
 
