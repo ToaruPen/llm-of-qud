@@ -1,0 +1,565 @@
+{
+  "source": ".runtime/jev-opus-20260928/run4/player/decision-00050.json",
+  "observation": {
+    "vitals": {
+      "hp": 15,
+      "max_hp": 15,
+      "x": 39,
+      "y": 11,
+      "zone": "JoppaWorld.11.21.0.1.10",
+      "turn": 102,
+      "energy": 1057
+    },
+    "threats": [
+      {
+        "id": "e1",
+        "name": "giant dragonfly [{{B|flying}}]",
+        "wound": "{{Y|Perfect}}",
+        "x": 46,
+        "y": 6,
+        "hostile": false
+      },
+      {
+        "id": "e2",
+        "name": "croc",
+        "wound": "{{Y|Perfect}}",
+        "x": 48,
+        "y": 6,
+        "hostile": true
+      },
+      {
+        "id": "e3",
+        "name": "{{B|{{B|wet}} glowfish}} {{y|[{{B|swimming}}]}}",
+        "wound": "{{Y|Perfect}}",
+        "x": 75,
+        "y": 7,
+        "hostile": false
+      },
+      {
+        "id": "e4",
+        "name": "{{B|{{B|wet}} glowpad}}",
+        "wound": "{{Y|Perfect}}",
+        "x": 76,
+        "y": 7,
+        "hostile": false
+      },
+      {
+        "id": "e5",
+        "name": "{{B|{{B|wet}} glowfish}} {{y|[{{B|swimming}}]}}",
+        "wound": "{{Y|Perfect}}",
+        "x": 77,
+        "y": 7,
+        "hostile": false
+      },
+      {
+        "id": "e6",
+        "name": "giant dragonfly [{{B|flying}}]",
+        "wound": "{{Y|Perfect}}",
+        "x": 8,
+        "y": 11,
+        "hostile": false
+      },
+      {
+        "id": "e7",
+        "name": "giant dragonfly [{{B|flying}}]",
+        "wound": "{{Y|Perfect}}",
+        "x": 44,
+        "y": 13,
+        "hostile": false
+      },
+      {
+        "id": "e8",
+        "name": "{{B|{{B|wet}} glowfish}} {{y|[{{B|swimming}}]}}",
+        "wound": "{{Y|Perfect}}",
+        "x": 23,
+        "y": 14,
+        "hostile": false
+      },
+      {
+        "id": "e9",
+        "name": "giant dragonfly [{{B|flying}}]",
+        "wound": "{{Y|Perfect}}",
+        "x": 7,
+        "y": 17,
+        "hostile": false
+      },
+      {
+        "id": "e10",
+        "name": "{{B|{{B|wet}} glowpad}}",
+        "wound": "{{Y|Perfect}}",
+        "x": 12,
+        "y": 17,
+        "hostile": false
+      },
+      {
+        "id": "e11",
+        "name": "{{B|{{B|wet}} glowpad}}",
+        "wound": "{{Y|Perfect}}",
+        "x": 13,
+        "y": 17,
+        "hostile": false
+      },
+      {
+        "id": "e12",
+        "name": "giant dragonfly [{{B|flying}}]",
+        "wound": "{{Y|Perfect}}",
+        "x": 69,
+        "y": 17,
+        "hostile": false
+      },
+      {
+        "id": "e13",
+        "name": "{{B|{{B|wet}} glowpad}}",
+        "wound": "{{Y|Perfect}}",
+        "x": 16,
+        "y": 19,
+        "hostile": false
+      },
+      {
+        "id": "e14",
+        "name": "{{B|{{B|wet}} glowpad}}",
+        "wound": "{{Y|Perfect}}",
+        "x": 19,
+        "y": 19,
+        "hostile": false
+      },
+      {
+        "id": "e15",
+        "name": "{{B|{{B|wet}} glowfish}} {{y|[{{B|swimming}}]}}",
+        "wound": "{{Y|Perfect}}",
+        "x": 12,
+        "y": 20,
+        "hostile": false
+      },
+      {
+        "id": "e16",
+        "name": "{{B|{{B|wet}} glowpad}}",
+        "wound": "{{Y|Perfect}}",
+        "x": 13,
+        "y": 20,
+        "hostile": false
+      },
+      {
+        "id": "e17",
+        "name": "{{B|{{B|wet}} glowfish}} {{y|[{{B|swimming}}]}}",
+        "wound": "{{Y|Perfect}}",
+        "x": 17,
+        "y": 20,
+        "hostile": false
+      },
+      {
+        "id": "e18",
+        "name": "{{B|{{B|wet}} glowpad}}",
+        "wound": "{{Y|Perfect}}",
+        "x": 18,
+        "y": 21,
+        "hostile": false
+      },
+      {
+        "id": "e19",
+        "name": "{{B|{{B|wet}} glowpad}}",
+        "wound": "{{Y|Perfect}}",
+        "x": 17,
+        "y": 23,
+        "hostile": false
+      },
+      {
+        "id": "e20",
+        "name": "{{B|{{B|wet}} glowpad}}",
+        "wound": "{{Y|Perfect}}",
+        "x": 24,
+        "y": 23,
+        "hostile": false
+      },
+      {
+        "id": "e21",
+        "name": "{{B|{{B|wet}} glowfish}} {{y|[{{B|swimming}}]}}",
+        "wound": "{{Y|Perfect}}",
+        "x": 25,
+        "y": 23,
+        "hostile": false
+      },
+      {
+        "id": "e22",
+        "name": "{{B|{{B|wet}} glowpad}}",
+        "wound": "{{Y|Perfect}}",
+        "x": 17,
+        "y": 24,
+        "hostile": false
+      },
+      {
+        "id": "e23",
+        "name": "{{B|{{B|wet}} glowpad}}",
+        "wound": "{{Y|Perfect}}",
+        "x": 22,
+        "y": 24,
+        "hostile": false
+      }
+    ],
+    "digest": [
+      "You pass by a watervine.",
+      "You pass by a watervine.",
+      "&yThe zealot yells &W'Piety compels you to deliver your sacred relics to the priests in the cathedral! Cleanse them of your filth!'",
+      "The Mechanimist rummager rifles through the trash.",
+      "&CSalt marsh, surface, Harvest Dawn",
+      "The giant dragonfly begins flying.",
+      "The giant dragonfly begins flying.",
+      "The giant dragonfly begins flying.",
+      "The giant dragonfly begins flying.",
+      "The giant dragonfly begins flying.",
+      "You pass by a watervine.",
+      "You pass by a watervine."
+    ],
+    "map": [
+      ",`.''.'.'`..'.'`,,'.`.`,,..ôô.'`''...ôôô,ô..,''.`,'.,`'..',`ô``.ô``.'.ôôôôôôôôôô",
+      "ô,`..`.''ô`,`''..ô.......'`ô.ô.'ô.`'.`,`.,`ô..`'..,ô..''''''.``.'`.```.ôôôôôôôôô",
+      "...,.`,,`.,`...'`''...`.ô,,'`.'...'ô```.ô.ô``ô','`.'``,....`.',,,.'`''.'ôô``ôô`ô",
+      ",`....`'`'.,``.ô'`,,...,``'`.'ô`'..,..`,.'',''.`ôô....,',.',ô`...,`ô,`..ôôôôôôôô",
+      ".,`ô`.,`'.`,.,..,`'.`',`.ô',..`...ô...`.ô.,``,,.``,'.`,.'ô..`...'.,.ô..ô.ôôô,ô,ô",
+      "'..',...ô.'.''ô`.`..ô.`,.'`..',`,.,,,`,``,..`.ô`...,.,..`,.,..`.```,,````,'ô~'ô`",
+      "`.`.....,``ô,'`...ô...'`ô,.,,',ô`,ô,,','.,`..'\u0018ôr,ô'ô`ôô,,`.,`.''.`'`,.`.ôôô~÷ô'",
+      "....,ô.`.'`.,.ô.''...ôôô...`,`',.,,`..,',ô...'',.ôôô'```'.ô..,.',.`ô..`',ôôà*àô'",
+      "...,ô...``'..,''`.ô.ôôôôôôô...``,..ô.ô...,.`.''.,`.`,',.`,`ô..'.,,....`,ô..ô ô'ô",
+      "....,.`.','..'.,ô''ôôô`ôôôô',.`,.,``',``'.'`'.'...'`ô..,`ô..'`...,.`.`.'.'ô.`ôôô",
+      "',.`.,.,`,,'...'ô.ôôôô,ôôôôôôôôô,...,'.....`',,',.`..,ô...,`'.,,.'.,'`,,.,..`'''",
+      ",,ô.ôô.ô\u0018.'ô...ôôôôôô~~ôôôôôôôôôô.ô,,''@,`.ô,ô`.ô.'.`.''`ô...`'.`,'.ô.',.'ô..''.",
+      ",``',ô`ô.`..'ô'`ôôôôôôôôôôô`ô.ôôô.'....`,ô,'`...,.ô`ô```,`'`ô`.`,'`.,.'..ôô''`'`",
+      "'.`...`.,.ô```..ô.ô.ôôô.ôôôô.ôô`ô.`,,.,''ô,.\u0018'.`'.',........``'.',`.,,..'.ô..'ô,",
+      "'ô'`.,....,.ô`,ôôôôôôôôàôô,`..`'....ô,`..''`,`'..'..`.'.','ô.,'`.,,.,`ô..'.,,,``",
+      "ô`ô.'''..,,ôôô,ôôôôôôôô`ô`.`.,,`...ôô.ô,.`..''`ô`'.,'.,`.``..,.'.`.','..'`.'','.",
+      "ô,`'``...'ôô~~ôôôôôôôô`',',.ô'','...`.`'.''''..'ô,.`'`.,,,`,'`,ô',.,.`..'.`.,`,'",
+      "'`.``.'\u0018,``.**`ô,ôôô..'ô``ô.`..`....,.ô`,....,`,,...,.,,,.,''.,,...''\u0018.,`.'ô``..",
+      "ô'..`.',,.~~ô.~~~ôôôô.,ô,`..''ô,.'ô..`.ô`.ô.''.',.,``...',''.`..'`.`.'.`'`ôô'.`,",
+      ".',',''.,.~~~~~~*~~*ôôôô`.ô`.',..ô..`ô,.ô``,''.,`,...`,.,.`.,.''.`,',ô,`,ô.,'.ôô",
+      "......,`'`  à*÷ô~à~~ôôôôôô..'.ôôô,,.`.''``.ô,.',ô'```..'..'.''```,``..,.,`''`.,'",
+      "'..'',.``.ô~ôôôô~~*~ ôôôôôô'ôôô`ôô.`.`',`.,`.'......''','`....',,'`,ô,,','`.`,``",
+      "'.`,.`..,.ôô'ô`ô~~~ô~~ôôôôôôôô'ô',.,''ô,'ô...`.',`.`,''ô`,,'.,ô'..'....'.`.ô'.,.",
+      ".ô,'`.,``.ôôô,.ôô*ô÷~~~~*à~ôôô`...'`..`'.`,.ô`ô'`''.'`,,`.,,'.ô'...,.,..',..'''.",
+      ".``',..`''ôô.ôôôô*~~~~*~~÷~~ô.`,`ô...`',.`.,ôôô..''ô,'`,`''ô.`ô.``.,ô`.','''...'"
+    ],
+    "map_frame": 40,
+    "kit": [
+      {
+        "id": "i1",
+        "name": "furs {{b|\u0004}}2 {{K|\t}}-1",
+        "slot": "body"
+      },
+      {
+        "id": "i2",
+        "name": "torch (unburnt)",
+        "slot": "right hand"
+      },
+      {
+        "id": "i3",
+        "name": "{{w|bronze}} battle axe {{c|\u001a}}5 {{r|\u0003}}1d2",
+        "slot": "left hand"
+      },
+      {
+        "id": "i4",
+        "name": "waterskin {{y|[{{K|empty}}]}}",
+        "slot": null
+      },
+      {
+        "id": "i5",
+        "name": "waterskin {{y|[{{K|empty}}]}}",
+        "slot": null
+      },
+      {
+        "id": "i6",
+        "name": "torch x8 (unburnt)",
+        "slot": null
+      },
+      {
+        "id": "i7",
+        "name": "waterskin {{y|[{{rules|32}} drams of {{B|fresh water}}]}}",
+        "slot": null
+      },
+      {
+        "id": "i8",
+        "name": "{{w|bear jerky}} {{y|[{{C|8}} servings]}}",
+        "slot": null
+      },
+      {
+        "id": "i9",
+        "name": "{{W|witchwood bark}} x4",
+        "slot": null
+      }
+    ],
+    "ground": [],
+    "status": {
+      "effects": [
+        "lost"
+      ],
+      "effect_details": [
+        {
+          "name": "lost",
+          "description": "Can't fast travel."
+        }
+      ],
+      "on_fire": false,
+      "frozen": false,
+      "nearby_liquids": [],
+      "food_water": "{{g|Sated}} {{g|Quenched}}"
+    },
+    "place": {
+      "name": "salt marsh, surface",
+      "world_map": false,
+      "lost": true
+    },
+    "goals": {
+      "text": "{{W|What's Eating the Watervine?}}\n\n{{white|&Yù Travel to Red Rock}}\n   {{y|Journey two parasangs north of Joppa to Red Rock.}}\n\n{{white|&Yù Find the Vermin}}\n   {{y|Find the creatures that are eating Joppa's watervine.}}\n\n{{white|&Yù Get a Corpse}}\n   {{y|Collect a corpse from one of the creatures.}}\n\n{{white|&Yù Return with the Corpse}}\n   {{y|Return to Joppa with the corpse of the watervine vermin.}}\n\nMehmet / Joppa\n",
+      "truncated": false
+    },
+    "character": {
+      "genotype": "Mutated Human",
+      "subtype": "Marauder",
+      "mutation_points": 0,
+      "mutations": [
+        {
+          "name": "Burrowing Claws",
+          "level": 1,
+          "description": "You bear spade-like claws that can burrow through the earth.",
+          "level_text": "Claw penetration vs. walls: {{rules|+3}}\nClaws destroy walls after 4 penetrating hits.\nClaws are also a short-blade class natural weapon that deal {{rules|1d2}} base damage to non-walls.",
+          "defect": false
+        },
+        {
+          "name": "Heightened Quickness",
+          "level": 1,
+          "description": "You are gifted with tremendous speed.",
+          "level_text": "+{{rules|15}} Quickness",
+          "defect": false
+        },
+        {
+          "name": "Albino",
+          "level": 1,
+          "description": "Your skin, hair, and eyes are absent of pigment.\n\nYou regenerate hit points at one-fifth the usual rate in the daylight.",
+          "level_text": "",
+          "defect": true
+        },
+        {
+          "name": "Kindle",
+          "level": 1,
+          "description": "You ignite a small fire with your mind.\n\nRange: 12\nCooldown: 50",
+          "level_text": "",
+          "defect": false
+        },
+        {
+          "name": "Light Manipulation",
+          "level": 1,
+          "description": "You manipulate light to your advantage.",
+          "level_text": "You produce ambient light within a radius of {{rules|4}}.\nYou may focus the light into a laser beam, temporarily reducing the radius of your ambient light by 1.\nLaser damage increment: {{rules|1d3}}\nLaser penetration: {{rules|8}}\nAmbient light recharges at a rate of 1 unit every 15 rounds until it reaches its maximum value.\n{{rules|13%}} chance to reflect light-based damage",
+          "defect": false
+        },
+        {
+          "name": "Mental Mirror",
+          "level": 1,
+          "description": "You reflect mental attacks back at your attackers.",
+          "level_text": "When you suffer a mental attack while Mental Mirror is off cooldown, you gain +{{rules|4}} mental armor (MA).\nIf the attack then fails to penetrate your MA, it's reflected back at your attacker.\nCooldown: 50",
+          "defect": false
+        },
+        {
+          "name": "Sense Psychic",
+          "level": 1,
+          "description": "You can sense other mental mutants through the psychic aether.\n\nYou detect the presence of psychic enemies within a radius of 9.\nThere's a chance you identify detected enemies.",
+          "level_text": "",
+          "defect": false
+        }
+      ],
+      "mutations_truncated": false,
+      "level": 1,
+      "xp": 0,
+      "next_level_xp": 220,
+      "skill_points": 0,
+      "attribute_points": 0,
+      "attributes": {
+        "Strength": {
+          "value": 21,
+          "base": 21
+        },
+        "Agility": {
+          "value": 17,
+          "base": 17
+        },
+        "Toughness": {
+          "value": 15,
+          "base": 15
+        },
+        "Intelligence": {
+          "value": 18,
+          "base": 18
+        },
+        "Willpower": {
+          "value": 12,
+          "base": 12
+        },
+        "Ego": {
+          "value": 20,
+          "base": 20
+        }
+      },
+      "owned_skills": [
+        "Axe",
+        "Axe:Axe_Expertise",
+        "Axe:Axe_Dismember",
+        "CookingAndGathering:CookingAndGathering_Butchery",
+        "Tactics:Tactics_Charge",
+        "Survival:Survival_Camp"
+      ],
+      "catalog_truncated": false
+    },
+    "item_details": [
+      {
+        "id": "i1",
+        "description": "It's a length of salt-sucked skin cut from a goat, or tomb ferret, and it's powdered with the white dust of the dead.\n\n{{K|Weight: 10 lbs.}}",
+        "comparison_name": "furs \u00042 \t-1",
+        "actions": [],
+        "effect_details": []
+      },
+      {
+        "id": "i2",
+        "description": "A length of brinestalk is wrapped in oil-sodden cloth.\n\n{{rules|Offhand Attack Chance: 15%}}\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "torch (unburnt)",
+        "actions": [],
+        "effect_details": []
+      },
+      {
+        "id": "i3",
+        "description": "Damp leather wraps the wood haft up to a sharpened bit of bell bronze.\n\n{{rules|Strength Bonus Cap: 1\nWeapon Class: Axe (cleaves armor on critical hit)}}\n\n{{K|Weight: 5 lbs.}}",
+        "comparison_name": "bronze battle axe \u001a5 \u00031d2",
+        "actions": [],
+        "effect_details": []
+      },
+      {
+        "id": "i4",
+        "description": "A goat's bladder is knotted at the bottom and suspended by a strap of intestine.\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "waterskin [empty]",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i5",
+        "description": "A goat's bladder is knotted at the bottom and suspended by a strap of intestine.\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "waterskin [empty]",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i6",
+        "description": "A length of brinestalk is wrapped in oil-sodden cloth.\n\n{{K|Weight: 8 lbs.}}",
+        "comparison_name": "torch (unburnt)",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i7",
+        "description": "A goat's bladder is knotted at the bottom and suspended by a strap of intestine.\n\n{{K|Weight: 9 lbs.}}",
+        "comparison_name": "waterskin [32 drams of fresh water]",
+        "actions": [
+          "drink",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i8",
+        "description": "Bear flesh was cut into neat strips, salted, and smoked.\n\n{{rules|Adds HP-based effects to cooked meals.}}\n\n{{K|Weight: 0 lbs.}}",
+        "comparison_name": "bear jerky",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i9",
+        "description": "Lichen sticks in the winding grooves of woodshed, shimmering and smelling of spice.\n\n{{rules|Heals and confuses when eaten.}}\n\n{{K|Weight: 4 lbs.}}",
+        "comparison_name": "witchwood bark",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      }
+    ]
+  },
+  "plan": {
+    "goal": "Bypass the croc, now at (48,6), by going NW to (33,5), then N up column 33/34 to row 0, then step N into zone 11.21.0.0.",
+    "guidance": "If there is no combat, follow the NW diagonal to (33,5), continue N to row 0, and step N. The croc is hostile and 9 cells away; keep W/NW of it. If it comes within 4, keep moving W/NW on land away from the open water at x10-28. Fight only if the croc is adjacent and there is no escape. Dragonflies, glowfish and glowpads are neutral.",
+    "memory": "Joppa is JoppaWorld.11.22.1.1.10; Mehmet was seen at (42,19). Accepted quest 'What's Eating the Watervine?': go to Red Rock (world 11,20), kill a spider-like vermin and bring its corpse back to Mehmet. I am lost, so there is no fast travel; I am walking N zone by zone. Now in 11.21.1 (salt marsh); next is 11.21.0, then parcel 11,20. In 11.21.1, a hostile croc was seen from turn 101 to 102 at (47,6)-(50,5), moving back and forth; it has not engaged. Open water is at x10-28 y11-24. Land along the route (38,10)-(33,5)-(33,3) is displayed but unverified. I have not done the water ritual. Albino: slow regeneration in daylight. My only healing is witchwood bark, which confuses.",
+    "strategy": {
+      "build_goal": "Strength-based axe marauder (Str 21), bronze battle axe plus passive axe skills. Activated skills (Charge, Dismember) and mutations (Kindle, laser) unsupported by executor; value passive effects only.",
+      "next_upgrades": "Skills: Axe Cleave (150, passive), then Endurance + Shake It Off, then Poison Tolerance once Toughness 19. Attributes: Toughness first, then Strength. Skip Rifles, Pistol, Tinkering. 0 points now.",
+      "resource_policy": "Witchwood bark only for emergencies (confuses). Eat/drink only when hungry/thirsty. Keep spare torches. Equip better armor/shield when offered (body AV > furs)."
+    },
+    "tactics": {
+      "mode": "travel",
+      "hostile_response": "avoid",
+      "retreat_hp_fraction": 0.45,
+      "heal_hp_fraction": 0.5,
+      "danger_distance": 4,
+      "allowed_directions": [
+        "N",
+        "NW",
+        "W"
+      ]
+    },
+    "target": {
+      "x": 34,
+      "y": 0
+    },
+    "horizon": 10,
+    "selection": "c7",
+    "stop": false,
+    "automatic_goto": false,
+    "continuation": {
+      "route": [
+        {
+          "x": 38,
+          "y": 10
+        },
+        {
+          "x": 37,
+          "y": 9
+        },
+        {
+          "x": 36,
+          "y": 8
+        },
+        {
+          "x": 35,
+          "y": 7
+        },
+        {
+          "x": 34,
+          "y": 6
+        },
+        {
+          "x": 33,
+          "y": 5
+        },
+        {
+          "x": 33,
+          "y": 4
+        },
+        {
+          "x": 33,
+          "y": 3
+        }
+      ],
+      "hold_position": null,
+      "attack_target": null,
+      "min_hp": 10,
+      "max_damage": 4,
+      "max_steps": 8
+    },
+    "zone": "JoppaWorld.11.21.0.1.10",
+    "issued_seq": 40
+  },
+  "seq": 40
+}

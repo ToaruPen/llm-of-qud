@@ -1,0 +1,754 @@
+{
+  "source": {
+    "run": "jev-opus-20260928/run2",
+    "decision": "decision-00092.json",
+    "seq": 81
+  },
+  "observation": {
+    "vitals": {
+      "hp": 15,
+      "max_hp": 15,
+      "x": 41,
+      "y": 22,
+      "zone": "JoppaWorld.11.20.0.2.10",
+      "turn": 150,
+      "energy": 1070
+    },
+    "threats": [
+      {
+        "id": "e1",
+        "name": "baboon",
+        "wound": "{{Y|Perfect}}",
+        "x": 45,
+        "y": 0,
+        "hostile": true
+      },
+      {
+        "id": "e2",
+        "name": "goat",
+        "wound": "{{G|Fine}}",
+        "x": 43,
+        "y": 1,
+        "hostile": false
+      },
+      {
+        "id": "e3",
+        "name": "baboon",
+        "wound": "{{Y|Perfect}}",
+        "x": 24,
+        "y": 14,
+        "hostile": true
+      },
+      {
+        "id": "e4",
+        "name": "baboon",
+        "wound": "{{Y|Perfect}}",
+        "x": 60,
+        "y": 20,
+        "hostile": true
+      },
+      {
+        "id": "e5",
+        "name": "baboon",
+        "wound": "{{Y|Perfect}}",
+        "x": 26,
+        "y": 22,
+        "hostile": true
+      },
+      {
+        "id": "e6",
+        "name": "baboon",
+        "wound": "{{Y|Perfect}}",
+        "x": 31,
+        "y": 22,
+        "hostile": true
+      }
+    ],
+    "digest": [
+      "The baboon equips a small stone.",
+      "The baboon equips a small stone.",
+      "The baboon equips a small stone.",
+      "The baboon equips a small stone.",
+      "The baboon's small stone hits the goat!",
+      "The baboon hits the goat with a small stone (x1) for 2 damage!",
+      "The baboon equips a small stone.",
+      "The baboon equips a small stone.",
+      "The baboon equips a small stone.",
+      "The baboon's small stone hits the dogthorn tree!",
+      "The baboon hits the dogthorn tree with a small stone (x2) for 3 damage!",
+      "The baboon equips a small stone."
+    ],
+    "map": [
+      "'`...' .. `,.,,''.`.' ,.`' ','`, ''`.,'`,,'a.,, , .',., ' ',`,. `,,.,   ,., ",
+      ".`,'',,.'`..',''``,`.````` ,''...,`, '.g.`''`,..'`.`.,,.', ''.',  ..` .'",
+      ".,`'`'.`.`..`.`.``'``'..``'` .. `', ``',.''...,`,.,,,,',',.'  ,,..```.' .,''",
+      "..`'.`,.,.``,'.`,.'`,,.`,'`''' '`..' ,.''.,..,,`, `.```.,'',,',,`''`  ',.''",
+      "''.'.`'`,`',''``,' ,`...,.,'`. ,.`,' '.,'',`.'``,'```....' ',.. '.',. `'.., ,",
+      "'.'`.,,,,`,',,`..''``,',,,`.,``.',,`,`..'',..'.'`.'`..'`,.,,` .,.. .,.`' ,.,",
+      " ..,,.'`''`,.`',`.,`'.'.,,'``.'`'',,`'`,,`',.''..... .',,'`,`  ,.`, ..''`,,.`",
+      "`' .`.,.`,''.,,`.```..'``',....,`'`. .`',,'.'.``...' `.....`  `,'. `''',`.',,..",
+      "`..`..`.`.,'',`,.``,''',`',,`., .,'`,'',.....,.`,...','`',., ',..,'..'`,,',",
+      "`'`'.,,.'',`,.''`,','``'.''.`,',.`'`.`''`'',`.''``'`..,`,,. .,..,,'`,`,.,'`,, ",
+      "`,'`'.`'``.``'..` ..'.``''..,'.'.,,..'..,`..`.,',.,..''``' ,`.`,,.'`',..`,'  ,..",
+      " ,',```.,.,'`.`,``` `....`'..,.````..,'.','``,', .'.,,``''...,',..'  '.',,.",
+      "`'  ,..,.'..,.,``.,.``.'`''.,``,`,'...,.','.`,,,.,' .'',..'.,,`.` ''..'``.",
+      "  `. ...`.' .,,.,'','''','..`.'`'`..'.`.`.'.,.''`'.,, ..` `.`'''',`...'.`',,` ",
+      "`. ,,'.`,,'.'''',,.,,'a'``,'''`','.,`,',.`'',`,.,..'..,,',.',''`'.`.``,    ",
+      ",.`.``.,..,,.,``'.`,.,',,,.`'.''`.,'`,,`.',,'`,,.',``..'.'`.',.'```.,,,,  .``'",
+      ",    `'.``''',`'`,''''`'``'.''.,',,`',,,,.'.`.`',,,'.`,.`.'..`.'`...,,..'.     ",
+      ".,,.'    ,.'.'',''```,.`.'''``'.,,.`,`.....` ,,'`..`,',,'.,,`.`,'``,`.'`  '    ",
+      ".',`.,,`.  ,'.,`  ',`,,,.`.`...''..',,.'',`,',..'`.`.'`.'.,`'` .,,'.          ",
+      "`.`'.`.,'..,``'`,., `...,',..'',.'.,.,.'',..'.','''.'``'   `.`'`.  ,,        ",
+      "  .`.,'..,'`'...,,.''`,`,..,`,,'....',,',., `,`,'',.'. ..'a`',,.'.           ",
+      "'`.         `..'.  .,'...`.,',.`.',',..````.``..```',,.',`.''.              ",
+      ",'.''''','`,    ',`',,`'.a`..'a`'.'',``,@''.`'...``.`',...`'                  ",
+      "          '',`',.`,.'''`.','.`..``'.',`',.'`..'`..              `'          ",
+      ".`         `'`.,,     ,,'`'.,,',`.```.'``'`,',`.`..',,.'`'``,,``.            "
+    ],
+    "map_frame": 81,
+    "kit": [
+      {
+        "id": "i1",
+        "name": "furs {{b|\u0004}}2 {{K|\t}}-1",
+        "slot": "body"
+      },
+      {
+        "id": "i2",
+        "name": "torch (unburnt)",
+        "slot": "right hand"
+      },
+      {
+        "id": "i3",
+        "name": "{{w|bronze}} battle axe {{c|\u001a}}5 {{r|\u0003}}1d2",
+        "slot": "left hand"
+      },
+      {
+        "id": "i4",
+        "name": "waterskin {{y|[{{K|empty}}]}}",
+        "slot": null
+      },
+      {
+        "id": "i5",
+        "name": "waterskin {{y|[{{K|empty}}]}}",
+        "slot": null
+      },
+      {
+        "id": "i6",
+        "name": "torch x8 (unburnt)",
+        "slot": null
+      },
+      {
+        "id": "i7",
+        "name": "waterskin {{y|[{{rules|32}} drams of {{B|fresh water}}]}}",
+        "slot": null
+      },
+      {
+        "id": "i8",
+        "name": "{{w|bear jerky}} {{y|[{{C|8}} servings]}}",
+        "slot": null
+      },
+      {
+        "id": "i9",
+        "name": "{{W|witchwood bark}} x4",
+        "slot": null
+      }
+    ],
+    "ground": [],
+    "status": {
+      "effects": [
+        "lost"
+      ],
+      "effect_details": [
+        {
+          "name": "lost",
+          "description": "Can't fast travel."
+        }
+      ],
+      "on_fire": false,
+      "frozen": false,
+      "nearby_liquids": [],
+      "food_water": "{{g|Sated}} {{g|Quenched}}"
+    },
+    "place": {
+      "name": "outskirts, Red Rock, surface",
+      "world_map": false,
+      "lost": true
+    },
+    "goals": {
+      "text": "{{W|What's Eating the Watervine?}}\n\n{{white|&Gû&y &YTravel to Red Rock}}\n\n{{white|&Yù Find the Vermin}}\n   {{y|Find the creatures that are eating Joppa's watervine.}}\n\n{{white|&Yù Get a Corpse}}\n   {{y|Collect a corpse from one of the creatures.}}\n\n{{white|&Yù Return with the Corpse}}\n   {{y|Return to Joppa with the corpse of the watervine vermin.}}\n\nMehmet / Joppa\n",
+      "truncated": false
+    },
+    "character": {
+      "genotype": "Mutated Human",
+      "subtype": "Marauder",
+      "mutation_points": 0,
+      "mutations": [
+        {
+          "name": "Burrowing Claws",
+          "level": 1,
+          "description": "You bear spade-like claws that can burrow through the earth.",
+          "level_text": "Claw penetration vs. walls: {{rules|+3}}\nClaws destroy walls after 4 penetrating hits.\nClaws are also a short-blade class natural weapon that deal {{rules|1d2}} base damage to non-walls.",
+          "defect": false
+        },
+        {
+          "name": "Heightened Quickness",
+          "level": 1,
+          "description": "You are gifted with tremendous speed.",
+          "level_text": "+{{rules|15}} Quickness",
+          "defect": false
+        },
+        {
+          "name": "Albino",
+          "level": 1,
+          "description": "Your skin, hair, and eyes are absent of pigment.\n\nYou regenerate hit points at one-fifth the usual rate in the daylight.",
+          "level_text": "",
+          "defect": true
+        },
+        {
+          "name": "Kindle",
+          "level": 1,
+          "description": "You ignite a small fire with your mind.\n\nRange: 12\nCooldown: 50",
+          "level_text": "",
+          "defect": false
+        },
+        {
+          "name": "Light Manipulation",
+          "level": 1,
+          "description": "You manipulate light to your advantage.",
+          "level_text": "You produce ambient light within a radius of {{rules|4}}.\nYou may focus the light into a laser beam, temporarily reducing the radius of your ambient light by 1.\nLaser damage increment: {{rules|1d3}}\nLaser penetration: {{rules|8}}\nAmbient light recharges at a rate of 1 unit every 15 rounds until it reaches its maximum value.\n{{rules|13%}} chance to reflect light-based damage",
+          "defect": false
+        },
+        {
+          "name": "Mental Mirror",
+          "level": 1,
+          "description": "You reflect mental attacks back at your attackers.",
+          "level_text": "When you suffer a mental attack while Mental Mirror is off cooldown, you gain +{{rules|4}} mental armor (MA).\nIf the attack then fails to penetrate your MA, it's reflected back at your attacker.\nCooldown: 50",
+          "defect": false
+        },
+        {
+          "name": "Sense Psychic",
+          "level": 1,
+          "description": "You can sense other mental mutants through the psychic aether.\n\nYou detect the presence of psychic enemies within a radius of 9.\nThere's a chance you identify detected enemies.",
+          "level_text": "",
+          "defect": false
+        }
+      ],
+      "mutations_truncated": false,
+      "level": 1,
+      "xp": 50,
+      "next_level_xp": 220,
+      "skill_points": 0,
+      "attribute_points": 0,
+      "attributes": {
+        "Strength": {
+          "value": 21,
+          "base": 21
+        },
+        "Agility": {
+          "value": 17,
+          "base": 17
+        },
+        "Toughness": {
+          "value": 15,
+          "base": 15
+        },
+        "Intelligence": {
+          "value": 18,
+          "base": 18
+        },
+        "Willpower": {
+          "value": 12,
+          "base": 12
+        },
+        "Ego": {
+          "value": 20,
+          "base": 20
+        }
+      },
+      "owned_skills": [
+        "Axe",
+        "Axe:Axe_Expertise",
+        "Axe:Axe_Dismember",
+        "CookingAndGathering:CookingAndGathering_Butchery",
+        "Tactics:Tactics_Charge",
+        "Survival:Survival_Camp"
+      ],
+      "catalog_truncated": false
+    },
+    "item_details": [
+      {
+        "id": "i1",
+        "description": "It's a length of salt-sucked skin cut from a goat, or tomb ferret, and it's powdered with the white dust of the dead.\n\n{{K|Weight: 10 lbs.}}",
+        "comparison_name": "furs \u00042 \t-1",
+        "actions": [],
+        "effect_details": []
+      },
+      {
+        "id": "i2",
+        "description": "A length of brinestalk is wrapped in oil-sodden cloth.\n\n{{rules|Offhand Attack Chance: 15%}}\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "torch (unburnt)",
+        "actions": [],
+        "effect_details": []
+      },
+      {
+        "id": "i3",
+        "description": "Damp leather wraps the wood haft up to a sharpened bit of bell bronze.\n\n{{rules|Strength Bonus Cap: 1\nWeapon Class: Axe (cleaves armor on critical hit)}}\n\n{{K|Weight: 5 lbs.}}",
+        "comparison_name": "bronze battle axe \u001a5 \u00031d2",
+        "actions": [],
+        "effect_details": []
+      },
+      {
+        "id": "i4",
+        "description": "A goat's bladder is knotted at the bottom and suspended by a strap of intestine.\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "waterskin [empty]",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i5",
+        "description": "A goat's bladder is knotted at the bottom and suspended by a strap of intestine.\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "waterskin [empty]",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i6",
+        "description": "A length of brinestalk is wrapped in oil-sodden cloth.\n\n{{K|Weight: 8 lbs.}}",
+        "comparison_name": "torch (unburnt)",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i7",
+        "description": "A goat's bladder is knotted at the bottom and suspended by a strap of intestine.\n\n{{K|Weight: 9 lbs.}}",
+        "comparison_name": "waterskin [32 drams of fresh water]",
+        "actions": [
+          "drink",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i8",
+        "description": "Bear flesh was cut into neat strips, salted, and smoked.\n\n{{rules|Adds HP-based effects to cooked meals.}}\n\n{{K|Weight: 0 lbs.}}",
+        "comparison_name": "bear jerky",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i9",
+        "description": "Lichen sticks in the winding grooves of woodshed, shimmering and smelling of spice.\n\n{{rules|Heals and confuses when eaten.}}\n\n{{K|Weight: 4 lbs.}}",
+        "comparison_name": "witchwood bark",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      }
+    ]
+  },
+  "plan": {
+    "goal": "Go north along x39-41 to the north edge (y0) and cross into zone 11.20.0.1. From there head toward the Red Rock core to find the spider-like vermin or stairs down.",
+    "guidance": "If there's no combat, step N. Use NW or NE only if the way is blocked. Stay out of the east cluster (e7, e8 at x57-60) and away from e6 in the west (23,13). Baboon e1 is at 45,0, near the north exit. Fight it only one-on-one and only while HP is above 10. If 2 or more baboons come within 6 cells, move away from them and replan. Don't eat witchwood bark while a hostile is in view.",
+    "memory": "Quest (Mehmet, Joppa), What's Eating the Watervine?: Travel to Red Rock is done. Next: kill one of the spider-like vermin and bring its corpse back to Joppa. The core parcel is probably 11.20.1.1; stairs there are unconfirmed. Joppa 11.22.1.1 NPCs: Mehmet 42,19; Yrame 40,8; Ctesiphus 41,6; Tam 70,19. We're lost, so only local edge crossings work. North route from Joppa is x40 through the 11.22 zones 0.2/0.1/0.0 and 11.21 zones 0.2/0.1 (croc near x46-50, y5-6) and 0.0 (deep salty water at x30, y15-17). Entered 11.20.0.2 at 30,24. At turn 149 we were at 41,23 with full HP. Baboons at turn 149: 45,0; 0,3; 1,8; 23,13; 57,16; 60,20. A hulking baboon is somewhere unseen. Baboons throw stones for 1-3 damage and have hit only goats so far. Goats are neutral. The axe does 1d2, so avoid packs.",
+    "strategy": {
+      "build_goal": "Strength-based axe melee. Rely on the passives Heightened Quickness, ambient light and Mental Mirror. Dismember, Charge, Kindle and the laser need activation, which this executor cannot do.",
+      "next_upgrades": "All points are 0, so hold. Next buy: Cleave (150 SP, passive). Then Endurance and Shake It Off. Put attribute points into Toughness or Strength.",
+      "resource_policy": "Drink water and eat jerky only when thirsty or hungry. Witchwood bark heals but confuses, so eat it only with no enemy nearby and never in melee. Keep the unlit torches. Albino means slow daytime regeneration, so don't count on resting to heal."
+    },
+    "tactics": {
+      "mode": "travel",
+      "hostile_response": "fight",
+      "retreat_hp_fraction": 0.5,
+      "heal_hp_fraction": 0.6
+    },
+    "target": {
+      "x": 40,
+      "y": 0
+    },
+    "horizon": 8,
+    "selection": "c0",
+    "stop": false,
+    "automatic_goto": false,
+    "zone": "JoppaWorld.11.20.0.2.10",
+    "issued_seq": 80
+  },
+  "old_jev_choice": {
+    "type": "choice",
+    "choice": "c6",
+    "confidence": 0.37,
+    "probabilities": {
+      "c9": 0.04,
+      "c12": 0.01,
+      "c4": 0.02,
+      "c13": 0.01,
+      "c0": 0.11,
+      "c11": 0.01,
+      "c8": 0.05,
+      "c6": 0.42,
+      "c2": 0.03,
+      "c10": 0.11,
+      "c5": 0.03,
+      "c1": 0.01,
+      "c7": 0.14,
+      "c3": 0.01
+    }
+  },
+  "initial_observation": {
+    "vitals": {
+      "hp": 15,
+      "max_hp": 15,
+      "x": 37,
+      "y": 22,
+      "zone": "JoppaWorld.11.22.1.1.10",
+      "turn": 0,
+      "energy": 1150
+    },
+    "threats": [
+      {
+        "id": "e1",
+        "name": "Ctesiphus",
+        "wound": "{{Y|Perfect}}",
+        "x": 41,
+        "y": 6,
+        "hostile": false
+      },
+      {
+        "id": "e2",
+        "name": "Warden Yrame",
+        "wound": "{{Y|Perfect}}",
+        "x": 40,
+        "y": 8,
+        "hostile": false
+      },
+      {
+        "id": "e3",
+        "name": "watervine farmer and Mechanimist convert",
+        "wound": "{{Y|Perfect}}",
+        "x": 44,
+        "y": 15,
+        "hostile": false
+      },
+      {
+        "id": "e4",
+        "name": "Mehmet",
+        "wound": "{{Y|Perfect}}",
+        "x": 42,
+        "y": 19,
+        "hostile": false
+      },
+      {
+        "id": "e5",
+        "name": "watervine farmer",
+        "wound": "{{Y|Perfect}}",
+        "x": 54,
+        "y": 19,
+        "hostile": false
+      },
+      {
+        "id": "e6",
+        "name": "Tam, dromad merchant [{{B|sitting}}]",
+        "wound": "{{Y|Perfect}}",
+        "x": 70,
+        "y": 19,
+        "hostile": false
+      },
+      {
+        "id": "e7",
+        "name": "watervine farmer",
+        "wound": "{{Y|Perfect}}",
+        "x": 47,
+        "y": 21,
+        "hostile": false
+      },
+      {
+        "id": "e8",
+        "name": "watervine farmer",
+        "wound": "{{Y|Perfect}}",
+        "x": 54,
+        "y": 21,
+        "hostile": false
+      }
+    ],
+    "digest": [],
+    "map": [
+      "                                                               ,`               ",
+      "                                                              'ô                ",
+      "                                   ×                         ,ô                 ",
+      "                                   ù                        '                   ",
+      "                                   ú                       .                    ",
+      "                                   Ø     ××              úú                     ",
+      "                                 ××`××+××l`×            '.                      ",
+      "                                 `.'`ùúù'..            `                        ",
+      "                                  'úúúúúw`'           .                         ",
+      "`                                 .úúúúúú',     ×    .                          ",
+      "...`                              '`úúúúúù`×    ×   `×                          ",
+      "`.....`                           úúúúúúúúú+   þ  úú'×                          ",
+      ",.ú,``.`ô,                        'úúúúúú`,×× ã  'ú,.×                          ",
+      "úúúúúú`'.,.ú                     ×`.úúúúú.``×Ø××,'ú,'×                          ",
+      "`,.'`úúúúúúú.',                  ,..úúúú...,.,`,..ú.,× ×    ú.×                 ",
+      "    `...ú,..``.'ú'               ×,ùúúúúú'.`z..,,.ú.`.úùúúúúú,×           '..   ",
+      "         ù=,..,`úú'`.            ×.úúúúú`.',.`úúúúúúúúú..``'úú×      .`         ",
+      "           ±',.`.úúúú...         +'úúúúúúúúúúúú'ôô.,.ôôôôô.'`,úúú.,'Ø           ",
+      "              ..,`.`úú,`',       ×`úúúúúú`.`ô.ôôôôôôôôôôôôôô.,,.úú,ùúããØ        ",
+      "                ,.'.úúúúú,.,  ×××..úúúú',fôôôôôôôôôôôf~~ôô''.`,`.úúú\tdþØ       ",
+      "                 ô,`,'``úú.,',.','.úúúú.`ôôôôô~~~ôô~~~~ôôô,,..,..'=úååØ        ",
+      "                    ..,,,úúúúúúúú'`úúúúù',,,,ôf~~~ôô~fôôôôô'``.'.'.Ø           ",
+      "                      `,..,...,'úúúú@úú'.,..,'.ôôôôôôô,`...`......'``...''`.,`.",
+      "                    ô,,'``.,`.,``,úúúú,''`'',,,..`.....'.''....'.'..`,'....''.'",
+      "                ô..,,.'.,.`.....'.úúúú'.,.','.,.`.``',,'.`.'`.`.,`,.'.'..',''`,"
+    ],
+    "map_frame": 1,
+    "kit": [
+      {
+        "id": "i1",
+        "name": "furs {{b|\u0004}}2 {{K|\t}}-1",
+        "slot": "body"
+      },
+      {
+        "id": "i2",
+        "name": "lit torch ({{Y|blazing}})",
+        "slot": "right hand"
+      },
+      {
+        "id": "i3",
+        "name": "{{w|bronze}} battle axe {{c|\u001a}}5 {{r|\u0003}}1d2",
+        "slot": "left hand"
+      },
+      {
+        "id": "i4",
+        "name": "waterskin {{y|[{{K|empty}}]}}",
+        "slot": null
+      },
+      {
+        "id": "i5",
+        "name": "waterskin {{y|[{{K|empty}}]}}",
+        "slot": null
+      },
+      {
+        "id": "i6",
+        "name": "torch x8 (unburnt)",
+        "slot": null
+      },
+      {
+        "id": "i7",
+        "name": "waterskin {{y|[{{rules|32}} drams of {{B|fresh water}}]}}",
+        "slot": null
+      },
+      {
+        "id": "i8",
+        "name": "{{w|bear jerky}} {{y|[{{C|8}} servings]}}",
+        "slot": null
+      },
+      {
+        "id": "i9",
+        "name": "{{W|witchwood bark}} x4",
+        "slot": null
+      }
+    ],
+    "ground": [],
+    "status": {
+      "effects": [],
+      "effect_details": [],
+      "on_fire": false,
+      "frozen": false,
+      "nearby_liquids": [],
+      "food_water": "{{g|Sated}} {{g|Quenched}}"
+    },
+    "place": {
+      "name": "Joppa",
+      "world_map": false,
+      "lost": false
+    },
+    "goals": {
+      "text": "",
+      "truncated": false
+    },
+    "character": {
+      "genotype": "Mutated Human",
+      "subtype": "Marauder",
+      "mutation_points": 0,
+      "mutations": [
+        {
+          "name": "Burrowing Claws",
+          "level": 1,
+          "description": "You bear spade-like claws that can burrow through the earth.",
+          "level_text": "Claw penetration vs. walls: {{rules|+3}}\nClaws destroy walls after 4 penetrating hits.\nClaws are also a short-blade class natural weapon that deal {{rules|1d2}} base damage to non-walls.",
+          "defect": false
+        },
+        {
+          "name": "Heightened Quickness",
+          "level": 1,
+          "description": "You are gifted with tremendous speed.",
+          "level_text": "+{{rules|15}} Quickness",
+          "defect": false
+        },
+        {
+          "name": "Albino",
+          "level": 1,
+          "description": "Your skin, hair, and eyes are absent of pigment.\n\nYou regenerate hit points at one-fifth the usual rate in the daylight.",
+          "level_text": "",
+          "defect": true
+        },
+        {
+          "name": "Kindle",
+          "level": 1,
+          "description": "You ignite a small fire with your mind.\n\nRange: 12\nCooldown: 50",
+          "level_text": "",
+          "defect": false
+        },
+        {
+          "name": "Light Manipulation",
+          "level": 1,
+          "description": "You manipulate light to your advantage.",
+          "level_text": "You produce ambient light within a radius of {{rules|4}}.\nYou may focus the light into a laser beam, temporarily reducing the radius of your ambient light by 1.\nLaser damage increment: {{rules|1d3}}\nLaser penetration: {{rules|8}}\nAmbient light recharges at a rate of 1 unit every 15 rounds until it reaches its maximum value.\n{{rules|13%}} chance to reflect light-based damage",
+          "defect": false
+        },
+        {
+          "name": "Mental Mirror",
+          "level": 1,
+          "description": "You reflect mental attacks back at your attackers.",
+          "level_text": "When you suffer a mental attack while Mental Mirror is off cooldown, you gain +{{rules|4}} mental armor (MA).\nIf the attack then fails to penetrate your MA, it's reflected back at your attacker.\nCooldown: 50",
+          "defect": false
+        },
+        {
+          "name": "Sense Psychic",
+          "level": 1,
+          "description": "You can sense other mental mutants through the psychic aether.\n\nYou detect the presence of psychic enemies within a radius of 9.\nThere's a chance you identify detected enemies.",
+          "level_text": "",
+          "defect": false
+        }
+      ],
+      "mutations_truncated": false,
+      "level": 1,
+      "xp": 0,
+      "next_level_xp": 220,
+      "skill_points": 0,
+      "attribute_points": 0,
+      "attributes": {
+        "Strength": {
+          "value": 21,
+          "base": 21
+        },
+        "Agility": {
+          "value": 17,
+          "base": 17
+        },
+        "Toughness": {
+          "value": 15,
+          "base": 15
+        },
+        "Intelligence": {
+          "value": 18,
+          "base": 18
+        },
+        "Willpower": {
+          "value": 12,
+          "base": 12
+        },
+        "Ego": {
+          "value": 20,
+          "base": 20
+        }
+      },
+      "owned_skills": [
+        "Axe",
+        "Axe:Axe_Expertise",
+        "Axe:Axe_Dismember",
+        "CookingAndGathering:CookingAndGathering_Butchery",
+        "Tactics:Tactics_Charge",
+        "Survival:Survival_Camp"
+      ],
+      "catalog_truncated": false
+    },
+    "item_details": [
+      {
+        "id": "i1",
+        "description": "It's a length of salt-sucked skin cut from a goat, or tomb ferret, and it's powdered with the white dust of the dead.\n\n{{K|Weight: 10 lbs.}}",
+        "comparison_name": "furs \u00042 \t-1",
+        "actions": [],
+        "effect_details": []
+      },
+      {
+        "id": "i2",
+        "description": "A length of brinestalk is wrapped in oil-sodden cloth.\n\n{{rules|Offhand Attack Chance: 15%}}\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "lit torch (blazing)",
+        "actions": [],
+        "effect_details": []
+      },
+      {
+        "id": "i3",
+        "description": "Damp leather wraps the wood haft up to a sharpened bit of bell bronze.\n\n{{rules|Strength Bonus Cap: 1\nWeapon Class: Axe (cleaves armor on critical hit)}}\n\n{{K|Weight: 5 lbs.}}",
+        "comparison_name": "bronze battle axe \u001a5 \u00031d2",
+        "actions": [],
+        "effect_details": []
+      },
+      {
+        "id": "i4",
+        "description": "A goat's bladder is knotted at the bottom and suspended by a strap of intestine.\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "waterskin [empty]",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i5",
+        "description": "A goat's bladder is knotted at the bottom and suspended by a strap of intestine.\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "waterskin [empty]",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i6",
+        "description": "A length of brinestalk is wrapped in oil-sodden cloth.\n\n{{K|Weight: 8 lbs.}}",
+        "comparison_name": "torch (unburnt)",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i7",
+        "description": "A goat's bladder is knotted at the bottom and suspended by a strap of intestine.\n\n{{K|Weight: 9 lbs.}}",
+        "comparison_name": "waterskin [32 drams of fresh water]",
+        "actions": [
+          "drink",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i8",
+        "description": "Bear flesh was cut into neat strips, salted, and smoked.\n\n{{rules|Adds HP-based effects to cooked meals.}}\n\n{{K|Weight: 0 lbs.}}",
+        "comparison_name": "bear jerky",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i9",
+        "description": "Lichen sticks in the winding grooves of woodshed, shimmering and smelling of spice.\n\n{{rules|Heals and confuses when eaten.}}\n\n{{K|Weight: 4 lbs.}}",
+        "comparison_name": "witchwood bark",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      }
+    ]
+  }
+}

@@ -1,0 +1,927 @@
+{
+  "before_food": {
+    "vitals": {
+      "hp": 19,
+      "max_hp": 19,
+      "x": 17,
+      "y": 7,
+      "zone": "JoppaWorld.11.22.2.1.10",
+      "turn": 29,
+      "energy": 1078
+    },
+    "threats": [],
+    "kit": [
+      {
+        "id": "i1",
+        "name": "woven tunic {{b|\u0004}}1 {{K|\t}}2",
+        "slot": "body"
+      },
+      {
+        "id": "i2",
+        "name": "torch (unburnt)",
+        "slot": "right hand"
+      },
+      {
+        "id": "i3",
+        "name": "iron vinereaper {{c|\u001a}}3 {{r|\u0003}}1d3",
+        "slot": "left hand"
+      },
+      {
+        "id": "i4",
+        "name": "waterskin {{y|[{{K|empty}}]}}",
+        "slot": null
+      },
+      {
+        "id": "i5",
+        "name": "waterskin {{y|[{{K|empty}}]}}",
+        "slot": null
+      },
+      {
+        "id": "i6",
+        "name": "torch x11 (unburnt)",
+        "slot": null
+      },
+      {
+        "id": "i7",
+        "name": "waterskin {{y|[{{rules|32}} drams of {{B|fresh water}}]}}",
+        "slot": null
+      },
+      {
+        "id": "i8",
+        "name": "{{g|vinewafer sheaf}} {{y|[{{C|8}} servings]}}",
+        "slot": null
+      },
+      {
+        "id": "i9",
+        "name": "{{G|farmer's token}}",
+        "slot": null
+      },
+      {
+        "id": "i10",
+        "name": "{{R|starapple jam}} {{y|[{{C|2}} servings]}}",
+        "slot": null
+      },
+      {
+        "id": "i11",
+        "name": "congealed {{G|hulk}} {{w|honey}} {{y|[{{C|1}} serving]}}",
+        "slot": null
+      },
+      {
+        "id": "i12",
+        "name": "{{K|dried vanta petals}} {{y|[{{C|1}} serving]}}",
+        "slot": null
+      },
+      {
+        "id": "i13",
+        "name": "{{|&gToo I Suppose, 52nd Edition}}",
+        "slot": null
+      },
+      {
+        "id": "i14",
+        "name": "{{W|witchwood bark}} x7",
+        "slot": null
+      }
+    ],
+    "item_details": [
+      {
+        "id": "i1",
+        "description": "A coarse flax waist is cinched with a watervine hemp rope.\n\n{{K|Weight: 5 lbs.}}",
+        "comparison_name": "woven tunic \u00041 \t2",
+        "actions": [],
+        "effect_details": []
+      },
+      {
+        "id": "i2",
+        "description": "A length of brinestalk is wrapped in oil-sodden cloth.\n\n{{rules|Offhand Attack Chance: 15%}}\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "torch (unburnt)",
+        "actions": [],
+        "effect_details": []
+      },
+      {
+        "id": "i3",
+        "description": "Wrought iron was moulded to a crescent for scything the rough hides of watervine.\n\n{{rules|Strength Bonus Cap: 2\nWeapon Class: Axe (cleaves armor on critical hit)}}\n\n{{K|Weight: 5 lbs.}}",
+        "comparison_name": "iron vinereaper \u001a3 \u00031d3",
+        "actions": [],
+        "effect_details": []
+      },
+      {
+        "id": "i4",
+        "description": "A goat's bladder is knotted at the bottom and suspended by a strap of intestine.\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "waterskin [empty]",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i5",
+        "description": "A goat's bladder is knotted at the bottom and suspended by a strap of intestine.\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "waterskin [empty]",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i6",
+        "description": "A length of brinestalk is wrapped in oil-sodden cloth.\n\n{{K|Weight: 11 lbs.}}",
+        "comparison_name": "torch (unburnt)",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i7",
+        "description": "A goat's bladder is knotted at the bottom and suspended by a strap of intestine.\n\n{{K|Weight: 9 lbs.}}",
+        "comparison_name": "waterskin [32 drams of fresh water]",
+        "actions": [
+          "drink",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i8",
+        "description": "Bunched wafers reaped from the moisture-sucking watervine plant and bound by twine.\n\n{{rules|Adds water and thirst-based effects to cooked meals.}}\n\n{{K|Weight: 0 lbs.}}",
+        "comparison_name": "vinewafer sheaf",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i9",
+        "description": "The ancient bronze coin has a square cut from its center. Time has furnished it with a seafoam patina.\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "farmer's token",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i10",
+        "description": "Sweet starapples were mashed, set over an open flame, left out to cool, and jarred for later use. Bits of stringy pulp lay suspended in the fruity aether.\n\n{{rules|Adds regeneration and healing-based effects to cooked meals.}}\n\n{{K|Weight: 0 lbs.}}",
+        "comparison_name": "starapple jam",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i11",
+        "description": "Hulk honey was extracted from its injector, thickened in the acrid air, and bottled for culinary use.\n\n{{rules|Adds Strength-based effects to cooked meals.}}\n\n{{K|Weight: 0 lbs.}}",
+        "comparison_name": "congealed hulk honey",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i12",
+        "description": "Light drips off the dried lunes' boundaries of influence and seeps into the void.\n\n{{rules|Adds darkness-based effects to cooked meals.}}\n\n{{K|Weight: 0 lbs.}}",
+        "comparison_name": "dried vanta petals",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i13",
+        "description": "Crisp pages of goatskin vellum are bound into a codex.\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "Too I Suppose, 52nd Edition",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i14",
+        "description": "Lichen sticks in the winding grooves of woodshed, shimmering and smelling of spice.\n\n{{rules|Heals and confuses when eaten.}}\n\n{{K|Weight: 7 lbs.}}",
+        "comparison_name": "witchwood bark",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      }
+    ],
+    "status": {
+      "effects": [
+        "lost"
+      ],
+      "effect_details": [
+        {
+          "name": "lost",
+          "description": "Can't fast travel."
+        }
+      ],
+      "on_fire": false,
+      "frozen": false,
+      "nearby_liquids": [],
+      "food_water": "{{g|Sated}} {{g|Quenched}}"
+    }
+  },
+  "after_food": {
+    "vitals": {
+      "hp": 19,
+      "max_hp": 19,
+      "x": 10,
+      "y": 8,
+      "zone": "JoppaWorld.11.22.2.1.10",
+      "turn": 41,
+      "energy": 1019
+    },
+    "threats": [],
+    "kit": [
+      {
+        "id": "i1",
+        "name": "woven tunic {{b|\u0004}}1 {{K|\t}}2",
+        "slot": "body"
+      },
+      {
+        "id": "i2",
+        "name": "torch (unburnt)",
+        "slot": "right hand"
+      },
+      {
+        "id": "i3",
+        "name": "iron vinereaper {{c|\u001a}}3 {{r|\u0003}}1d3",
+        "slot": "left hand"
+      },
+      {
+        "id": "i4",
+        "name": "waterskin {{y|[{{K|empty}}]}}",
+        "slot": null
+      },
+      {
+        "id": "i5",
+        "name": "waterskin {{y|[{{K|empty}}]}}",
+        "slot": null
+      },
+      {
+        "id": "i6",
+        "name": "torch x11 (unburnt)",
+        "slot": null
+      },
+      {
+        "id": "i7",
+        "name": "waterskin {{y|[{{rules|32}} drams of {{B|fresh water}}]}}",
+        "slot": null
+      },
+      {
+        "id": "i8",
+        "name": "{{g|vinewafer sheaf}} {{y|[{{C|8}} servings]}}",
+        "slot": null
+      },
+      {
+        "id": "i9",
+        "name": "{{G|farmer's token}}",
+        "slot": null
+      },
+      {
+        "id": "i10",
+        "name": "{{R|starapple jam}} {{y|[{{C|2}} servings]}}",
+        "slot": null
+      },
+      {
+        "id": "i11",
+        "name": "congealed {{G|hulk}} {{w|honey}} {{y|[{{C|1}} serving]}}",
+        "slot": null
+      },
+      {
+        "id": "i12",
+        "name": "{{K|dried vanta petals}} {{y|[{{C|1}} serving]}}",
+        "slot": null
+      },
+      {
+        "id": "i13",
+        "name": "{{|&gToo I Suppose, 52nd Edition}}",
+        "slot": null
+      },
+      {
+        "id": "i14",
+        "name": "{{W|witchwood bark}} x7",
+        "slot": null
+      },
+      {
+        "id": "i15",
+        "name": "vinewafer",
+        "slot": null
+      }
+    ],
+    "item_details": [
+      {
+        "id": "i1",
+        "description": "A coarse flax waist is cinched with a watervine hemp rope.\n\n{{K|Weight: 5 lbs.}}",
+        "comparison_name": "woven tunic \u00041 \t2",
+        "actions": [],
+        "effect_details": []
+      },
+      {
+        "id": "i2",
+        "description": "A length of brinestalk is wrapped in oil-sodden cloth.\n\n{{rules|Offhand Attack Chance: 15%}}\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "torch (unburnt)",
+        "actions": [],
+        "effect_details": []
+      },
+      {
+        "id": "i3",
+        "description": "Wrought iron was moulded to a crescent for scything the rough hides of watervine.\n\n{{rules|Strength Bonus Cap: 2\nWeapon Class: Axe (cleaves armor on critical hit)}}\n\n{{K|Weight: 5 lbs.}}",
+        "comparison_name": "iron vinereaper \u001a3 \u00031d3",
+        "actions": [],
+        "effect_details": []
+      },
+      {
+        "id": "i4",
+        "description": "A goat's bladder is knotted at the bottom and suspended by a strap of intestine.\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "waterskin [empty]",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i5",
+        "description": "A goat's bladder is knotted at the bottom and suspended by a strap of intestine.\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "waterskin [empty]",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i6",
+        "description": "A length of brinestalk is wrapped in oil-sodden cloth.\n\n{{K|Weight: 11 lbs.}}",
+        "comparison_name": "torch (unburnt)",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i7",
+        "description": "A goat's bladder is knotted at the bottom and suspended by a strap of intestine.\n\n{{K|Weight: 9 lbs.}}",
+        "comparison_name": "waterskin [32 drams of fresh water]",
+        "actions": [
+          "drink",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i8",
+        "description": "Bunched wafers reaped from the moisture-sucking watervine plant and bound by twine.\n\n{{rules|Adds water and thirst-based effects to cooked meals.}}\n\n{{K|Weight: 0 lbs.}}",
+        "comparison_name": "vinewafer sheaf",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i9",
+        "description": "The ancient bronze coin has a square cut from its center. Time has furnished it with a seafoam patina.\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "farmer's token",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i10",
+        "description": "Sweet starapples were mashed, set over an open flame, left out to cool, and jarred for later use. Bits of stringy pulp lay suspended in the fruity aether.\n\n{{rules|Adds regeneration and healing-based effects to cooked meals.}}\n\n{{K|Weight: 0 lbs.}}",
+        "comparison_name": "starapple jam",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i11",
+        "description": "Hulk honey was extracted from its injector, thickened in the acrid air, and bottled for culinary use.\n\n{{rules|Adds Strength-based effects to cooked meals.}}\n\n{{K|Weight: 0 lbs.}}",
+        "comparison_name": "congealed hulk honey",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i12",
+        "description": "Light drips off the dried lunes' boundaries of influence and seeps into the void.\n\n{{rules|Adds darkness-based effects to cooked meals.}}\n\n{{K|Weight: 0 lbs.}}",
+        "comparison_name": "dried vanta petals",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i13",
+        "description": "Crisp pages of goatskin vellum are bound into a codex.\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "Too I Suppose, 52nd Edition",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i14",
+        "description": "Lichen sticks in the winding grooves of woodshed, shimmering and smelling of spice.\n\n{{rules|Heals and confuses when eaten.}}\n\n{{K|Weight: 7 lbs.}}",
+        "comparison_name": "witchwood bark",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i15",
+        "description": "A little nub of cork swells with moisture. It was watered over hot weeks by a splayed frond, vested with inhuman patience, who sucked one mote of rain from a hundred-mile wind.\n\n{{K|Weight: 0 lbs.}}",
+        "comparison_name": "vinewafer",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      }
+    ],
+    "status": {
+      "effects": [
+        "lost"
+      ],
+      "effect_details": [
+        {
+          "name": "lost",
+          "description": "Can't fast travel."
+        }
+      ],
+      "on_fire": false,
+      "frozen": false,
+      "nearby_liquids": [],
+      "food_water": "{{g|Sated}} {{g|Quenched}}"
+    }
+  },
+  "before_torch": {
+    "vitals": {
+      "hp": 19,
+      "max_hp": 19,
+      "x": 40,
+      "y": 24,
+      "zone": "JoppaWorld.11.20.1.1.10",
+      "turn": 49,
+      "energy": 1158
+    },
+    "threats": [],
+    "kit": [
+      {
+        "id": "i1",
+        "name": "woven tunic {{b|\u0004}}1 {{K|\t}}2",
+        "slot": "body"
+      },
+      {
+        "id": "i2",
+        "name": "torch (unburnt)",
+        "slot": "right hand"
+      },
+      {
+        "id": "i3",
+        "name": "iron vinereaper {{c|\u001a}}3 {{r|\u0003}}1d3",
+        "slot": "left hand"
+      },
+      {
+        "id": "i4",
+        "name": "waterskin {{y|[{{K|empty}}]}}",
+        "slot": null
+      },
+      {
+        "id": "i5",
+        "name": "waterskin {{y|[{{K|empty}}]}}",
+        "slot": null
+      },
+      {
+        "id": "i6",
+        "name": "torch x11 (unburnt)",
+        "slot": null
+      },
+      {
+        "id": "i7",
+        "name": "waterskin {{y|[{{rules|31}} drams of {{B|fresh water}}]}}",
+        "slot": null
+      },
+      {
+        "id": "i8",
+        "name": "{{g|vinewafer sheaf}} {{y|[{{C|8}} servings]}}",
+        "slot": null
+      },
+      {
+        "id": "i9",
+        "name": "{{G|farmer's token}}",
+        "slot": null
+      },
+      {
+        "id": "i10",
+        "name": "{{R|starapple jam}} {{y|[{{C|2}} servings]}}",
+        "slot": null
+      },
+      {
+        "id": "i11",
+        "name": "congealed {{G|hulk}} {{w|honey}} {{y|[{{C|1}} serving]}}",
+        "slot": null
+      },
+      {
+        "id": "i12",
+        "name": "{{K|dried vanta petals}} {{y|[{{C|1}} serving]}}",
+        "slot": null
+      },
+      {
+        "id": "i13",
+        "name": "{{|&gToo I Suppose, 52nd Edition}}",
+        "slot": null
+      },
+      {
+        "id": "i14",
+        "name": "{{W|witchwood bark}} x7",
+        "slot": null
+      },
+      {
+        "id": "i15",
+        "name": "vinewafer",
+        "slot": null
+      }
+    ],
+    "item_details": [
+      {
+        "id": "i1",
+        "description": "A coarse flax waist is cinched with a watervine hemp rope.\n\n{{K|Weight: 5 lbs.}}",
+        "comparison_name": "woven tunic \u00041 \t2",
+        "actions": [],
+        "effect_details": []
+      },
+      {
+        "id": "i2",
+        "description": "A length of brinestalk is wrapped in oil-sodden cloth.\n\n{{rules|Offhand Attack Chance: 15%}}\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "torch (unburnt)",
+        "actions": [],
+        "effect_details": []
+      },
+      {
+        "id": "i3",
+        "description": "Wrought iron was moulded to a crescent for scything the rough hides of watervine.\n\n{{rules|Strength Bonus Cap: 2\nWeapon Class: Axe (cleaves armor on critical hit)}}\n\n{{K|Weight: 5 lbs.}}",
+        "comparison_name": "iron vinereaper \u001a3 \u00031d3",
+        "actions": [],
+        "effect_details": []
+      },
+      {
+        "id": "i4",
+        "description": "A goat's bladder is knotted at the bottom and suspended by a strap of intestine.\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "waterskin [empty]",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i5",
+        "description": "A goat's bladder is knotted at the bottom and suspended by a strap of intestine.\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "waterskin [empty]",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i6",
+        "description": "A length of brinestalk is wrapped in oil-sodden cloth.\n\n{{K|Weight: 11 lbs.}}",
+        "comparison_name": "torch (unburnt)",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i7",
+        "description": "A goat's bladder is knotted at the bottom and suspended by a strap of intestine.\n\n{{K|Weight: 8 lbs.}}",
+        "comparison_name": "waterskin [31 drams of fresh water]",
+        "actions": [
+          "drink",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i8",
+        "description": "Bunched wafers reaped from the moisture-sucking watervine plant and bound by twine.\n\n{{rules|Adds water and thirst-based effects to cooked meals.}}\n\n{{K|Weight: 0 lbs.}}",
+        "comparison_name": "vinewafer sheaf",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i9",
+        "description": "The ancient bronze coin has a square cut from its center. Time has furnished it with a seafoam patina.\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "farmer's token",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i10",
+        "description": "Sweet starapples were mashed, set over an open flame, left out to cool, and jarred for later use. Bits of stringy pulp lay suspended in the fruity aether.\n\n{{rules|Adds regeneration and healing-based effects to cooked meals.}}\n\n{{K|Weight: 0 lbs.}}",
+        "comparison_name": "starapple jam",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i11",
+        "description": "Hulk honey was extracted from its injector, thickened in the acrid air, and bottled for culinary use.\n\n{{rules|Adds Strength-based effects to cooked meals.}}\n\n{{K|Weight: 0 lbs.}}",
+        "comparison_name": "congealed hulk honey",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i12",
+        "description": "Light drips off the dried lunes' boundaries of influence and seeps into the void.\n\n{{rules|Adds darkness-based effects to cooked meals.}}\n\n{{K|Weight: 0 lbs.}}",
+        "comparison_name": "dried vanta petals",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i13",
+        "description": "Crisp pages of goatskin vellum are bound into a codex.\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "Too I Suppose, 52nd Edition",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i14",
+        "description": "Lichen sticks in the winding grooves of woodshed, shimmering and smelling of spice.\n\n{{rules|Heals and confuses when eaten.}}\n\n{{K|Weight: 7 lbs.}}",
+        "comparison_name": "witchwood bark",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i15",
+        "description": "A little nub of cork swells with moisture. It was watered over hot weeks by a splayed frond, vested with inhuman patience, who sucked one mote of rain from a hundred-mile wind.\n\n{{K|Weight: 0 lbs.}}",
+        "comparison_name": "vinewafer",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      }
+    ],
+    "status": {
+      "effects": [],
+      "effect_details": [],
+      "on_fire": false,
+      "frozen": false,
+      "nearby_liquids": [],
+      "food_water": "{{W|Hungry}} {{g|Quenched}}"
+    }
+  },
+  "after_torch": {
+    "vitals": {
+      "hp": 19,
+      "max_hp": 19,
+      "x": 40,
+      "y": 24,
+      "zone": "JoppaWorld.11.20.1.1.10",
+      "turn": 50,
+      "energy": 1063
+    },
+    "threats": [],
+    "kit": [
+      {
+        "id": "i1",
+        "name": "woven tunic {{b|\u0004}}1 {{K|\t}}2",
+        "slot": "body"
+      },
+      {
+        "id": "i2",
+        "name": "lit torch ({{Y|blazing}})",
+        "slot": "right hand"
+      },
+      {
+        "id": "i3",
+        "name": "iron vinereaper {{c|\u001a}}3 {{r|\u0003}}1d3",
+        "slot": "left hand"
+      },
+      {
+        "id": "i4",
+        "name": "waterskin {{y|[{{K|empty}}]}}",
+        "slot": null
+      },
+      {
+        "id": "i5",
+        "name": "waterskin {{y|[{{K|empty}}]}}",
+        "slot": null
+      },
+      {
+        "id": "i6",
+        "name": "torch x11 (unburnt)",
+        "slot": null
+      },
+      {
+        "id": "i7",
+        "name": "waterskin {{y|[{{rules|31}} drams of {{B|fresh water}}]}}",
+        "slot": null
+      },
+      {
+        "id": "i8",
+        "name": "{{g|vinewafer sheaf}} {{y|[{{C|8}} servings]}}",
+        "slot": null
+      },
+      {
+        "id": "i9",
+        "name": "{{G|farmer's token}}",
+        "slot": null
+      },
+      {
+        "id": "i10",
+        "name": "{{R|starapple jam}} {{y|[{{C|2}} servings]}}",
+        "slot": null
+      },
+      {
+        "id": "i11",
+        "name": "congealed {{G|hulk}} {{w|honey}} {{y|[{{C|1}} serving]}}",
+        "slot": null
+      },
+      {
+        "id": "i12",
+        "name": "{{K|dried vanta petals}} {{y|[{{C|1}} serving]}}",
+        "slot": null
+      },
+      {
+        "id": "i13",
+        "name": "{{|&gToo I Suppose, 52nd Edition}}",
+        "slot": null
+      },
+      {
+        "id": "i14",
+        "name": "{{W|witchwood bark}} x7",
+        "slot": null
+      }
+    ],
+    "item_details": [
+      {
+        "id": "i1",
+        "description": "A coarse flax waist is cinched with a watervine hemp rope.\n\n{{K|Weight: 5 lbs.}}",
+        "comparison_name": "woven tunic \u00041 \t2",
+        "actions": [],
+        "effect_details": []
+      },
+      {
+        "id": "i2",
+        "description": "A length of brinestalk is wrapped in oil-sodden cloth.\n\n{{rules|Offhand Attack Chance: 15%}}\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "lit torch (blazing)",
+        "actions": [],
+        "effect_details": []
+      },
+      {
+        "id": "i3",
+        "description": "Wrought iron was moulded to a crescent for scything the rough hides of watervine.\n\n{{rules|Strength Bonus Cap: 2\nWeapon Class: Axe (cleaves armor on critical hit)}}\n\n{{K|Weight: 5 lbs.}}",
+        "comparison_name": "iron vinereaper \u001a3 \u00031d3",
+        "actions": [],
+        "effect_details": []
+      },
+      {
+        "id": "i4",
+        "description": "A goat's bladder is knotted at the bottom and suspended by a strap of intestine.\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "waterskin [empty]",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i5",
+        "description": "A goat's bladder is knotted at the bottom and suspended by a strap of intestine.\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "waterskin [empty]",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i6",
+        "description": "A length of brinestalk is wrapped in oil-sodden cloth.\n\n{{K|Weight: 11 lbs.}}",
+        "comparison_name": "torch (unburnt)",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i7",
+        "description": "A goat's bladder is knotted at the bottom and suspended by a strap of intestine.\n\n{{K|Weight: 8 lbs.}}",
+        "comparison_name": "waterskin [31 drams of fresh water]",
+        "actions": [
+          "drink",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i8",
+        "description": "Bunched wafers reaped from the moisture-sucking watervine plant and bound by twine.\n\n{{rules|Adds water and thirst-based effects to cooked meals.}}\n\n{{K|Weight: 0 lbs.}}",
+        "comparison_name": "vinewafer sheaf",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i9",
+        "description": "The ancient bronze coin has a square cut from its center. Time has furnished it with a seafoam patina.\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "farmer's token",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i10",
+        "description": "Sweet starapples were mashed, set over an open flame, left out to cool, and jarred for later use. Bits of stringy pulp lay suspended in the fruity aether.\n\n{{rules|Adds regeneration and healing-based effects to cooked meals.}}\n\n{{K|Weight: 0 lbs.}}",
+        "comparison_name": "starapple jam",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i11",
+        "description": "Hulk honey was extracted from its injector, thickened in the acrid air, and bottled for culinary use.\n\n{{rules|Adds Strength-based effects to cooked meals.}}\n\n{{K|Weight: 0 lbs.}}",
+        "comparison_name": "congealed hulk honey",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i12",
+        "description": "Light drips off the dried lunes' boundaries of influence and seeps into the void.\n\n{{rules|Adds darkness-based effects to cooked meals.}}\n\n{{K|Weight: 0 lbs.}}",
+        "comparison_name": "dried vanta petals",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i13",
+        "description": "Crisp pages of goatskin vellum are bound into a codex.\n\n{{K|Weight: 1 lbs.}}",
+        "comparison_name": "Too I Suppose, 52nd Edition",
+        "actions": [
+          "equip"
+        ],
+        "effect_details": []
+      },
+      {
+        "id": "i14",
+        "description": "Lichen sticks in the winding grooves of woodshed, shimmering and smelling of spice.\n\n{{rules|Heals and confuses when eaten.}}\n\n{{K|Weight: 7 lbs.}}",
+        "comparison_name": "witchwood bark",
+        "actions": [
+          "eat",
+          "equip"
+        ],
+        "effect_details": []
+      }
+    ],
+    "status": {
+      "effects": [],
+      "effect_details": [],
+      "on_fire": false,
+      "frozen": false,
+      "nearby_liquids": [],
+      "food_water": "{{W|Hungry}} {{g|Quenched}}"
+    }
+  },
+  "source": ".runtime/jev-random-20260928/run3/player/decision-{00011,00012,00019,00020}.json"
+}

@@ -1,0 +1,1519 @@
+{
+  "version": 2,
+  "reviewed": "2026-09-28",
+  "fixed_game": "2.0.211.56",
+  "coverage": {
+    "wiki_effect_index": 78,
+    "wiki_categories": 16,
+    "wiki_liquids": 27,
+    "limits": "Index coverage is not complete coverage of runtime effects, procedural cooking, mods, translated aliases, gas density or all tonic interactions.",
+    "tonics": 11
+  },
+  "effects": {
+    "acute blinking tic": {
+      "category": "uncontrolled_action",
+      "priority": 3,
+      "tags": [
+        "control"
+      ],
+      "note": "Unplanned teleportation can invalidate the route; reassess the resulting position.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Acute_blinking_tic"
+      ],
+      "wiki_oldid": "74509"
+    },
+    "asleep": {
+      "category": "action_limit",
+      "priority": 2,
+      "tags": [
+        "restraint"
+      ],
+      "note": "Cannot act; reduced defense makes incoming attacks dangerous. Waking may leave dazed.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Asleep"
+      ],
+      "wiki_oldid": "102369"
+    },
+    "berserk": {
+      "category": "benefit",
+      "priority": 0,
+      "tags": [],
+      "note": "Improves axe dismemberment; does not establish general safety.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Berserk_(effect)"
+      ],
+      "wiki_oldid": "99487"
+    },
+    "blaze tonic": {
+      "category": "conditional_benefit",
+      "priority": 2,
+      "tags": [
+        "tonic"
+      ],
+      "note": "Heat protection comes with cold vulnerability and a need to move; stationary waiting can ignite the user.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Blaze_tonic_(effect)"
+      ],
+      "wiki_oldid": "56215"
+    },
+    "bleeding": {
+      "category": "ongoing_damage",
+      "priority": 3,
+      "tags": [
+        "damage"
+      ],
+      "note": "Ongoing HP loss; use a survival plan and verify bleeding ends.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Bleeding"
+      ],
+      "wiki_oldid": "102947"
+    },
+    "blind": {
+      "category": "perception",
+      "priority": 2,
+      "tags": [
+        "perception"
+      ],
+      "note": "Sight is impaired; do not infer an empty area from missing visible enemies.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Blind"
+      ],
+      "wiki_oldid": "56183"
+    },
+    "blurry vision": {
+      "category": "perception",
+      "priority": 2,
+      "tags": [
+        "perception"
+      ],
+      "note": "Visual information is degraded; rely on public descriptions and re-observe.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Monochrome"
+      ],
+      "wiki_oldid": "102421"
+    },
+    "broken": {
+      "category": "equipment_failure",
+      "priority": 2,
+      "tags": [
+        "equipment"
+      ],
+      "note": "The affected object cannot be used or equipped; review replacement or repair.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Broken"
+      ],
+      "wiki_oldid": "98385"
+    },
+    "budding": {
+      "category": "conditional_benefit",
+      "priority": 1,
+      "tags": [],
+      "note": "A clone is pending; recuperation can cancel the effect.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Budding"
+      ],
+      "wiki_oldid": "102544"
+    },
+    "burning": {
+      "category": "ongoing_damage",
+      "priority": 3,
+      "tags": [
+        "damage"
+      ],
+      "note": "Ongoing fire damage; verify native firefighting outcome rather than assuming waiting extinguishes it.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Burning"
+      ],
+      "wiki_oldid": "92300"
+    },
+    "choking on ash": {
+      "category": "ongoing_damage",
+      "priority": 3,
+      "tags": [
+        "damage"
+      ],
+      "note": "Ash exposure causes ongoing damage; leave exposure and verify recovery.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Choking_on_ash"
+      ],
+      "wiki_oldid": "64676"
+    },
+    "cleaved": {
+      "category": "defense_loss",
+      "priority": 2,
+      "tags": [
+        "defense"
+      ],
+      "note": "Armor value is reduced; reassess incoming physical damage.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Cleaved"
+      ],
+      "wiki_oldid": "102141"
+    },
+    "coated in plasma": {
+      "category": "elemental_vulnerability",
+      "priority": 3,
+      "tags": [
+        "plasma"
+      ],
+      "note": "Heat/cold/electric resistance drops; temperature cannot normalize passively and firefighting is weakened.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Coated_in_plasma"
+      ],
+      "wiki_oldid": "65285"
+    },
+    "confused": {
+      "category": "perception",
+      "priority": 2,
+      "tags": [
+        "perception"
+      ],
+      "note": "Names and map glyphs can be scrambled and defenses reduced; preserve prior observations, verify actual action results.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Confused"
+      ],
+      "wiki_oldid": "100526"
+    },
+    "corrected vision": {
+      "category": "benefit",
+      "priority": 0,
+      "tags": [],
+      "note": "Vision correction is beneficial; other conditions still apply.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Corrected_vision"
+      ],
+      "wiki_oldid": "77035"
+    },
+    "covered in liquid": {
+      "category": "liquid_contact",
+      "priority": 1,
+      "tags": [
+        "coating"
+      ],
+      "note": "Resolve the liquid and exposure route; coating alone does not establish disease or ingestion.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Covered_in_liquid"
+      ],
+      "wiki_oldid": "96608"
+    },
+    "covered in spores": {
+      "category": "ongoing_damage",
+      "priority": 3,
+      "tags": [
+        "damage"
+      ],
+      "note": "This named effect causes ongoing damage; distinguish it from fungal infection onset.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Covered_in_spores"
+      ],
+      "wiki_oldid": "64674"
+    },
+    "cracked": {
+      "category": "defense_loss",
+      "priority": 2,
+      "tags": [
+        "defense"
+      ],
+      "note": "Armor value is reduced; reassess incoming physical damage.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Cracked"
+      ],
+      "wiki_oldid": "97900"
+    },
+    "dazed": {
+      "category": "debilitation",
+      "priority": 2,
+      "tags": [
+        "mobility",
+        "defense"
+      ],
+      "note": "Agility, intelligence and movement are impaired.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Dazed"
+      ],
+      "wiki_oldid": "99488"
+    },
+    "deep dreaming": {
+      "category": "action_limit",
+      "priority": 2,
+      "tags": [
+        "restraint"
+      ],
+      "note": "Unresponsive; the dream context requires upper-level interpretation.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Deep_dreaming"
+      ],
+      "wiki_oldid": "84335"
+    },
+    "disoriented": {
+      "category": "defense_loss",
+      "priority": 2,
+      "tags": [
+        "defense"
+      ],
+      "note": "Dodge and mental defenses are reduced.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Disoriented"
+      ],
+      "wiki_oldid": "74431"
+    },
+    "emboldened": {
+      "category": "benefit",
+      "priority": 0,
+      "tags": [],
+      "note": "Temporary HP benefit; do not treat temporary maximum HP as permanent growth.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Emboldened"
+      ],
+      "wiki_oldid": "72997"
+    },
+    "enclosed": {
+      "category": "action_limit",
+      "priority": 2,
+      "tags": [
+        "restraint"
+      ],
+      "note": "Exit costs a turn and may fail or hurt; read the enclosing object's actual effect description.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Enclosed"
+      ],
+      "wiki_oldid": "72727"
+    },
+    "exhaustion": {
+      "category": "action_limit",
+      "priority": 2,
+      "tags": [
+        "restraint"
+      ],
+      "note": "Cannot take actions; danger increases when enemies or damage overlap.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Exhaustion"
+      ],
+      "wiki_oldid": "72996"
+    },
+    "flying": {
+      "category": "conditional_benefit",
+      "priority": 1,
+      "tags": [],
+      "note": "Changes melee reach and terrain exposure; do not assume flight can never fail.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Flying"
+      ],
+      "wiki_oldid": "95818"
+    },
+    "frenzied": {
+      "category": "conditional_benefit",
+      "priority": 1,
+      "tags": [],
+      "note": "Quickness improves but aggression changes; retain current tactical intent.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Frenzied"
+      ],
+      "wiki_oldid": "102460"
+    },
+    "frozen": {
+      "category": "action_limit",
+      "priority": 2,
+      "tags": [
+        "restraint"
+      ],
+      "note": "Physical actions are blocked; verify warming and escape in the next observation.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Frozen"
+      ],
+      "wiki_oldid": "100044"
+    },
+    "gleaming": {
+      "category": "context",
+      "priority": 1,
+      "tags": [],
+      "note": "Visible special effect; inspect its public description without inferring immunity.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Gleaming"
+      ],
+      "wiki_oldid": "100931"
+    },
+    "glotrot": {
+      "category": "disease",
+      "priority": 3,
+      "tags": [
+        "disease"
+      ],
+      "note": "Eating/drinking can cause bleeding; lost speech can block quests. Cure recipe is generated per game; regrowth alone is insufficient.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Glotrot"
+      ],
+      "wiki_oldid": "102391"
+    },
+    "greased": {
+      "category": "benefit",
+      "priority": 0,
+      "tags": [],
+      "note": "Helps traverse webs; does not grant universal immunity to liquid or terrain hazards.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Greased"
+      ],
+      "wiki_oldid": "56191"
+    },
+    "grounded": {
+      "category": "mobility_loss",
+      "priority": 2,
+      "tags": [
+        "mobility"
+      ],
+      "note": "Flight is unavailable; do not rely on airborne protection.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Grounded"
+      ],
+      "wiki_oldid": "73001"
+    },
+    "hobbled": {
+      "category": "mobility_loss",
+      "priority": 2,
+      "tags": [
+        "mobility"
+      ],
+      "note": "Movement is greatly slowed; reassess escape margins.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Hobbled"
+      ],
+      "wiki_oldid": "74506"
+    },
+    "hyper-responsive": {
+      "category": "conditional_benefit",
+      "priority": 1,
+      "tags": [],
+      "note": "Temporary quickness increase is followed by sluggishness; consider the transition.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Hyper-responsive"
+      ],
+      "wiki_oldid": "56193"
+    },
+    "ill": {
+      "category": "recovery_block",
+      "priority": 3,
+      "tags": [
+        "recovery_block"
+      ],
+      "note": "Natural HP regeneration stops and healing is reduced; ordinary resting is not a recovery plan.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Ill"
+      ],
+      "wiki_oldid": "96533"
+    },
+    "inspired": {
+      "category": "benefit",
+      "priority": 0,
+      "tags": [],
+      "note": "Affects future cooking choices; no immediate injury is implied.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Inspired"
+      ],
+      "wiki_oldid": "98437"
+    },
+    "interdicted": {
+      "category": "mobility_loss",
+      "priority": 2,
+      "tags": [
+        "mobility"
+      ],
+      "note": "Movement is slowed; account for pursuit.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Interdicted"
+      ],
+      "wiki_oldid": "15627"
+    },
+    "ironshank": {
+      "category": "disease",
+      "priority": 3,
+      "tags": [
+        "disease",
+        "mobility"
+      ],
+      "note": "Progressive movement loss can outweigh its AV gain; plan the game-specific cure.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Ironshank"
+      ],
+      "wiki_oldid": "102420"
+    },
+    "itchy skin": {
+      "category": "disease_onset",
+      "priority": 3,
+      "tags": [
+        "disease"
+      ],
+      "note": "Fungal infection onset needs timely planning; ordinary disease remedies do not necessarily work.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Itchy_skin"
+      ],
+      "wiki_oldid": "102883"
+    },
+    "latched onto": {
+      "category": "action_limit",
+      "priority": 2,
+      "tags": [
+        "restraint"
+      ],
+      "note": "Break free before moving; verify whether escape succeeded.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Latched_onto"
+      ],
+      "wiki_oldid": "73004"
+    },
+    "lost": {
+      "category": "navigation",
+      "priority": 0,
+      "tags": [
+        "no_fast_travel"
+      ],
+      "note": "World-map fast travel is unavailable until orientation is recovered.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Lost"
+      ],
+      "wiki_oldid": "95767"
+    },
+    "lovesick": {
+      "category": "debilitation",
+      "priority": 2,
+      "tags": [
+        "mobility",
+        "defense"
+      ],
+      "note": "Mental attributes and movement are reduced.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Lovesick"
+      ],
+      "wiki_oldid": "102426"
+    },
+    "metabolizing": {
+      "category": "conditional_benefit",
+      "priority": 1,
+      "tags": [],
+      "note": "Cooking effects are procedural; use the full public description, never assume every meal is safe.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Metabolizing"
+      ],
+      "wiki_oldid": "56194"
+    },
+    "monochrome": {
+      "category": "perception",
+      "priority": 2,
+      "tags": [
+        "perception"
+      ],
+      "note": "Color information is limited; do not classify danger from color alone.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Monochrome"
+      ],
+      "wiki_oldid": "102421"
+    },
+    "mutating": {
+      "category": "persistent_change",
+      "priority": 3,
+      "tags": [],
+      "note": "Delayed mutation can add a defect and alter the build; request an upper-level plan.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Mutating"
+      ],
+      "wiki_oldid": "20124"
+    },
+    "omniphase": {
+      "category": "phase",
+      "priority": 2,
+      "tags": [],
+      "note": "Can interact across phases; ordinary phasing protection is not universal.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Omniphase"
+      ],
+      "wiki_oldid": "56195"
+    },
+    "overburdened": {
+      "category": "action_limit",
+      "priority": 2,
+      "tags": [
+        "restraint"
+      ],
+      "note": "Cannot move until the burden is addressed; do not repeat movement commands.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Overburdened"
+      ],
+      "wiki_oldid": "64696"
+    },
+    "paralyzed": {
+      "category": "action_limit",
+      "priority": 2,
+      "tags": [
+        "restraint"
+      ],
+      "note": "Movement and attacks are blocked and dodge is lost.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Paralyzed"
+      ],
+      "wiki_oldid": "56196"
+    },
+    "phase spider venom": {
+      "category": "ongoing_damage",
+      "priority": 3,
+      "tags": [
+        "damage",
+        "recovery_block"
+      ],
+      "note": "Damage, reduced healing and phasing overlap; verify interaction and exit position before phase ends.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Phase_spider_venom"
+      ],
+      "wiki_oldid": "21910"
+    },
+    "phased": {
+      "category": "phase",
+      "priority": 2,
+      "tags": [],
+      "note": "Interaction requires compatible phase; materializing completely inside solid terrain can be fatal.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Phased"
+      ],
+      "wiki_oldid": "98687"
+    },
+    "phosphorescent": {
+      "category": "benefit",
+      "priority": 0,
+      "tags": [],
+      "note": "Emits light; does not establish enemy absence or other immunity.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Phosphorescent"
+      ],
+      "wiki_oldid": "102548"
+    },
+    "poisoned": {
+      "category": "ongoing_damage",
+      "priority": 3,
+      "tags": [
+        "damage",
+        "recovery_block"
+      ],
+      "note": "Ongoing damage blocks natural regeneration and reduces healing; illness may follow.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Poisoned"
+      ],
+      "wiki_oldid": "96532"
+    },
+    "poisoned by gas": {
+      "category": "ongoing_damage",
+      "priority": 3,
+      "tags": [
+        "damage"
+      ],
+      "note": "Gas poison causes ongoing damage; do not automatically import venom's recovery penalties.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Poisoned_by_gas"
+      ],
+      "wiki_oldid": "73973"
+    },
+    "power skating": {
+      "category": "conditional_benefit",
+      "priority": 2,
+      "tags": [
+        "combat_tradeoff"
+      ],
+      "note": "Faster movement trades off melee accuracy and possibly dodge; review before fighting.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Power_skating"
+      ],
+      "wiki_oldid": "100942"
+    },
+    "prone": {
+      "category": "action_limit",
+      "priority": 2,
+      "tags": [
+        "restraint"
+      ],
+      "note": "Standing costs a turn; reduced defenses and contact with floor liquids can compound danger.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Prone"
+      ],
+      "wiki_oldid": "22779"
+    },
+    "proselytized": {
+      "category": "context",
+      "priority": 1,
+      "tags": [],
+      "note": "Recruitment changes allegiance; infer neither bodily damage nor hostility from this effect alone.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Proselytized"
+      ],
+      "wiki_oldid": "99925"
+    },
+    "psionically cleaved": {
+      "category": "defense_loss",
+      "priority": 2,
+      "tags": [
+        "defense"
+      ],
+      "note": "Mental armor is reduced; mental attacks become more dangerous.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Psionically_cleaved"
+      ],
+      "wiki_oldid": "102142"
+    },
+    "pulsed": {
+      "category": "equipment_failure",
+      "priority": 2,
+      "tags": [
+        "equipment"
+      ],
+      "note": "EMP-sensitive devices or robotic bodies can stop working; inspect the affected subject.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Pulsed"
+      ],
+      "wiki_oldid": "56208"
+    },
+    "rusted": {
+      "category": "equipment_failure",
+      "priority": 3,
+      "tags": [
+        "equipment"
+      ],
+      "note": "Metal gear may become unusable and a repeated rust event can destroy it; robotic bodies can also be slowed.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Rusted"
+      ],
+      "wiki_oldid": "102170"
+    },
+    "shaken": {
+      "category": "defense_loss",
+      "priority": 2,
+      "tags": [
+        "defense"
+      ],
+      "note": "Dodge is reduced; consider hostile proximity.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Shaken"
+      ],
+      "wiki_oldid": "74436"
+    },
+    "shamed": {
+      "category": "debilitation",
+      "priority": 2,
+      "tags": [
+        "defense",
+        "mobility"
+      ],
+      "note": "Multiple combat and mental penalties reduce safety margins.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Shamed"
+      ],
+      "wiki_oldid": "101524"
+    },
+    "shimmering": {
+      "category": "mobility_loss",
+      "priority": 2,
+      "tags": [
+        "mobility"
+      ],
+      "note": "Severe quickness reduction changes action timing despite the perceptual benefit.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Shimmering"
+      ],
+      "wiki_oldid": "78918"
+    },
+    "sitting": {
+      "category": "action_limit",
+      "priority": 2,
+      "tags": [
+        "restraint"
+      ],
+      "note": "Standing takes a turn and dodge is reduced; the chair may heal or damage, so read its description.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Sitting"
+      ],
+      "wiki_oldid": "99719"
+    },
+    "sluggish": {
+      "category": "mobility_loss",
+      "priority": 2,
+      "tags": [
+        "mobility"
+      ],
+      "note": "Quickness is reduced; allow for enemies acting more often.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Sluggish"
+      ],
+      "wiki_oldid": "56210"
+    },
+    "sore throat": {
+      "category": "disease_onset",
+      "priority": 3,
+      "tags": [
+        "disease"
+      ],
+      "note": "Possible glotrot onset; plan prevention or the current game's cure before speech is lost.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Glotrot"
+      ],
+      "wiki_oldid": "102391"
+    },
+    "springing": {
+      "category": "benefit",
+      "priority": 0,
+      "tags": [],
+      "note": "Improves sprint/power-skating speed; does not remove their attack tradeoffs.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Springing"
+      ],
+      "wiki_oldid": "98650"
+    },
+    "sprinting": {
+      "category": "conditional_benefit",
+      "priority": 2,
+      "tags": [
+        "combat_tradeoff"
+      ],
+      "note": "Faster travel can reduce defense/accuracy; attacking or other actions may end it.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Sprinting"
+      ],
+      "wiki_oldid": "101152"
+    },
+    "stained by liquid": {
+      "category": "liquid_contact",
+      "priority": 1,
+      "tags": [
+        "coating"
+      ],
+      "note": "A dry stain is not current liquid contact; do not infer ongoing damage from its name.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Stained_by_liquid"
+      ],
+      "wiki_oldid": "74438"
+    },
+    "stiff legs": {
+      "category": "disease_onset",
+      "priority": 3,
+      "tags": [
+        "disease"
+      ],
+      "note": "Possible ironshank onset; plan prevention before mobility progressively worsens.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Ironshank"
+      ],
+      "wiki_oldid": "102420"
+    },
+    "stony": {
+      "category": "mobility_loss",
+      "priority": 3,
+      "tags": [
+        "mobility"
+      ],
+      "note": "Movement penalty grows each turn; safe recuperation can remove this particular effect.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Stony"
+      ],
+      "wiki_oldid": "102425"
+    },
+    "stuck": {
+      "category": "action_limit",
+      "priority": 2,
+      "tags": [
+        "restraint"
+      ],
+      "note": "Movement is blocked; verify attempts to break free.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Stuck"
+      ],
+      "wiki_oldid": "103077"
+    },
+    "stunned": {
+      "category": "action_limit",
+      "priority": 2,
+      "tags": [
+        "restraint"
+      ],
+      "note": "Actions and dodge are lost.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Stunned"
+      ],
+      "wiki_oldid": "102001"
+    },
+    "stunned by gas": {
+      "category": "action_limit",
+      "priority": 2,
+      "tags": [
+        "restraint"
+      ],
+      "note": "Gas density controls slowing versus complete inaction; density may be unobserved.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Stunned_by_gas"
+      ],
+      "wiki_oldid": "102812"
+    },
+    "submerged": {
+      "category": "context",
+      "priority": 1,
+      "tags": [],
+      "note": "Underwater position changes interactions; do not infer immunity to the liquid.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Submerged"
+      ],
+      "wiki_oldid": "78917"
+    },
+    "syphoned": {
+      "category": "ongoing_damage",
+      "priority": 3,
+      "tags": [
+        "damage"
+      ],
+      "note": "Life is drained over time; reassess the source and continuing exposure.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Syphoned"
+      ],
+      "wiki_oldid": "74446"
+    },
+    "terrified": {
+      "category": "uncontrolled_action",
+      "priority": 3,
+      "tags": [
+        "control"
+      ],
+      "note": "Forced fleeing can override intended actions; recheck position and surroundings.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Terrified"
+      ],
+      "wiki_oldid": "77044"
+    },
+    "wakeful": {
+      "category": "benefit",
+      "priority": 0,
+      "tags": [],
+      "note": "Temporarily prevents sleep; other impairments remain possible.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Wakeful"
+      ],
+      "wiki_oldid": "31461"
+    },
+    "waking dream": {
+      "category": "context",
+      "priority": 2,
+      "tags": [],
+      "note": "Dream progression changes the objective and consequences; request contextual planning.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Waking_dream"
+      ],
+      "wiki_oldid": "84338"
+    },
+    "war trance": {
+      "category": "benefit",
+      "priority": 0,
+      "tags": [],
+      "note": "Temporary quickness and willpower benefit.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/War_trance"
+      ],
+      "wiki_oldid": "31486"
+    },
+    "healing": {
+      "category": "recovery",
+      "priority": 0,
+      "tags": [
+        "recovery"
+      ],
+      "note": "Publicly observed gradual HP recovery; it does not erase confusion, poison or illness.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Witchwood_bark"
+      ],
+      "wiki_oldid": "94241"
+    },
+    "blinded": {
+      "category": "perception",
+      "priority": 2,
+      "tags": [
+        "perception"
+      ],
+      "note": "Sight is impaired; do not infer an empty area from missing visible enemies.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Blind"
+      ],
+      "wiki_oldid": "56183",
+      "alias_of": "blind"
+    },
+    "webbed": {
+      "category": "action_limit",
+      "priority": 2,
+      "tags": [
+        "restraint"
+      ],
+      "note": "Movement is blocked; verify attempts to break free.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Stuck"
+      ],
+      "wiki_oldid": "103077",
+      "alias_of": "stuck"
+    },
+    "entangled": {
+      "category": "action_limit",
+      "priority": 2,
+      "tags": [
+        "restraint"
+      ],
+      "note": "Movement is blocked; verify attempts to break free.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Stuck"
+      ],
+      "wiki_oldid": "103077",
+      "alias_of": "stuck"
+    },
+    "grabbed": {
+      "category": "action_limit",
+      "priority": 2,
+      "tags": [
+        "restraint"
+      ],
+      "note": "Break free before moving; verify whether escape succeeded.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Latched_onto"
+      ],
+      "wiki_oldid": "73004",
+      "alias_of": "latched onto"
+    },
+    "nosebleed": {
+      "category": "ongoing_damage",
+      "priority": 3,
+      "tags": [
+        "damage"
+      ],
+      "note": "Ongoing HP loss; use a survival plan and verify bleeding ends.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Bleeding"
+      ],
+      "wiki_oldid": "102947",
+      "alias_of": "bleeding"
+    }
+  },
+  "liquids": [
+    {
+      "name": "acid",
+      "aliases": [
+        "acid",
+        "acidic"
+      ],
+      "tags": [
+        "damage"
+      ],
+      "note": "Current contact can injure the body and equipment; resistance of one does not prove safety of the other.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Acid"
+      ],
+      "wiki_oldid": "103006"
+    },
+    {
+      "name": "algae",
+      "aliases": [
+        "algae",
+        "algal"
+      ],
+      "tags": [
+        "context"
+      ],
+      "note": "Coating alone is not disease or poisoning.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Algae"
+      ],
+      "wiki_oldid": "102927"
+    },
+    {
+      "name": "asphalt",
+      "aliases": [
+        "asphalt",
+        "tar",
+        "tarry",
+        "tarred"
+      ],
+      "tags": [
+        "sticky",
+        "fuel"
+      ],
+      "note": "Ground contact can hinder movement; burning liquid and ingestion are separate risks.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Asphalt"
+      ],
+      "wiki_oldid": "103117"
+    },
+    {
+      "name": "black ooze",
+      "aliases": [
+        "black ooze",
+        "ooze",
+        "oozing"
+      ],
+      "tags": [
+        "exposure"
+      ],
+      "note": "Ingestion, prone contact or miasma can cause disease; coating alone is not a diagnosis.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Black_ooze"
+      ],
+      "wiki_oldid": "102900"
+    },
+    {
+      "name": "blood",
+      "aliases": [
+        "blood",
+        "bloody"
+      ],
+      "tags": [
+        "context"
+      ],
+      "note": "External blood is not evidence of active bleeding.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Blood"
+      ],
+      "wiki_oldid": "98694"
+    },
+    {
+      "name": "brain brine",
+      "aliases": [
+        "brain brine",
+        "nervous"
+      ],
+      "tags": [
+        "context"
+      ],
+      "note": "Ingestion can confuse and change mental/build properties; a stain is not ingestion.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Brain_brine"
+      ],
+      "wiki_oldid": "102899"
+    },
+    {
+      "name": "brown sludge",
+      "aliases": [
+        "brown sludge",
+        "sludge",
+        "sludgy"
+      ],
+      "tags": [
+        "exposure"
+      ],
+      "note": "Prone exposure can rust gear; confirm actual rust rather than inferring it from coating.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Brown_sludge"
+      ],
+      "wiki_oldid": "74459"
+    },
+    {
+      "name": "cider",
+      "aliases": [
+        "cider",
+        "spiced",
+        "fragrant"
+      ],
+      "tags": [
+        "context"
+      ],
+      "note": "Ingestion and coating differ; consumption can cause confusion.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Cider"
+      ],
+      "wiki_oldid": "74460"
+    },
+    {
+      "name": "cloning draught",
+      "aliases": [
+        "cloning draught",
+        "homogenized"
+      ],
+      "tags": [
+        "context"
+      ],
+      "note": "Pure exposure may initiate cloning; mixed-liquid purity is not known from the adjective alone.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Cloning_draught"
+      ],
+      "wiki_oldid": "102959"
+    },
+    {
+      "name": "convalessence",
+      "aliases": [
+        "convalessence",
+        "luminous"
+      ],
+      "tags": [
+        "cooling"
+      ],
+      "note": "Ground contact cools and can heal organic creatures; watch freezing instead of treating it as unconditionally safe.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Convalessence"
+      ],
+      "wiki_oldid": "103002"
+    },
+    {
+      "name": "gel",
+      "aliases": [
+        "gel",
+        "unctuous"
+      ],
+      "tags": [
+        "slippery"
+      ],
+      "note": "Open liquid terrain may cause slipping; dry stains do not.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Gel"
+      ],
+      "wiki_oldid": "74463"
+    },
+    {
+      "name": "green goo",
+      "aliases": [
+        "green goo",
+        "goo",
+        "gooey"
+      ],
+      "tags": [
+        "exposure"
+      ],
+      "note": "Prone contact or ingestion may poison; watch for the actual effect.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Green_goo"
+      ],
+      "wiki_oldid": "102943"
+    },
+    {
+      "name": "honey",
+      "aliases": [
+        "honey",
+        "honeyed",
+        "sticky"
+      ],
+      "tags": [
+        "sticky"
+      ],
+      "note": "Open terrain may trap movement; carried food or a stain is a different exposure.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Honey"
+      ],
+      "wiki_oldid": "74466"
+    },
+    {
+      "name": "ink",
+      "aliases": [
+        "ink",
+        "inky"
+      ],
+      "tags": [
+        "slippery"
+      ],
+      "note": "Open terrain can cause sliding; wiki depth formulas vary by version and are not used here.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Ink"
+      ],
+      "wiki_oldid": "74467"
+    },
+    {
+      "name": "lava",
+      "aliases": [
+        "lava",
+        "magma",
+        "magmatic",
+        "molten rock"
+      ],
+      "tags": [
+        "damage"
+      ],
+      "note": "Dangerous heat exposure; verify both body and equipment condition.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Lava"
+      ],
+      "wiki_oldid": "102951"
+    },
+    {
+      "name": "molten wax",
+      "aliases": [
+        "molten wax",
+        "wax",
+        "waxen",
+        "waxy"
+      ],
+      "tags": [
+        "sticky"
+      ],
+      "note": "Sticky terrain; the word molten alone does not justify applying the lava rule.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Molten_wax"
+      ],
+      "wiki_oldid": "103116"
+    },
+    {
+      "name": "neutron flux",
+      "aliases": [
+        "neutron flux",
+        "neutronic",
+        "neutral",
+        "flux"
+      ],
+      "tags": [
+        "volatile"
+      ],
+      "note": "Open/contact flux is an extreme hazard. A safely contained phial is not current bodily exposure; containment failure is separate.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Neutron_flux"
+      ],
+      "wiki_oldid": "103025"
+    },
+    {
+      "name": "oil",
+      "aliases": [
+        "oil",
+        "oily"
+      ],
+      "tags": [
+        "slippery",
+        "fuel"
+      ],
+      "note": "Slippery terrain and combustible liquid; coating does not prove an extra fire-damage multiplier.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Oil"
+      ],
+      "wiki_oldid": "102928"
+    },
+    {
+      "name": "primordial soup",
+      "aliases": [
+        "primordial soup",
+        "soup",
+        "soupy"
+      ],
+      "tags": [
+        "spawning"
+      ],
+      "note": "Mixed open pools can generate hostile sludge; composition and volume are not inferred from appearance alone.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Primordial_soup"
+      ],
+      "wiki_oldid": "102385"
+    },
+    {
+      "name": "putrescence",
+      "aliases": [
+        "putrescence",
+        "putrid"
+      ],
+      "tags": [
+        "context"
+      ],
+      "note": "Drinking can cause vomiting and water loss; coating alone is not that event.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Putrescence"
+      ],
+      "wiki_oldid": "103003"
+    },
+    {
+      "name": "salt",
+      "aliases": [
+        "salt",
+        "salty",
+        "brackish"
+      ],
+      "tags": [
+        "context"
+      ],
+      "note": "Do not substitute salty liquid for safe drinking water; a dry crust is not thirst damage.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Salt"
+      ],
+      "wiki_oldid": "102952"
+    },
+    {
+      "name": "sap",
+      "aliases": [
+        "sap",
+        "sugary",
+        "sappy"
+      ],
+      "tags": [
+        "sticky"
+      ],
+      "note": "Open terrain may impede movement.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Sap"
+      ],
+      "wiki_oldid": "102934"
+    },
+    {
+      "name": "slime",
+      "aliases": [
+        "slime",
+        "slimy"
+      ],
+      "tags": [
+        "slippery"
+      ],
+      "note": "Terrain can cause slipping; ingestion can confuse; coating alone proves neither.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Slime"
+      ],
+      "wiki_oldid": "78957"
+    },
+    {
+      "name": "sunslag",
+      "aliases": [
+        "sunslag",
+        "radiant"
+      ],
+      "tags": [
+        "context"
+      ],
+      "note": "Consumption can improve quickness; external coating is not a stat gain.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Sunslag"
+      ],
+      "wiki_oldid": "102932"
+    },
+    {
+      "name": "warm static",
+      "aliases": [
+        "warm static",
+        "entropic"
+      ],
+      "tags": [
+        "transforming"
+      ],
+      "note": "Impure contact can produce arbitrary effects; pure pouring/drinking can transform a body or build. Do not assume purity.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Warm_static"
+      ],
+      "wiki_oldid": "102965"
+    },
+    {
+      "name": "water",
+      "aliases": [
+        "water",
+        "wet",
+        "damp",
+        "dilute"
+      ],
+      "tags": [
+        "context"
+      ],
+      "note": "Liquid water, frozen terrain and scalding vapor differ; observe the actual condition.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Water"
+      ],
+      "wiki_oldid": "102897"
+    },
+    {
+      "name": "wine",
+      "aliases": [
+        "wine",
+        "lush"
+      ],
+      "tags": [
+        "context"
+      ],
+      "note": "Ingestion may confuse; a coating or stain is not intoxication.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Wine"
+      ],
+      "wiki_oldid": "103004"
+    }
+  ],
+  "tonics": [
+    {
+      "name": "blaze injector",
+      "note": "Heat protection and quickness trade off cold resistance; non-movement heats the user and burning ends the tonic. Adverse reaction can ignite.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Blaze_injector",
+        "https://wiki.cavesofqud.com/wiki/Tonics"
+      ],
+      "wiki_oldid": "102181"
+    },
+    {
+      "name": "eaters' nectar injector",
+      "note": "Permanent build change differs by genotype. The wiki identifies this tonic as exempt from overdose; do not apply generic overdose rules to it.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Eaters%27_nectar_injector",
+        "https://wiki.cavesofqud.com/wiki/Tonics"
+      ],
+      "wiki_oldid": "102193"
+    },
+    {
+      "name": "hulk honey injector",
+      "note": "Strength and temporary HP trade off movement and ongoing nonlethal self-damage. Pain suppression hides exact HP in ordinary play; do not rely on apparently precise bridge HP. Adverse reaction can cause enraged confusion.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Hulk_honey_injector",
+        "https://wiki.cavesofqud.com/wiki/Tonics"
+      ],
+      "wiki_oldid": "102184"
+    },
+    {
+      "name": "love injector",
+      "note": "Allegiance/affection changes are contextual; adverse reaction can ignite the user.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Love_injector",
+        "https://wiki.cavesofqud.com/wiki/Tonics"
+      ],
+      "wiki_oldid": "102187"
+    },
+    {
+      "name": "rubbergum injector",
+      "note": "Elemental/bludgeoning protection trades off AV and bleeding saves; adverse reaction can repeatedly cause prone unless flying.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Rubbergum_injector",
+        "https://wiki.cavesofqud.com/wiki/Tonics"
+      ],
+      "wiki_oldid": "102185"
+    },
+    {
+      "name": "salve injector",
+      "note": "Healing is gradual and reduced by poison/illness. Ordinary adverse reactions can reduce the benefit; Tonic Allergy can cause a random adverse effect while retaining healing.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Salve_injector",
+        "https://wiki.cavesofqud.com/wiki/Tonics"
+      ],
+      "wiki_oldid": "102183"
+    },
+    {
+      "name": "shade oil injector",
+      "note": "Mutants can phase randomly; verify phase-compatible actions and safe materialization. Adverse reaction can spawn hostile shadow clones.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Shade_oil_injector",
+        "https://wiki.cavesofqud.com/wiki/Tonics"
+      ],
+      "wiki_oldid": "102188"
+    },
+    {
+      "name": "skulk injector",
+      "note": "Benefits differ between darkness and daylight; light-based damage is amplified. Adverse reaction can cause blindness.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Skulk_injector",
+        "https://wiki.cavesofqud.com/wiki/Tonics"
+      ],
+      "wiki_oldid": "102186"
+    },
+    {
+      "name": "sphynx salt injector",
+      "note": "Confusion protection and genotype-specific benefits; adverse reaction can impose long mental-mutation cooldowns. Precognition is not an available executor action.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Sphynx_salt_injector",
+        "https://wiki.cavesofqud.com/wiki/Tonics"
+      ],
+      "wiki_oldid": "102811"
+    },
+    {
+      "name": "ubernostrum injector",
+      "note": "Gradual healing and delayed biological-debuff removal/limb regrowth; do not assume an immediate universal cure. Tonic Allergy can cause random adverse effects.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Ubernostrum_injector",
+        "https://wiki.cavesofqud.com/wiki/Tonics"
+      ],
+      "wiki_oldid": "102191"
+    },
+    {
+      "name": "luminous hoarshroom",
+      "note": "This food counts as a tonic. Healing ends before its other benefits; poison prevention does not cure existing poison. Adverse reaction freezes and 100 cold resistance does not fully prevent it.",
+      "sources": [
+        "https://wiki.cavesofqud.com/wiki/Luminous_hoarshroom_(food)",
+        "https://wiki.cavesofqud.com/wiki/Tonics"
+      ],
+      "wiki_oldid": "102653"
+    }
+  ]
+}
