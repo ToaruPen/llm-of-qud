@@ -1,0 +1,70 @@
+# 長期記憶・操作改修と実地試験 — 2026-09-27
+
+改修後は4走行、計30分42.4秒、151判断を受理・151判断を完了した。追加の死亡は0回。地下での退避を経てJoppaへ帰還し、保存・再起動を繰り返して記憶を引き継いだ。初回の判断数超過と終了通知の欠落は、走行後に実装を直し、後半2走行で再試験した。
+
+これは前回の約1時間走行を受けた改修試験であり、改修後に連続1時間を達成した記録ではない。各走行のソースは `source-run` と `source-hashes.json` に保存した。
+
+## 修正と、その根拠
+
+| 発見した問題 | 改修 | 確認 |
+|---|---|---|
+| 危険・退避計画が文脈交代で弱まる | `get_state.memory.focus` に計画、危険、方針を見直す条件を提示。方針変更には新しい観測根拠を要求 | 退避の引継ぎ、HP4での回復、再起動後の継続を台帳で確認。敵の強さの一般化はなお残る |
+| 記憶の書換えに時間を使う | 4項目各1,200文字以内の `memory_checkpoint` を一括保存。未変更の教訓・地理の再記述を減らす | 文脈末尾の時間比率を同じ集計方法で比較 |
+| 検索が重複・別階層・意図の行で膨らむ | 現在のゾーン・復帰時点で絞込み、重複・意図の行を除外。HP・危険・クエスト・地面の一致箇所を有効なJSONへ要約 | 回帰テストと実機MCPのクエスト検索 |
+| 未解決モーダルで出典が曖昧、監査失敗でもノートが残り得る | モーダル中の現在出典・書込みを拒否。既存writeとcheckpointの両方を監査と同じトランザクションにする | 失敗を再現してから修正、ロールバックを確認 |
+| 装備操作がない／移動不成立の消費を見落とす | ゲーム標準の `equip` を接続。消費を伴う不成立は `blocked_after_effect` で区別 | 装備は実機台本試験、消費判定はC#回帰テスト |
+| 10判断を超えても受理される | 監督専用の10判断枠と排他ロックを追加。brokerで11回目を送信前に拒否。ノート更新で枠を増やさない | Python・HTTP回帰と後半2走行後の実機MCP拒否試験。台帳に行動が追加されないことも照合 |
+| 未解決モーダルから新文脈を起動すると前の行動も数える | 運転器の起動時に未解決モーダルを拒否する | 回帰の失敗を再現し、Claude起動前・判断枠の発行前に止まることを確認 |
+| 保存直後にBridgeが破棄され終了通知が消える | `suspended` の送信と正常切断応答を上限付きで待ってからゲーム終了 | 通信テストの正常・異常・無応答と、後半2走行の `suspended:1`、`pending:null` |
+| play-run3で拾った宝箱を開けない | 所持中の非生物の容器に限定した `open` を追加。既存の標準操作とモーダル経路を使う | 複製セーブで宝箱の中身を表示して取消。非容器の拒否も無消費で確認 |
+
+後半の終了待ちは通信の完了確認であり、永続化ACKではない。台帳の行、更新されたセーブ、ゲーム終了はそれぞれ別途検証した。既に開始した受信待ちにも期限を効かせ、異常切断を成功と扱わない。正常切断テストの1秒期限で一度失敗したため、試験側の期限を5秒に戻し、失敗記録も保持した。
+
+## 自律プレイの結果
+
+実際の判断は全走行でClaude Code `claude-opus-5-5` / `xhigh` が選択した。Codexによる装備・上限拒否の台本試験は、この表に数えない。
+
+| 走行 | 経過時間 | 受理 / 完了 | 死亡 / 喪失ターン | ゲームターン | 最後のact→終了 | 最初の保存→終了 |
+|---|---:|---:|---:|---:|---:|---:|
+| 前回1時間 | 62分13.5秒 | 270 / 269 | 1 / 356 | 19→264 | 34.7% | 24.5% |
+| play-run1 | 12分29.1秒 | 61 / 61 | 0 / 0 | 273→345 | 15.5% | 3.9% |
+| play-run2 | 9分23.4秒 | 50 / 50 | 0 / 0 | 345→437 | 17.6% | 6.1% |
+| play-run3 | 6分47.8秒 | 30 / 30 | 0 / 0 | 437→539 | 13.8% | 2.8% |
+| play-run4 | 2分2.1秒 | 10 / 10 | 0 / 0 | 539→588 | 13.7% | 2.8% |
+
+分母は各走行の壁時計時間。最後のactからの末尾時間には結果待ち・状態確認・記憶更新・最終報告を含む。全改修走行の合計では、末尾比率は前回34.7%から15.6%、最初の保存呼出しから終了までは24.5%から4.3%となった。最初の保存文を考える時間は含まない。場面と変更内容が異なるため、因果効果や死亡率改善を証明する比較ではない。[集計スクリプト](/Users/sankenbisha/Dev/llm-of-qud/.codex/artifacts/analyze-memory-improvement-20260927.py)。
+
+play-run1は20分予定だったが、6文脈目で11判断が受理され、12分29.1秒で監督が停止した。検出はできたが上限遵守は失敗である。play-run2では開始・終了seqを明示し、各文脈10判断で進んだ。両走行では保存・正常終了は確認できても、終了通知が台帳に届かなかった。これを直した版がplay-run3/4である。後半では11回目を意図的に要求したAPI試験が `episode_complete` で拒否され、台帳は変化しなかった。
+
+play-run3のプレイヤー終了後、受入スクリプトのPython読み込みパス不足で後処理が一度止まった。ゲームは判断待ちのまま保持され、修正した後処理だけを再実行して上限拒否・保存・正常終了を確認した。ゲーム行動の追加はない。元の失敗ログと後処理ログを両方残した。play-run4では起動から終了まで修正済みスクリプトを通った。
+
+play-run1では別個体の過去の成功からムカデを弱いと推定して攻撃し、5ダメージの直後に退避した（seq24→25）。階段を追ってきた敵を見ても退避を継続し（30→31）、別の戦士に塞がれHP4へ落ちるとwitchwood barkでHP17へ回復した（34）。文脈を越えて退避した一方、seq51の `goto` は想定した西側の退路から東へ進み、追跡者に再接近した。記憶した危険座標は、ゲーム標準の経路探索へ直接渡されていない。
+
+その後play-run2では中立の犬と場所を交換して退路を開き、地下から地表へ戻り、JoppaへHP18/18で帰還した。退避が永久に続いたわけではない。最後の保存状態はHP 18/18、ターン588、ゾーン `JoppaWorld.11.20.1.1.11` の(32,17)。クエスト状態の本文は[最終分析JSON](/Users/sankenbisha/Dev/llm-of-qud/.runtime/memory-improved-20260927/play-run4/analysis.json)を参照する。
+
+play-run3ではArgyveのクエストも受注し、Red Rockを再探索した。拾った宝箱に `apply` を試して拒否され、操作の不足が判明した。`open` 追加後のplay-run4ではClaudeが自ら宝箱を開き、中身を確認して取消し、探索へ戻った（seq3）。Watervine・Argyveのいずれもまだ完了していない。ゲームは保存して終了している。
+
+## 判断再生と操作API試験
+
+前回seq151（死亡直前）とseq197（既知の拘束地点へ進む直前）を各2回、当時までの観測・ノートだけでClaudeに提示した。前者は2回とも北西へ退避、後者は2回とも危険地点から離れた南への単歩を選んだ。ただし1回は `move` に不要な `target` を付けた。方向選択は4/4、実APIの形式検証は3/4。ゲームには送信しておらず、旧版を同条件で再生成したA/B試験でもない。[入力と公開判断](/Users/sankenbisha/Dev/llm-of-qud/.runtime/memory-improved-20260927/replay/)、[形式検証](/Users/sankenbisha/Dev/llm-of-qud/.runtime/memory-improved-20260927/replay/decision-validation.json)。内部の思考本文は保存していない。
+
+装備の実機試験ではtorchの部位選択で左手を選び、bronze battle axeが所持品へ戻り、torchが左手に付いた。torchの所持数は8→7、1ターン、エネルギー1038→-49。別の選択の取消と、既に装備済みのfursの再指定は無消費だった。初期fixtureにleather capがなかった失敗、foodは手に持てるという想定違いも記録した。HTTP待ち時間超過後に受理済みの行動を再送していない。[台本試験記録](/Users/sankenbisha/Dev/llm-of-qud/.runtime/memory-improved-20260927/equipment/)。すべての装備種別の同等性試験ではない。
+
+宝箱の台本試験にはplay-run3のセーブの複製を使った。標準画面にwaterskinとwoven tunicが表示され、取消後に0ターン・エネルギー1174のまま戻った。witchwood barkへの `open` は `item_action_unavailable` で無消費だった。この試験用セーブと操作結果をClaudeの記憶へは入れず、自律再開には元のplay-run3の保存データを使った。[台本試験記録](/Users/sankenbisha/Dev/llm-of-qud/.runtime/memory-improved-20260927/container/)。地面の容器の直接開封、空の容器への収納、取引は未対応。
+
+別の複製セーブではwoven tunicを選び、続く標準メニューの `get` を選択した。容器から消えて所持品へ増えたこと、容器を閉じて通常状態へ戻れることを確認した。取出しでは世界ターンの前進は0でも、エネルギー1174→229を消費した。[取出し試験](/Users/sankenbisha/Dev/llm-of-qud/.runtime/memory-improved-20260927/container-take/)。この試験も自律プレイの保存データへ混ぜていない。
+
+## 検証と残件
+
+- Python全229テスト合格。変更対象13ファイルのRuffは指摘なし。[テスト](/Users/sankenbisha/Dev/llm-of-qud/.runtime/memory-improved-20260927/checks/final-iteration-python-tests.log)、[Ruff](/Users/sankenbisha/Dev/llm-of-qud/.runtime/memory-improved-20260927/checks/final-ruff.log)。
+- C# policy/bridge 107項目、modal 134項目、background policy 15項目が合格。固定版2.0.211.56のDLLでコンパイル成功。既存obsolete警告2件は残る。[通信・操作テスト](/Users/sankenbisha/Dev/llm-of-qud/.runtime/memory-improved-20260927/checks/open-green-policy.log)、[コンパイル](/Users/sankenbisha/Dev/llm-of-qud/.runtime/memory-improved-20260927/checks/open-compile.log)。Roslynの既存6候補は保持した。[解析結果](/Users/sankenbisha/Dev/llm-of-qud/.runtime/memory-improved-20260927/checks/open-final-roslyn.log)。
+- 各走行の台帳ハッシュ鎖、出典の実在、未来の出典混入、ソースの保存ハッシュを照合した。許可した固定ゲームと3 modのみ。OS前面化・画面上のゲーム窓は観測0。[終了・ソース保全確認](/Users/sankenbisha/Dev/llm-of-qud/.runtime/memory-improved-20260927/process-cleanup.json)。
+- ロード時のエネルギー+100は固定版のロード直後の行動順・Speed加算と整合する。値を書き戻すとゲーム挙動へ介入するため補正しない。以前のHP+1は説明し切れていない。[根拠と限界](/Users/sankenbisha/Dev/llm-of-qud/.codex/artifacts/reload-energy-analysis-20260927.md)。
+- 今回出現したresult理由は `ARRIVED, BUDGET, NEW_HOSTILE, dispatched, executed, item_action_unavailable, unsafe_goto, unsafe_rest`。`blocked_after_effect` は未出現で、この分岐の確認はC#回帰テストに限る。
+- 記憶の出典が存在しても文章の正しさまでは保証しない。敵の強さの一般化、未確認経路へのgoto、目標選択など、モデルの戦術判断には改善余地がある。今回は経路探索への危険制約やゲーム攻略ポリシーの新しい層は導入していない。
+- 検索はFTS5方式。ノート履歴検索・埋込み検索は未追加。正式SDKのM2/M3やゲームクリアの達成とは区別する。
+
+- play-run1: `27a9a914-7814-4723-8230-708a1d76156b`
+- play-run2: `71d2e200-c7c6-4354-8a4e-5842d7c723d9`
+- play-run3: `e512cb8f-2b20-4784-bf86-dbc1b78b433f`
+- play-run4: `da4bc0fc-e0fa-4ad0-86fe-ca0cbf8c9ef0`
